@@ -110,6 +110,7 @@ void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller)
 *************************************************/
 void PCT_HandleCloudEvent(u8 *pu8Msg, u32 u32DataLen)
 {
+#if 0
     u32 u32Index;
     Printf_High("recv msg len = %d\n", u32DataLen);
     for (u32Index = 0; u32Index < u32DataLen; u32Index++)
@@ -118,6 +119,7 @@ void PCT_HandleCloudEvent(u8 *pu8Msg, u32 u32DataLen)
     }
     Printf_High("\n");
     return;
+#endif
 }
 /*************************************************
 * Function: PCT_HandleMoudleEvent

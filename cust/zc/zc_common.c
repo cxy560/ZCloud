@@ -1,14 +1,13 @@
-#include <stdio.h>
-#include "types.h"
-#include "iot_api.h"
+#include <zc_common.h>
 
 extern 	char *optarg; 
 
-ULONG g_TraceSwitch = 0;
-UCHAR g_TestSrcMac[] = {0xF8,0x01,0x13,0x48,0x32,0xF8};
+u32 g_TraceSwitch = 0;
 
-void OutputData(UCHAR* pData, UINT Len)
+
+void OutputData(u8* pData, u32 Len)
 {
+#if 0
     UINT Index;
     for (Index = 0; Index + 4 < Len; Index = Index + 4)
     {
@@ -25,54 +24,11 @@ void OutputData(UCHAR* pData, UINT Len)
     }
     
     Printf_High("\n");
+#endif
 }
-void TraceData(RX_BLK* pRxBlk)
+void IoT_exec_AT_cmd_TraceSwitch(u8 *pCmdBuf, u16 at_cmd_len)
 {
-
-    if ((SUBTYPE_BEACON== pRxBlk->pHeader->FC.SubType)
-    && (BTYPE_MGMT == pRxBlk->pHeader->FC.Type))
-    {
-        return;
-    }
-    
-    Printf_High("Data Type = %d, Subtype = %d, DataSize = %d\n", 
-        pRxBlk->pHeader->FC.Type, 
-        pRxBlk->pHeader->FC.SubType,
-        pRxBlk->DataSize);
-
-    if (0 == g_TraceSwitch)
-    {
-        return;
-    }
-
-    if (BTYPE_MGMT == pRxBlk->pHeader->FC.Type)
-    {
-        //OutputData(pRxBlk->pData, pRxBlk->DataSize);
-    }
-    else if (BTYPE_DATA== pRxBlk->pHeader->FC.Type)
-    {
-        if ((!memcmp(pRxBlk->pHeader->Addr3, g_TestSrcMac,6))
-        || (!memcmp(pRxBlk->pHeader->Addr1, g_TestSrcMac,6))
-        || (!memcmp(pRxBlk->pHeader->Addr2, g_TestSrcMac,6)))
-        {
-            OutputData(pRxBlk->pData, 100);            
-        }
-        /*if (97 == pRxBlk->DataSize)
-        {
-            OutputData(pRxBlk->pData, 100);            
-        }*/
-
-    }
-    else
-    {
-    }
-    
-    return;
-        
-}
-
-VOID IoT_exec_AT_cmd_TraceSwitch(PCHAR pCmdBuf, INT16 at_cmd_len)
-{
+#if 0
 	INT16 argc = 0;
 	char *argv[MAX_OPTION_COUNT];
 	char *opString = "s:?";
@@ -101,5 +57,6 @@ VOID IoT_exec_AT_cmd_TraceSwitch(PCHAR pCmdBuf, INT16 at_cmd_len)
 		}
 		opt = getopt(argc, argv, opString);
 	}
+#endif
 }
 
