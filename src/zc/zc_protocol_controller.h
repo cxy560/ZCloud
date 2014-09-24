@@ -21,7 +21,7 @@
 #define    PCT_STATE_WAIT_ACCESSRSP         (4)
 #define    PCT_STATE_CONNECT_CLOUD          (5)
 
-
+#define    PCT_MAX_BUF_LEN               (1000)
 
 
 typedef struct
@@ -80,6 +80,7 @@ typedef struct
     
     u8   u8DeviceId[ZC_DEVICE_ID_MAX_LEN];      
     u8   u8Version[ZC_FIRMWARE_VER_MAX_LEN];
+    u8   u8Msg1Rand[ZC_FIRMWARE_VER_MAX_LEN];
     
     u8   u8CloudPublicKey[ZC_CLOUD_PUBLIC_KEY_LEN];
     u8   u8MoudlePrivateKey[ZC_MOUDLE_PRIVATE_KEY_LEN];

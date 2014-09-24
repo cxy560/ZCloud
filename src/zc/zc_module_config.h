@@ -12,7 +12,7 @@
 
 #include <zc_common.h>
 
-#define     ZC_DEVICE_ID_MAX_LEN                            (8)
+#define     ZC_DEVICE_ID_MAX_LEN                            (12)
 #define     ZC_FIRMWARE_VER_MAX_LEN                         (8)
 
 #define     ZC_CLOUD_PUBLIC_KEY_LEN                         (294)

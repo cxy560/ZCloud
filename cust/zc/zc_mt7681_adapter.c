@@ -283,7 +283,7 @@ u32 MT_CloudAppCall()
     {
         /*Send Access to Cloud*/
         Printf_High("Connect to cloud\n");
-        PCT_SendCloudAccessMsg(&g_struProtocolController);
+        PCT_SendCloudAccessMsg2(&g_struProtocolController);
         g_u32Timer = 0;        
         return;
     }

@@ -12,8 +12,9 @@
 #include <zc_module_config.h>
 #include <zc_cloud_event.h>
 
-PTC_ProtocolCon  g_struProtocolController;
 
+PTC_ProtocolCon  g_struProtocolController;
+u8 g_u8Message[PCT_MAX_BUF_LEN];
 /*************************************************
 * Function: PCT_Init
 * Description: 
@@ -51,16 +52,15 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
 * Parameter: 
 * History:
 *************************************************/
-void PCT_SendCloudAccessMsg(PTC_ProtocolCon *pstruContoller)
+void PCT_SendCloudAccessMsg2(PTC_ProtocolCon *pstruContoller)
 {
     u32 u32Ret = ZC_RET_OK;
-    u8  u8HelloMsg[ZC_HELLO_MSG_LEN];
     u32 u32Len = 0;
     
     /*Connect*/
-    EVENT_BuildAccessMsg(pstruContoller, u8HelloMsg, &u32Len);
+    EVENT_BuildAccessMsg2(pstruContoller, g_u8Message, &u32Len);
     
-    pstruContoller->pstruMoudleFun->pfunSendToCloud(&pstruContoller->struCloudConnection, u8HelloMsg, u32Len);
+    pstruContoller->pstruMoudleFun->pfunSendToCloud(&pstruContoller->struCloudConnection, g_u8Message, u32Len);
     
 }
 /*************************************************
@@ -87,8 +87,6 @@ void PCT_DisConnectCloud(PTC_ProtocolCon *pstruContoller)
 void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller)
 {
     u32 u32Ret = ZC_RET_OK;
-    u8  u8HelloMsg[ZC_HELLO_MSG_LEN];
-    u32 u32Len = 0;
     
     /*Connect*/
     u32Ret = pstruContoller->pstruMoudleFun->pfunConnectToCloud(&pstruContoller->struCloudConnection);

@@ -13,14 +13,14 @@
 #include <zc_common.h>
 #include <zc_protocol_controller.h>
 
-#define      ZC_HELLO_MSG_LEN       (20)
+#define      ZC_VERSION       (0)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-u32     EVENT_BuildHelloMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len);
+u32     EVENT_BuildAccessMsg2(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len);
 
 
 

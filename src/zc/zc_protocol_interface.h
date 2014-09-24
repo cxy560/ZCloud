@@ -65,7 +65,7 @@ typedef enum
     ZC_CODE_OTA_END
 }ZC_MsgCode;
 
-/*Erro Msg*/
+/*Error Msg*/
 typedef struct{
     u8 ErrorCode;
     u8 ErrorMsg[0];
@@ -83,7 +83,7 @@ encrypt by cloud public key*/
 typedef struct
 {
     u8 RandMsg[ZC_HS_MSG_LEN];
-    u8 deviceid[ZC_HS_DEVICE_ID_LEN];
+    u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
 }ZC_HandShakeMsg2;
 
 /*3rd handshake msg, send by cloud to moudle,
