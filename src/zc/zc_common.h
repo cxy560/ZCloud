@@ -12,7 +12,6 @@
 #define  __ZC_COMMON_H__
 
 #include <string.h>
-//#include <stdlib.h>
 
 typedef signed   char                       s8;                                 
 typedef signed   short                      s16;                                

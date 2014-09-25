@@ -396,7 +396,6 @@ void UART_Rx_Packet_Dispatch(void)
         }    
         
         
-        MT_RecvDataFromMoudle(pCmdBuf, rxpkt_len);
         //free(pCmdBuf); 
     }   
 

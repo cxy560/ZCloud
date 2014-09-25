@@ -11,11 +11,17 @@
 #include <uiplib.h>
 #include <iot_tcpip_interface.h>
 #include <uip.h>
+#include <zc_protocol_interface.h>
+#include <zc_message_queue.h>
 
 extern PTC_ProtocolCon  g_struProtocolController;
 PTC_ModuleAdapter g_struMt7681Adapter;
 
 u32 g_u32Timer = 0;
+
+extern MSG_Buffer g_struRecvBuffer;
+extern MSG_Queue  g_struRecvQueue;
+extern MSG_Queue  g_struSendQueue;
 
 /*************************************************
 * Function: MT_SendDataToCloud
@@ -25,22 +31,50 @@ u32 g_u32Timer = 0;
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_SendDataToCloud(PTC_Connection *pstruConnection, u8 *pu8Data, u32 u32DataLen)
+void MT_SendDataToCloud(PTC_Connection *pstruConnection)
 {
-    u32 u32Ret = ZC_RET_OK;
-    s32 s32CallRet = ZC_RET_OK;
-    Printf_High("MT_SendDataToCloud type = %d\n",pstruConnection->u8ConnectionType);
-    if (ZC_CONNECT_TYPE_TCP == pstruConnection->u8ConnectionType)
+    MSG_Buffer *pstruBuf = NULL;
+    ZC_Message *pstruMsg = NULL;
+    u16 u16DataLen; 
+    pstruBuf = (MSG_Buffer *)MSG_PopMsg(&g_struSendQueue); 
+    
+    if (NULL == pstruBuf)
     {
-        Printf_High("send msg\n");
-        uip_send(pu8Data, u32DataLen);
-        return ZC_RET_OK;
+        if (60 == g_u32Timer)
+        {
+            ZC_Message struHeart;
+            EVENT_BuildHeartMsg(NULL, &struHeart, &u16DataLen);
+            pstruMsg = &struHeart;
+        }
+        else
+        {
+            return;
+        }
     }
     else
     {
-        s32CallRet = iot_udp_send(pstruConnection->u32Socket, 
-            pu8Data, u32DataLen, pstruConnection->u8IpAddress, pstruConnection->u32Port);
+        pstruMsg = (ZC_Message*)pstruBuf->u8MsgBuffer;
+        u16DataLen = HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message); 
     }
+    
+    
+    if (ZC_CONNECT_TYPE_TCP == pstruConnection->u8ConnectionType)
+    {
+        Printf_High("send msg\n");
+        uip_send((u8*)pstruMsg, u16DataLen);
+    }
+    else
+    {
+        iot_udp_send(pstruConnection->u32Socket, 
+            (u8*)pstruMsg, u16DataLen, pstruConnection->u8IpAddress, pstruConnection->u32Port);
+    }
+    
+    pstruBuf->u8Status = MSG_BUFFER_IDLE;
+    pstruBuf->u32Len = 0;
+    
+    return ZC_RET_OK;
+    
+    
 }
 /*************************************************
 * Function: MT_SendDataToCloud
@@ -50,10 +84,25 @@ u32 MT_SendDataToCloud(PTC_Connection *pstruConnection, u8 *pu8Data, u32 u32Data
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_RecvDataFromCloud(u32 u32Socket,u8 *pu8Data, u32 u32DataLen)
+void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 {
+    u32 u32RetVal;
+    u32RetVal = MSG_RecvDataFromCloud(pu8Data, u32DataLen);
+
+    if (ZC_RET_OK == u32RetVal)
+    {
+        if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
+        {
+            u32RetVal == MSG_PushMsg(&g_struRecvQueue, &g_struRecvBuffer);
+        }
+    }
     
-    return ZC_RET_OK;
+    if (ZC_RET_ERROR == u32RetVal)
+    {
+        
+    }
+    
+    return;
 }
 /*************************************************
 * Function: MT_SendDataToCloud
@@ -254,7 +303,6 @@ void MT_Init()
     Printf_High("MT Init\n");
     g_struMt7681Adapter.pfunConnectToCloud = MT_ConnectToCloud;
     g_struMt7681Adapter.pfunSendToCloud = MT_SendDataToCloud;   
-    g_struMt7681Adapter.pfunRecvFormCloud = MT_RecvDataFromCloud; 
     g_struMt7681Adapter.pfunUpdate = MT_FirmwareUpdate;        
     g_struMt7681Adapter.pfunSendToMoudle = MT_SendDataToMoudle;  
     g_struMt7681Adapter.pfunRecvFormMoudle = MT_RecvDataFromMoudle;
@@ -276,14 +324,11 @@ void MT_Init()
 u32 MT_CloudAppCall()
 {
 
-    Printf_High("uip flag = %d\n", uip_flags);
-
     /*Connect Cloud */
     if(uip_connected()) 
     {
         /*Send Access to Cloud*/
         Printf_High("Connect to cloud\n");
-        PCT_SendCloudAccessMsg2(&g_struProtocolController);
         g_u32Timer = 0;        
         return;
     }
@@ -295,32 +340,25 @@ u32 MT_CloudAppCall()
         PCT_ConnectCloud(&g_struProtocolController);
     }
 
-
     if(uip_acked()) 
     {
         g_u32Timer = 0;
-        //acked();
     }
+    
     if(uip_newdata()) 
     {
         g_u32Timer = 0;
-        PCT_HandleCloudEvent((char *)uip_appdata, uip_datalen());
+        MT_RecvDataFromCloud((char *)uip_appdata, uip_datalen());
     }
     
-    if(uip_rexmit() ||
-       uip_newdata() ||
-       uip_acked()) 
-    {
-        /*senddata();*/
-        g_u32Timer = 0;
-    } 
-    else if(uip_poll()) 
+    if(uip_poll()) 
     {
         g_u32Timer++;
         Printf_High("Timer = %d\n", g_u32Timer);
+        MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
+
         if (g_u32Timer == 60)
         {
-            MT_SendDataToCloud(&g_struProtocolController.struCloudConnection,"h",sizeof("h"));
             g_u32Timer = 0;
         }
     }
@@ -341,7 +379,6 @@ u32 MT_CloudAppCall()
 *************************************************/
 void MT_WakeUp()
 {
-    //Printf_High("MT Wakeup\n");
     PCT_WakeUp();
 }
 /*************************************************
@@ -370,18 +407,8 @@ void MT_Run()
     PCT_Run();
 }
 
-/*************************************************
-* Function: MT_DealTimer
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void MT_DealTimer()
-{
-    //PCT_ConnectCloud(PTC_ProtocolCon * pstruContoller)
-}
+
+
 
 /******************************* FILE END ***********************************/
 

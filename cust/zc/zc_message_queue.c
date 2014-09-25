@@ -9,7 +9,12 @@
 */
 
 #include <zc_message_queue.h>
+#include <zc_protocol_interface.h>
+#include <uiplib.h>
+#include <uip.h>
 
+extern MSG_Buffer g_struRecvBuffer;
+extern MSG_Queue  g_struRecvQueue;
 
 /*************************************************
 * Function: MSG_InitQueue
@@ -81,3 +86,135 @@ u8* MSG_PopMsg(MSG_Queue *pstruMsgQueue)
     
     return pu8Msg;
 }
+
+/*************************************************
+* Function: MSG_RecvDataFromCloud
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
+{
+    ZC_Message *pstruMsg;
+    u32 u32MsgLen;
+    
+    if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
+    {
+        return ZC_RET_ERROR;
+    }
+    if (MSG_BUFFER_IDLE == g_struRecvBuffer.u8Status)
+    {
+
+        if (u32DataLen < sizeof(ZC_Message))
+        {
+            memcpy(g_struRecvBuffer.u8MsgBuffer, pu8Data, u32DataLen);
+            g_struRecvBuffer.u8Status = MSG_BUFFER_SEGMENT_NOHEAD;
+            g_struRecvBuffer.u32Len = u32DataLen;
+        }
+        else
+        {
+            pstruMsg = (ZC_Message *)(pu8Data);
+            u32MsgLen =  HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+
+            if (u32MsgLen > MSG_BUFFER_MAXLEN)
+            {
+                return ZC_RET_ERROR;
+            }
+
+            if (u32MsgLen <= u32DataLen)
+            {
+                memcpy(g_struRecvBuffer.u8MsgBuffer, pu8Data, u32MsgLen);
+                g_struRecvBuffer.u8Status = MSG_BUFFER_FULL;
+                g_struRecvBuffer.u32Len = u32MsgLen;
+            }
+            else
+            {
+                memcpy(g_struRecvBuffer.u8MsgBuffer, pu8Data, u32DataLen);
+                g_struRecvBuffer.u8Status = MSG_BUFFER_SEGMENT_HEAD;
+                g_struRecvBuffer.u32Len = u32DataLen;
+            }
+
+        }
+
+        return ZC_RET_OK;
+
+    }
+
+    if (MSG_BUFFER_SEGMENT_HEAD == g_struRecvBuffer.u8Status)
+    {
+        pstruMsg = (ZC_Message *)(g_struRecvBuffer.u8MsgBuffer);
+        u32MsgLen = HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+
+        if (u32MsgLen <= u32DataLen + g_struRecvBuffer.u32Len)
+        {
+            memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+                pu8Data, 
+                (u32MsgLen - g_struRecvBuffer.u32Len));
+
+            g_struRecvBuffer.u8Status = MSG_BUFFER_FULL;
+            g_struRecvBuffer.u32Len = u32MsgLen;
+        }
+        else
+        {
+            memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+                pu8Data, 
+                u32DataLen);
+            g_struRecvBuffer.u32Len += u32DataLen;
+            g_struRecvBuffer.u8Status = MSG_BUFFER_SEGMENT_HEAD;
+        }
+
+        return ZC_RET_OK;
+    }
+
+    if (MSG_BUFFER_SEGMENT_NOHEAD == g_struRecvBuffer.u8Status)
+    {
+        if ((g_struRecvBuffer.u32Len + u32DataLen) < sizeof(ZC_Message))
+        {
+            memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+                pu8Data,
+                u32DataLen);
+            g_struRecvBuffer.u32Len += u32DataLen;
+            g_struRecvBuffer.u8Status = MSG_BUFFER_SEGMENT_NOHEAD;
+        }
+        else
+        {
+            memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+                pu8Data,
+                (sizeof(ZC_Message) - g_struRecvBuffer.u32Len));
+
+            pstruMsg = (ZC_Message *)(g_struRecvBuffer.u8MsgBuffer);
+            u32MsgLen = HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+
+            if (u32MsgLen <= u32DataLen + g_struRecvBuffer.u32Len)
+            {
+                memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+                    pu8Data,
+                    u32MsgLen - g_struRecvBuffer.u32Len);
+                g_struRecvBuffer.u8Status = MSG_BUFFER_FULL;
+                g_struRecvBuffer.u32Len = u32MsgLen;
+
+            }
+            else
+            {
+                memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+                    pu8Data,
+                    u32DataLen);
+                g_struRecvBuffer.u8Status = MSG_BUFFER_SEGMENT_HEAD;
+                g_struRecvBuffer.u32Len += u32DataLen;
+            }
+
+        }
+
+        return ZC_RET_OK;
+
+    }
+    
+    return ZC_RET_ERROR;
+    
+
+}
+
+
+/******************************* FILE END ***********************************/

@@ -37,7 +37,6 @@ typedef struct
 }PTC_Connection;
 
 typedef u32 (*pFunSendDataToCloud)(PTC_Connection *pstruConnection, u8 *pu8Data, u32 u32DataLen);
-typedef u32 (*pFunRecvDataFromCloud)(u32 u32Socket,u8 *pu8Data, u32 u32DataLen);
 typedef u32 (*pFunFirmwareUpdate)(u8 *pu8NewVerFile, u32 u32DataLen);
 typedef u32 (*pFunSendDataToMoudle)(u8 *pu8Data, u32 u32DataLen);
 typedef u32 (*pFunRecvDataFromMoudle)(u8 **pu8Data, u32 *pu32DataLen);
@@ -53,7 +52,6 @@ typedef struct
     /*action function*/
     pFunConnectToCloud          pfunConnectToCloud;
     pFunSendDataToCloud         pfunSendToCloud;
-    pFunRecvDataFromCloud       pfunRecvFormCloud;
     pFunFirmwareUpdate          pfunUpdate;
     pFunSendDataToMoudle        pfunSendToMoudle;
     pFunRecvDataFromMoudle      pfunRecvFormMoudle;
@@ -73,9 +71,6 @@ typedef struct
     u8   u8MainState;                         /*State*/
     u8   u8Pad[3];
     
-/*
-    u32  u32Port;
-    u8   u8CloudIp[ZC_IPADDR_MAX_LEN];*/
     PTC_Connection struCloudConnection;
     
     u8   u8DeviceId[ZC_DEVICE_ID_MAX_LEN];      
@@ -91,6 +86,7 @@ typedef struct
 #ifdef __cplusplus
 extern "C" {
 #endif
+void PCT_SendMsgToCloud(u8 *pu8Msg, u32 u32Len);
 
 
 

@@ -11,10 +11,14 @@
 #include <zc_sec_engine.h>
 #include <zc_module_config.h>
 #include <zc_cloud_event.h>
-
+#include <zc_message_queue.h>
+#include <zc_protocol_interface.h>
 
 PTC_ProtocolCon  g_struProtocolController;
-u8 g_u8Message[PCT_MAX_BUF_LEN];
+MSG_Buffer g_struRecvBuffer;
+MSG_Queue  g_struRecvQueue;
+MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
+MSG_Queue  g_struSendQueue;
 /*************************************************
 * Function: PCT_Init
 * Description: 
@@ -40,12 +44,33 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.struCloudConnection.u8IpType = ZC_IPTYPE_IPV4;
     g_struProtocolController.struCloudConnection.u8ConnectionType = ZC_CONNECT_TYPE_TCP;
     
+    MSG_InitQueue(&g_struRecvQueue);
+    MSG_InitQueue(&g_struSendQueue);
+    
+    g_struRecvBuffer.u32Len = 0;
+    g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;    
+
     /*init ok if all result is ok*/
     g_struProtocolController.u8MainState = (0 == u32Ret) ? (PCT_STATE_INIT) : (PCT_STATE_SLEEP);
 }
+/*************************************************
+* Function: PCT_SendEmptyMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_SendEmptyMsg()
+{
+    ZC_Message struMsg;
+    u32 u32Len = 0;
+    EVENT_BuildEmptyMsg(&g_struProtocolController, &struMsg, &u32Len);
+    PCT_SendMsgToCloud((u8*)&struMsg, u32Len);
+}
 
 /*************************************************
-* Function: PCT_SendCloudAccessMsg
+* Function: PCT_SendCloudAccessMsg2
 * Description: 
 * Author: cxy 
 * Returns: 
@@ -57,11 +82,23 @@ void PCT_SendCloudAccessMsg2(PTC_ProtocolCon *pstruContoller)
     u32 u32Ret = ZC_RET_OK;
     u32 u32Len = 0;
     
-    /*Connect*/
-    EVENT_BuildAccessMsg2(pstruContoller, g_u8Message, &u32Len);
-    
-    pstruContoller->pstruMoudleFun->pfunSendToCloud(&pstruContoller->struCloudConnection, g_u8Message, u32Len);
-    
+   
+}
+
+/*************************************************
+* Function: PCT_SendCloudAccessMsg4
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_SendCloudAccessMsg4(PTC_ProtocolCon *pstruContoller)
+{
+    u32 u32Ret = ZC_RET_OK;
+    u32 u32Len = 0;
+
+
 }
 /*************************************************
 * Function: PCT_DisConnectCloud
@@ -99,27 +136,6 @@ void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller)
 }
 
 /*************************************************
-* Function: PCT_HandleCloudEvent
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void PCT_HandleCloudEvent(u8 *pu8Msg, u32 u32DataLen)
-{
-#if 0
-    u32 u32Index;
-    Printf_High("recv msg len = %d\n", u32DataLen);
-    for (u32Index = 0; u32Index < u32DataLen; u32Index++)
-    {
-        Printf_High("%02x ", pu8Msg[u32Index]);
-    }
-    Printf_High("\n");
-    return;
-#endif
-}
-/*************************************************
 * Function: PCT_HandleMoudleEvent
 * Description: 
 * Author: cxy 
@@ -129,6 +145,7 @@ void PCT_HandleCloudEvent(u8 *pu8Msg, u32 u32DataLen)
 *************************************************/
 void PCT_HandleMoudleEvent(u8 *pu8Msg, u32 u32DataLen)
 {
+    PCT_SendMsgToCloud(pu8Msg, u32DataLen);
     return;
 }
 /*************************************************
@@ -139,25 +156,44 @@ void PCT_HandleMoudleEvent(u8 *pu8Msg, u32 u32DataLen)
 * Parameter: 
 * History:
 *************************************************/
-void PCT_RecvAccessRsp(PTC_ProtocolCon *pstruContoller)
+void PCT_RecvAccessMsg1(PTC_ProtocolCon *pstruContoller)
 {
-    u32 u32Ret = ZC_RET_OK;
-    u8  *pu8Msg = NULL;
-    u32 u32DataLen = 0;
-
-    /*recv Access rsp*/
-    u32Ret = pstruContoller->pstruMoudleFun->pfunRecvFormCloud(&pstruContoller->struCloudConnection,
-        &pu8Msg, &u32DataLen);
-    if (ZC_RET_OK != u32Ret)
+    MSG_Buffer *pstruBuffer;
+    ZC_Message *pstruMsg;
+    pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
+    pstruMsg = (ZC_Message*)pstruBuffer->u8MsgBuffer;
+    if (ZC_CODE_HANDSHAKE_1 == pstruMsg->MsgCode)
     {
-        return;
+        
     }
-
-    /*parser header get secure method and key*/
-    PCT_HandleCloudEvent(pu8Msg, u32DataLen);
     
-    /*change main state to PCT_STATE_CONNECT_CLOUD*/
-    pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD;
+    PCT_SendEmptyMsg();
+    pstruBuffer->u32Len = 0;
+    pstruBuffer->u8Status = MSG_BUFFER_IDLE;
+}
+
+/*************************************************
+* Function: PCT_RecvAccessRsp
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_RecvAccessMsg3(PTC_ProtocolCon *pstruContoller)
+{
+    MSG_Buffer *pstruBuffer;
+    ZC_Message *pstruMsg;
+    pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
+    pstruMsg = (ZC_Message*)pstruBuffer->u8MsgBuffer;
+    if (ZC_CODE_HANDSHAKE_3 == pstruMsg->MsgCode)
+    {
+        
+    }
+    
+    PCT_SendEmptyMsg();
+    pstruBuffer->u32Len = 0;
+    pstruBuffer->u8Status = MSG_BUFFER_IDLE;
 }
 
 /*************************************************
@@ -170,19 +206,14 @@ void PCT_RecvAccessRsp(PTC_ProtocolCon *pstruContoller)
 *************************************************/
 void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
 {
-    u32 u32Ret = ZC_RET_OK;
-    u8  *pu8Msg = NULL;
-    u32 u32DataLen = 0;
+    MSG_Buffer *pstruBuffer;
+    ZC_Message *pstruMsg;
+    pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
+    pstruMsg = (ZC_Message*)pstruBuffer->u8MsgBuffer;
 
-    /*recv msg*/
-    u32Ret = pstruContoller->pstruMoudleFun->pfunRecvFormCloud(&pstruContoller->struCloudConnection,
-        &pu8Msg, &u32DataLen);
-
-    PCT_HandleCloudEvent(pu8Msg, u32DataLen);
-    
-    u32Ret = pstruContoller->pstruMoudleFun->pfunRecvFormMoudle(&pu8Msg, &u32DataLen);
-
-    PCT_HandleMoudleEvent(pu8Msg, u32DataLen);
+    PCT_SendEmptyMsg();
+    pstruBuffer->u32Len = 0;
+    pstruBuffer->u8Status = MSG_BUFFER_IDLE;
 } 
 
 /*************************************************
@@ -207,10 +238,13 @@ void PCT_Run()
             PCT_ConnectCloud(pstruContoller);
             break;
         case PCT_STATE_WAIT_ACCESS:
-            //PCT_RecvAccessRsp(pstruContoller);
+            PCT_RecvAccessMsg1(pstruContoller);
             break;
+        case PCT_STATE_WAIT_ACCESSRSP:
+            PCT_RecvAccessMsg3(pstruContoller);
+            break;    
         case PCT_STATE_CONNECT_CLOUD:
-            //PCT_HandleEvent(pstruContoller);
+            PCT_HandleEvent(pstruContoller);
             break;                       
     }
     
@@ -244,6 +278,30 @@ void PCT_Sleep()
 {
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
 }
+/*************************************************
+* Function: PCT_SendMsgToCloud
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_SendMsgToCloud(u8 *pu8Msg, u32 u32Len)
+{
+    u32 u32Index;
+    for (u32Index = 0; u32Index < MSG_BUFFER_SEND_MAX_NUM; u32Index++)
+    {
+        if (MSG_BUFFER_IDLE == g_struSendBuffer[u32Index].u8Status)
+        {
+            memcpy(g_struSendBuffer[u32Index].u8MsgBuffer, pu8Msg, u32Len);
+            g_struSendBuffer[u32Index].u32Len = u32Len;
+            g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_FULL;
+            MSG_PushMsg(&g_struSendQueue, &g_struSendBuffer[u32Index]);
+            break;
+        }
+    }
+}
+
 
 /******************************* FILE END ***********************************/
 

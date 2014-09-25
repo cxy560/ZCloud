@@ -13,18 +13,38 @@
 
 #include <zc_common.h>
 
-#define  MSG_QUEUE_MAXLEN  (10)
+#define  MSG_QUEUE_MAXLEN               (5)
+#define  MSG_BUFFER_MAXLEN              (1000)
+#define  MSG_BUFFER_MAX_NUM             (5)
+
+#define  MSG_BUFFER_IDLE                (0)
+#define  MSG_BUFFER_FULL                (1)
+#define  MSG_BUFFER_SEGMENT_NOHEAD      (2)
+#define  MSG_BUFFER_SEGMENT_HEAD        (3)
+
+#define  MSG_BUFFER_SEND_MAX_NUM        (3)
 
 typedef struct struMSG_QueNode{
     struct struMSG_QueNode* pstruNext;
     u8 *pu8Msg;
 }MSG_QueNode;
 
+/*Msg Queue*/
 typedef struct{
     MSG_QueNode *pstruHead;
     MSG_QueNode *pstruTail;
     MSG_QueNode struQueue[MSG_QUEUE_MAXLEN+1];
 }MSG_Queue;
+
+/*Msg Buffer*/
+typedef struct
+{
+    u32 u32Len;  
+    u8  u8Status;
+    u8  u8Pad[3];
+    u8  u8MsgBuffer[MSG_BUFFER_MAXLEN];
+}MSG_Buffer;
+
 
 #ifdef __cplusplus
 extern "C" {

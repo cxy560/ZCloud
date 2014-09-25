@@ -218,6 +218,8 @@ void IoT_Cust_uart2wifi_data_handler(UCHAR *uart_content, UINT16 uart_content_co
 	/*here should allocate a buffer or flag,  
 	   Let iot_***_appcall() detected it and call uip_send()*/
 
+    MT_RecvDataFromMoudle(uart_content, uart_content_count);
+
 	return;
 }
 
