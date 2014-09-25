@@ -30,6 +30,7 @@ MSG_Queue  g_struSendQueue;
 void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
 {
     u32 u32Ret = 0;
+    u32 u32Index = 0;
     g_struProtocolController.pstruMoudleFun = pstruAdapter;
     
     /*initialize parameters*/
@@ -50,6 +51,11 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struRecvBuffer.u32Len = 0;
     g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;    
 
+    for (u32Index = 0; u32Index < MSG_BUFFER_SEND_MAX_NUM; u32Index++)
+    {
+        g_struSendBuffer[u32Index].u32Len = 0;
+        g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_IDLE;
+    }
     /*init ok if all result is ok*/
     g_struProtocolController.u8MainState = (0 == u32Ret) ? (PCT_STATE_INIT) : (PCT_STATE_SLEEP);
 }
