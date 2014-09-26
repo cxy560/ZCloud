@@ -84,6 +84,7 @@ typedef struct
 {
     u8 RandMsg[ZC_HS_MSG_LEN];
     u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
+    u8 Pad[256 - ZC_HS_DEVICE_ID_LEN - ZC_HS_MSG_LEN];
 }ZC_HandShakeMsg2;
 
 /*3rd handshake msg, send by cloud to moudle,

@@ -1,7 +1,33 @@
 #include <zc_common.h>
 #include <uip.h>
+#include <uiplib.h>
 #include <zc_message_queue.h>
 #include <iot_tcpip_interface.h>
+#include <zc_protocol_interface.h>
+
+u8 g_u8DumpCloudMsg[10240];
+extern MSG_Buffer g_struRecvBuffer;
+extern MSG_Queue  g_struRecvQueue;
+
+
+void SimRecvMsg()
+{
+    ZC_Message *pstruMsg;
+    u32 u32Index;
+    u16 u16Len;
+
+    pstruMsg = (ZC_Message *)uip_appdata;
+
+    u16Len = 100;
+    pstruMsg->Payloadlen = ZC_HTONS(u16Len);
+    for (u32Index = 0; u32Index < u16Len; u32Index++)
+    {
+        pstruMsg->payload[u32Index] = u32Index;
+    }
+    
+    uip_flags = UIP_NEWDATA;
+    uip_len = u16Len + sizeof(ZC_Message);
+}
 
 void logicTest()
 {
@@ -14,13 +40,21 @@ void logicTest()
         if (1 == u32AccessOk)
         {
             MT_WakeUp();
+            
+        }
+        else if (0 == u32AccessOk)
+        {
+           
         }
         else
         {
-            u32AccessOk = 1;
+            SimRecvMsg();
         }
         MT_CloudAppCall();
         MT_Run();
+        uip_flags = UIP_POLL;
+        MT_CloudAppCall();
+        u32AccessOk++;
     }
 
 }
@@ -45,11 +79,11 @@ void testqueue()
         pu8Msg = MSG_PopMsg(&struTestqueue);
         if (NULL == pu8Msg)
         {
-            Printf_High("No Msg\n", u32Index);
+            ZC_Printf("No Msg\n", u32Index);
         }
         else
         {
-            Printf_High("msg %d is pop\n", *pu8Msg);
+            ZC_Printf("msg %d is pop\n", *pu8Msg);
         }
     }
     
@@ -62,7 +96,7 @@ void testqueue()
         }
         else
         {
-            Printf_High("msg %d is pushed\n", u32Index);
+            ZC_Printf("msg %d is pushed\n", u32Index);
         }
     }
     
@@ -75,7 +109,7 @@ void testqueue()
         }
         else
         {
-            Printf_High("msg %d is pop\n", *pu8Msg);
+            ZC_Printf("msg %d is pop\n", *pu8Msg);
         }
     }
     
@@ -88,7 +122,7 @@ void testqueue()
         }
         else
         {
-            Printf_High("msg %d is pushed\n", u32Index);
+            ZC_Printf("msg %d is pushed\n", u32Index);
         }
     }
 
@@ -101,11 +135,43 @@ void testqueue()
         }
         else
         {
-            Printf_High("msg %d is pop\n", *pu8Msg);
+            ZC_Printf("msg %d is pop\n", *pu8Msg);
         }
     }
 } 
+
+void testrecvbuffer()
+{
+    ZC_Message *pstruMsg;
+    u32 u32Index;
+    u16 u16Len;
+
+    MT_Init();
+    
+    pstruMsg = (ZC_Message *)g_u8DumpCloudMsg;
+    
+    u16Len = 100;
+    pstruMsg->Payloadlen = ZC_HTONS(u16Len);
+    for (u32Index = 0; u32Index < u16Len; u32Index++)
+    {
+        pstruMsg->payload[u32Index] = u32Index;
+    }
+    
+    for (u32Index = 0; u32Index < 210; u32Index++)
+    {
+        MT_RecvDataFromCloud((u8 *)(g_u8DumpCloudMsg + 10 * u32Index), 1000);
+    }
+    
+    ZC_Printf("status = %d, len = %d\n",g_struRecvBuffer.u8Status, g_struRecvBuffer.u32Len);
+    
+    for (u32Index = 0; u32Index < g_struRecvBuffer.u32Len; u32Index++)
+    {
+        ZC_Printf("%02X ", g_struRecvBuffer.u8MsgBuffer[u32Index]);
+    }
+    
+    ZC_Printf("\n");
+}
 void main()
 {
-  testqueue();
+  logicTest();
 }

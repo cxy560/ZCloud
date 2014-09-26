@@ -12,21 +12,18 @@
 #define  __ZC_SEC_ENGINE_H__
 #include <rsa.h>
 #include <sha1.h>
+#include <aes.h>
 #include <zc_common.h>
+#include <zc_protocol_controller.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-s32 SEC_CipherTextByRsa(const u8 *pu8Plaintext, 
-    const u32 u32Len,
-    const u8 *pu8PublicKey,
-    u8 *pu8CipherText);
-    
+
 s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
     const u8 *pu8CipherText,
-    u8 *pu8PlainText,
-    u32 u32PlainTextLen);
+    u8 *pu8PlainText);
     
 void SEC_CalculateHmac(const u8 *pu8Text,
     const u8 *pu8Key,
@@ -41,6 +38,9 @@ void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa,
     
 void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa,
     const u8 *pu8PrivateKey);
+void SEC_Encrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvSend, u8 *pu8buf, int length);
+void SEC_Decrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvRecv, u8 *pu8buf, int length);
+
 #ifdef __cplusplus
 }
 #endif

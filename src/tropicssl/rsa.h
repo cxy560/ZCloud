@@ -108,6 +108,7 @@ typedef struct {
 	int (*f_rng) (void *);	/*!<  RNG function      */
 	void *p_rng;		/*!<  RNG parameter     */
 } rsa_context;
+#define  XIP_ATTRIBUTE(x)    __attribute__ ((section(x)))
 
 #ifdef __cplusplus
 extern "C" {
@@ -130,7 +131,7 @@ extern "C" {
 	 */
 	void rsa_init(rsa_context * ctx,
 		      int padding,
-		      int hash_id, int (*f_rng) (void *), void *p_rng);
+		      int hash_id, int (*f_rng) (void *), void *p_rng) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Generate an RSA keypair
@@ -144,7 +145,7 @@ extern "C" {
 	 *
 	 * \return         0 if successful, or an TROPICSSL_ERR_RSA_XXX error code
 	 */
-	int rsa_gen_key(rsa_context * ctx, int nbits, int exponent);
+	int rsa_gen_key(rsa_context * ctx, int nbits, int exponent) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Check a public RSA key
@@ -153,7 +154,7 @@ extern "C" {
 	 *
 	 * \return         0 if successful, or an TROPICSSL_ERR_RSA_XXX error code
 	 */
-	int rsa_check_pubkey(const rsa_context * ctx);
+	int rsa_check_pubkey(const rsa_context * ctx) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Check a private RSA key
@@ -162,7 +163,7 @@ extern "C" {
 	 *
 	 * \return         0 if successful, or an TROPICSSL_ERR_RSA_XXX error code
 	 */
-	int rsa_check_privkey(const rsa_context * ctx);
+	int rsa_check_privkey(const rsa_context * ctx) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Do an RSA public key operation
@@ -181,7 +182,7 @@ extern "C" {
 	 */
 	int rsa_public(rsa_context * ctx,
 		       const unsigned char *input,
-		       unsigned char *output);
+		       unsigned char *output) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Do an RSA private key operation
@@ -197,7 +198,7 @@ extern "C" {
 	 */
 	int rsa_private(rsa_context * ctx,
 			const unsigned char *input,
-			unsigned char *output);
+			unsigned char *output) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Add the message padding, then do an RSA operation
@@ -216,7 +217,7 @@ extern "C" {
 	int rsa_pkcs1_encrypt(rsa_context * ctx,
 			      int mode, int ilen,
 			      const unsigned char *input,
-			      unsigned char *output);
+			      unsigned char *output) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Do an RSA operation, then remove the message padding
@@ -238,7 +239,7 @@ extern "C" {
 			      int mode, int *olen,
 			      const unsigned char *input,
 			      unsigned char *output,
-			      int output_max_len);
+			      int output_max_len) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Do a private RSA to sign a message digest
@@ -261,7 +262,7 @@ extern "C" {
 			   int hash_id,
 			   int hashlen,
 			   const unsigned char *hash,
-			   unsigned char *sig);
+			   unsigned char *sig) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Do a public RSA and check the message digest
@@ -284,19 +285,19 @@ extern "C" {
 			     int hash_id,
 			     int hashlen,
 			     const unsigned char *hash,
-			     const unsigned char *sig);
+			     const unsigned char *sig) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Free the components of an RSA key
 	 */
-	void rsa_free(rsa_context * ctx);
+	void rsa_free(rsa_context * ctx) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Checkup routine
 	 *
 	 * \return         0 if successful, or 1 if the test failed
 	 */
-	int rsa_self_test(int verbose);
+	int rsa_self_test(int verbose) XIP_ATTRIBUTE(".xipsec1");
 
 #ifdef __cplusplus
 }

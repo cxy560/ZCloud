@@ -42,6 +42,27 @@ typedef volatile unsigned int               vu32;
 #define NULL                ((void *)0)
 #endif
 
+#ifdef ZC_BIG_ENDIAN
+#define ZC_HTONS(n) (n)
+#else 
+#define ZC_HTONS(n) (u16)((((u16) (n)) << 8) | (((u16) (n)) >> 8))
+#endif 
+
+#ifdef ZC_OFF_LINETEST
+#define ZC_Printf printf
+#else
+#define ZC_Printf Printf_High
+#endif 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void ZC_TraceData(u8* pData, u32 Len);
+
+#ifdef __cplusplus
+}
+#endif
 #endif
 /******************************* FILE END ***********************************/
 

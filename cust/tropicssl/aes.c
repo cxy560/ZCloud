@@ -40,8 +40,9 @@
  */
 
 #include "config.h"
-
+#define TROPICSSL_AES_C
 #if defined(TROPICSSL_AES_C)
+#define  XIP_ATTRIBUTE(x)    __attribute__ ((section(x)))
 
 #include "aes.h"
 #include "padlock.h"
@@ -75,7 +76,7 @@
 /*
  * Forward S-box
  */
-static const unsigned char FSb[256] = {
+XIP_ATTRIBUTE(".xipsec1") static const unsigned char FSb[256] = {
 	0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5,
 	0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
 	0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0,
@@ -181,22 +182,22 @@ static const unsigned char FSb[256] = {
     V(CB,B0,B0,7B), V(FC,54,54,A8), V(D6,BB,BB,6D), V(3A,16,16,2C)
 
 #define V(a,b,c,d) 0x##a##b##c##d
-static const unsigned long FT0[256] = { FT };
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long FT0[256] = { FT };
 
 #undef V
 
 #define V(a,b,c,d) 0x##b##c##d##a
-static const unsigned long FT1[256] = { FT };
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long FT1[256] = { FT };
 
 #undef V
 
 #define V(a,b,c,d) 0x##c##d##a##b
-static const unsigned long FT2[256] = { FT };
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long FT2[256] = { FT };
 
 #undef V
 
 #define V(a,b,c,d) 0x##d##a##b##c
-static const unsigned long FT3[256] = { FT };
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long FT3[256] = { FT };
 
 #undef V
 
@@ -205,7 +206,7 @@ static const unsigned long FT3[256] = { FT };
 /*
  * Reverse S-box
  */
-static const unsigned char RSb[256] = {
+XIP_ATTRIBUTE(".xipsec1") static const unsigned char RSb[256] = {
 	0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38,
 	0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
 	0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87,
@@ -311,22 +312,22 @@ static const unsigned char RSb[256] = {
     V(61,84,CB,7B), V(70,B6,32,D5), V(74,5C,6C,48), V(42,57,B8,D0)
 
 #define V(a,b,c,d) 0x##a##b##c##d
-static const unsigned long RT0[256] = { RT };
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long RT0[256] = { RT };
 
 #undef V
 
 #define V(a,b,c,d) 0x##b##c##d##a
-static const unsigned long RT1[256] = { RT };
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long RT1[256] = { RT };
 
 #undef V
 
 #define V(a,b,c,d) 0x##c##d##a##b
-static const unsigned long RT2[256] = { RT };
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long RT2[256] = { RT };
 
 #undef V
 
 #define V(a,b,c,d) 0x##d##a##b##c
-static const unsigned long RT3[256] = { RT };
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long RT3[256] = { RT };
 
 #undef V
 
@@ -335,7 +336,7 @@ static const unsigned long RT3[256] = { RT };
 /*
  * Round constants
  */
-static const unsigned long RCON[10] = {
+XIP_ATTRIBUTE(".xipsec1") static const unsigned long RCON[10] = {
 	0x00000001, 0x00000002, 0x00000004, 0x00000008,
 	0x00000010, 0x00000020, 0x00000040, 0x00000080,
 	0x0000001B, 0x00000036
@@ -346,25 +347,25 @@ static const unsigned long RCON[10] = {
 /*
  * Forward S-box & tables
  */
-static unsigned char FSb[256];
-static unsigned long FT0[256];
-static unsigned long FT1[256];
-static unsigned long FT2[256];
-static unsigned long FT3[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned char FSb[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long FT0[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long FT1[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long FT2[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long FT3[256];
 
 /*
  * Reverse S-box & tables
  */
-static unsigned char RSb[256];
-static unsigned long RT0[256];
-static unsigned long RT1[256];
-static unsigned long RT2[256];
-static unsigned long RT3[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned char RSb[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long RT0[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long RT1[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long RT2[256];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long RT3[256];
 
 /*
  * Round constants
  */
-static unsigned long RCON[10];
+XIP_ATTRIBUTE(".xipsec1") static unsigned long RCON[10];
 
 /*
  * Tables generation code

@@ -4,19 +4,19 @@
 #define uip_udp_bind(conn, port) (conn)->lport = port
 
 #define uip_ipaddr(addr, addr0,addr1,addr2,addr3) do { \
-    ((u16_t *)(addr))[0] = HTONS(((addr0) << 8) | (addr1)); \
-    ((u16_t *)(addr))[1] = HTONS(((addr2) << 8) | (addr3)); \
+    ((u16_t *)(addr))[0] = ZC_HTONS(((addr0) << 8) | (addr1)); \
+    ((u16_t *)(addr))[1] = ZC_HTONS(((addr2) << 8) | (addr3)); \
                   } while(0)
 
 #define uip_ip6addr(addr, addr0,addr1,addr2,addr3,addr4,addr5,addr6,addr7) do { \
-    ((u16_t *)(addr))[0] = HTONS((addr0)); \
-    ((u16_t *)(addr))[1] = HTONS((addr1)); \
-    ((u16_t *)(addr))[2] = HTONS((addr2)); \
-    ((u16_t *)(addr))[3] = HTONS((addr3)); \
-    ((u16_t *)(addr))[4] = HTONS((addr4)); \
-    ((u16_t *)(addr))[5] = HTONS((addr5)); \
-    ((u16_t *)(addr))[6] = HTONS((addr6)); \
-    ((u16_t *)(addr))[7] = HTONS((addr7)); \
+    ((u16_t *)(addr))[0] = ZC_HTONS((addr0)); \
+    ((u16_t *)(addr))[1] = ZC_HTONS((addr1)); \
+    ((u16_t *)(addr))[2] = ZC_HTONS((addr2)); \
+    ((u16_t *)(addr))[3] = ZC_HTONS((addr3)); \
+    ((u16_t *)(addr))[4] = ZC_HTONS((addr4)); \
+    ((u16_t *)(addr))[5] = ZC_HTONS((addr5)); \
+    ((u16_t *)(addr))[6] = ZC_HTONS((addr6)); \
+    ((u16_t *)(addr))[7] = ZC_HTONS((addr7)); \
                   } while(0)
 
 #define UIP_ACKDATA   1     /* Signifies that the outstanding data was
@@ -74,7 +74,7 @@
 #define UIP_BIG_ENDIAN     1234
 #endif /* UIP_BIG_ENDIAN */
 
-
+#if 0
 #ifndef HTONS
 #   if UIP_BYTE_ORDER == UIP_BIG_ENDIAN
 #      define HTONS(n) (n)
@@ -86,5 +86,5 @@
 #endif /* HTONS */
 
 #define htons(n) (n)
-
+#endif
 #endif

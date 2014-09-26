@@ -20,10 +20,10 @@ extern "C" {
 #endif
 
 
-u32     EVENT_BuildAccessMsg2(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len);
-
-
-
+u32  EVENT_BuildMsg(PTC_ProtocolCon *pstruCon, u8 u8MsgId, u8 u8MsgCode, u8 *pu8Msg, u32 *pu32Len, 
+    u8 *pu8Payload, u16 u16PayloadLen);
+u32  EVENT_BuildEmptyMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len);
+u32  EVENT_BuildHeartMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len);
 #ifdef __cplusplus
 }
 #endif

@@ -34,7 +34,7 @@ iot_udp_app_init(void)
 	/* Customer APP start. */
 
 	/* udp_client_init(); */
-	udp_server_init();
+	//udp_server_init();
 	
 	/* Customer APP end. */
 	return;
@@ -58,7 +58,7 @@ iot_udp_appcall(void)
 	/* Customer APP start. */
 
 	} else if (lport == 7682) {
-		udp_server_sample();
+		//udp_server_sample();
 	/* } else if (lport == 6666) {
 		udp_client_sample(); 
 	} else if (lport == 8888) {

@@ -81,6 +81,7 @@ typedef struct {
 	int n;			/*!<  total # of limbs  */
 	t_int *p;		/*!<  pointer to limbs  */
 } mpi;
+#define  XIP_ATTRIBUTE(x)    __attribute__ ((section(x)))
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,12 +90,12 @@ extern "C" {
 	/**
 	 * \brief          Initialize one MPI
 	 */
-	void mpi_init(mpi * X);
+	void mpi_init(mpi * X) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Unallocate one MPI
 	 */
-	void mpi_free(mpi * X);
+	void mpi_free(mpi * X) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Enlarge to the specified number of limbs
@@ -102,7 +103,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_grow(mpi * X, int nblimbs);
+	int mpi_grow(mpi * X, int nblimbs) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Copy the contents of Y into X
@@ -110,12 +111,12 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_copy(mpi * X, const mpi * Y);
+	int mpi_copy(mpi * X, const mpi * Y) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Swap the contents of X and Y
 	 */
-	void mpi_swap(mpi * X, mpi * Y);
+	void mpi_swap(mpi * X, mpi * Y) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Set value from integer
@@ -123,22 +124,22 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_lset(mpi * X, int z);
+	int mpi_lset(mpi * X, int z) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Return the number of least significant bits
 	 */
-	int mpi_lsb(const mpi * X);
+	int mpi_lsb(const mpi * X) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Return the number of most significant bits
 	 */
-	int mpi_msb(const mpi * X);
+	int mpi_msb(const mpi * X) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Return the total size in bytes
 	 */
-	int mpi_size(const mpi * X);
+	int mpi_size(const mpi * X) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Import from an ASCII string
@@ -149,7 +150,7 @@ extern "C" {
 	 *
 	 * \return         0 if successful, or an TROPICSSL_ERR_MPI_XXX error code
 	 */
-	int mpi_read_string(mpi * X, int radix, const char *s);
+	int mpi_read_string(mpi * X, int radix, const char *s) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Export into an ASCII string
@@ -164,7 +165,7 @@ extern "C" {
 	 * \note           Call this function with *slen = 0 to obtain the
 	 *                 minimum required buffer size in *slen.
 	 */
-	int mpi_write_string(const mpi * X, int radix, char *s, int *slen);
+	int mpi_write_string(const mpi * X, int radix, char *s, int *slen) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Read X from an opened file
@@ -175,7 +176,7 @@ extern "C" {
 	 *
 	 * \return         0 if successful, or an TROPICSSL_ERR_MPI_XXX error code
 	 */
-	int mpi_read_file(mpi * X, int radix, FILE * fin);
+	int mpi_read_file(mpi * X, int radix, FILE * fin) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Write X into an opened file, or stdout
@@ -189,7 +190,7 @@ extern "C" {
 	 *
 	 * \note           Set fout == NULL to print X on the console.
 	 */
-	int mpi_write_file(const char *p, const mpi * X, int radix, FILE * fout);
+	int mpi_write_file(const char *p, const mpi * X, int radix, FILE * fout) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Import X from unsigned binary data, big endian
@@ -201,7 +202,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_read_binary(mpi * X, const unsigned char *buf, int buflen);
+	int mpi_read_binary(mpi * X, const unsigned char *buf, int buflen) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Export X into unsigned binary data, big endian
@@ -216,7 +217,7 @@ extern "C" {
 	 * \note           Call this function with *buflen = 0 to obtain the
 	 *                 minimum required buffer size in *buflen.
 	 */
-	int mpi_write_binary(const mpi * X, unsigned char *buf, int buflen);
+	int mpi_write_binary(const mpi * X, unsigned char *buf, int buflen) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Left-shift: X <<= count
@@ -224,7 +225,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_shift_l(mpi * X, int count);
+	int mpi_shift_l(mpi * X, int count) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Right-shift: X >>= count
@@ -232,7 +233,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_shift_r(mpi * X, int count);
+	int mpi_shift_r(mpi * X, int count) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Compare unsigned values
@@ -241,7 +242,7 @@ extern "C" {
 	 *                -1 if |X| is lesser  than |Y| or
 	 *                 0 if |X| is equal to |Y|
 	 */
-	int mpi_cmp_abs(const mpi * X, const mpi * Y);
+	int mpi_cmp_abs(const mpi * X, const mpi * Y) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Compare signed values
@@ -250,7 +251,7 @@ extern "C" {
 	 *                -1 if X is lesser  than Y or
 	 *                 0 if X is equal to Y
 	 */
-	int mpi_cmp_mpi(const mpi * X, const mpi * Y);
+	int mpi_cmp_mpi(const mpi * X, const mpi * Y) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Compare signed values
@@ -259,7 +260,7 @@ extern "C" {
 	 *                -1 if X is lesser  than z or
 	 *                 0 if X is equal to z
 	 */
-	int mpi_cmp_int(const mpi * X, int z);
+	int mpi_cmp_int(const mpi * X, int z) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Unsigned addition: X = |A| + |B|
@@ -267,7 +268,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_add_abs(mpi * X, const mpi * A, const mpi * B);
+	int mpi_add_abs(mpi * X, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Unsigned substraction: X = |A| - |B|
@@ -275,7 +276,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 TROPICSSL_ERR_MPI_NEGATIVE_VALUE if B is greater than A
 	 */
-	int mpi_sub_abs(mpi * X, const mpi * A, const mpi * B);
+	int mpi_sub_abs(mpi * X, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Signed addition: X = A + B
@@ -283,7 +284,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_add_mpi(mpi * X, const mpi * A, const mpi * B);
+	int mpi_add_mpi(mpi * X, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Signed substraction: X = A - B
@@ -291,7 +292,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_sub_mpi(mpi * X, const mpi * A, const mpi * B);
+	int mpi_sub_mpi(mpi * X, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Signed addition: X = A + b
@@ -299,7 +300,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_add_int(mpi * X, const mpi * A, int b);
+	int mpi_add_int(mpi * X, const mpi * A, int b) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Signed substraction: X = A - b
@@ -307,7 +308,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_sub_int(mpi * X, const mpi * A, int b);
+	int mpi_sub_int(mpi * X, const mpi * A, int b) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Baseline multiplication: X = A * B
@@ -315,7 +316,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_mul_mpi(mpi * X, const mpi * A, const mpi * B);
+	int mpi_mul_mpi(mpi * X, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Baseline multiplication: X = A * b
@@ -323,7 +324,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_mul_int(mpi * X, const mpi * A, t_int b);
+	int mpi_mul_int(mpi * X, const mpi * A, t_int b) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Division by mpi: A = Q * B + R
@@ -334,7 +335,7 @@ extern "C" {
 	 *
 	 * \note           Either Q or R can be NULL.
 	 */
-	int mpi_div_mpi(mpi * Q, mpi * R, const mpi * A, const mpi * B);
+	int mpi_div_mpi(mpi * Q, mpi * R, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Division by int: A = Q * b + R
@@ -345,7 +346,7 @@ extern "C" {
 	 *
 	 * \note           Either Q or R can be NULL.
 	 */
-	int mpi_div_int(mpi * Q, mpi * R, const mpi * A, int b);
+	int mpi_div_int(mpi * Q, mpi * R, const mpi * A, int b) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Modulo: R = A mod B
@@ -354,7 +355,7 @@ extern "C" {
 	 *                 1 if memory allocation failed,
 	 *                 TROPICSSL_ERR_MPI_DIVISION_BY_ZERO if B == 0
 	 */
-	int mpi_mod_mpi(mpi * R, const mpi * A, const mpi * B);
+	int mpi_mod_mpi(mpi * R, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Modulo: r = A mod b
@@ -363,7 +364,7 @@ extern "C" {
 	 *                 1 if memory allocation failed,
 	 *                 TROPICSSL_ERR_MPI_DIVISION_BY_ZERO if b == 0
 	 */
-	int mpi_mod_int(t_int * r, const mpi * A, int b);
+	int mpi_mod_int(t_int * r, const mpi * A, int b) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Sliding-window exponentiation: X = A^E mod N
@@ -376,7 +377,7 @@ extern "C" {
 	 *                 multiple calls, which speeds up things a bit. It can
 	 *                 be set to NULL if the extra performance is unneeded.
 	 */
-	int mpi_exp_mod(mpi * X, const mpi * A, const mpi * E, const mpi * N, mpi * _RR);
+	int mpi_exp_mod(mpi * X, const mpi * A, const mpi * E, const mpi * N, mpi * _RR) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Greatest common divisor: G = gcd(A, B)
@@ -384,7 +385,7 @@ extern "C" {
 	 * \return         0 if successful,
 	 *                 1 if memory allocation failed
 	 */
-	int mpi_gcd(mpi * G, const mpi * A, const mpi * B);
+	int mpi_gcd(mpi * G, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Modular inverse: X = A^-1 mod N
@@ -394,7 +395,7 @@ extern "C" {
 	 *                 TROPICSSL_ERR_MPI_BAD_INPUT_DATA if N is negative or nil
 	 *                 TROPICSSL_ERR_MPI_NOT_ACCEPTABLE if A has no inverse mod N
 	 */
-	int mpi_inv_mod(mpi * X, const mpi * A, const mpi * N);
+	int mpi_inv_mod(mpi * X, const mpi * A, const mpi * N) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Miller-Rabin primality test
@@ -403,7 +404,7 @@ extern "C" {
 	 *                 1 if memory allocation failed,
 	 *                 TROPICSSL_ERR_MPI_NOT_ACCEPTABLE if X is not prime
 	 */
-	int mpi_is_prime(mpi * X, int (*f_rng) (void *), void *p_rng);
+	int mpi_is_prime(mpi * X, int (*f_rng) (void *), void *p_rng) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Prime number generation
@@ -419,14 +420,14 @@ extern "C" {
 	 *                 TROPICSSL_ERR_MPI_BAD_INPUT_DATA if nbits is < 3
 	 */
 	int mpi_gen_prime(mpi * X, int nbits, int dh_flag,
-			  int (*f_rng) (void *), void *p_rng);
+			  int (*f_rng) (void *), void *p_rng) XIP_ATTRIBUTE(".xipsec1");
 
 	/**
 	 * \brief          Checkup routine
 	 *
 	 * \return         0 if successful, or 1 if the test failed
 	 */
-	int mpi_self_test(int verbose);
+	int mpi_self_test(int verbose) XIP_ATTRIBUTE(".xipsec1");
 
 #ifdef __cplusplus
 }

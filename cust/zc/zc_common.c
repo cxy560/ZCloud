@@ -1,17 +1,33 @@
+/**
+******************************************************************************
+* @file     zc_cloud_event.c
+* @authors  cxy
+* @version  V1.0.0
+* @date     10-Sep-2014
+* @brief    Event
+******************************************************************************
+*/
+
 #include <zc_common.h>
 
 extern 	char *optarg; 
 
 u32 g_TraceSwitch = 0;
 
-
-void OutputData(u8* pData, u32 Len)
+/*************************************************
+* Function: ZC_TraceData
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void ZC_TraceData(u8* pData, u32 Len)
 {
-#if 0
-    UINT Index;
+    u32 Index;
     for (Index = 0; Index + 4 < Len; Index = Index + 4)
     {
-        Printf_High("%02x %02x %02x %02x\n",
+        ZC_Printf("%02x %02x %02x %02x\n",
             pData[Index],
             pData[Index + 1],
             pData[Index + 2],
@@ -20,11 +36,10 @@ void OutputData(u8* pData, u32 Len)
     
     for (; Index < Len; Index++)
     {
-        Printf_High("%02x ", pData[Index]);
+        ZC_Printf("%02x ", pData[Index]);
     }
     
-    Printf_High("\n");
-#endif
+    ZC_Printf("\n");
 }
 void IoT_exec_AT_cmd_TraceSwitch(u8 *pCmdBuf, u16 at_cmd_len)
 {

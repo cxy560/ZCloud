@@ -8,29 +8,8 @@
 ******************************************************************************
 */
 #include <zc_sec_engine.h>
+aes_context aes;
 
-/*************************************************
-* Function: SEC_CipherTextByRsa
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-s32 SEC_CipherTextByRsa(const u8 *pu8Plaintext, 
-                        const u32 u32Len,
-                        const u8 *pu8PublicKey,
-                        u8 *pu8CipherText)
-{
-    rsa_context struRsa;
-    s32 s32Ret; 
-
-    SEC_InitRsaContextWithPublicKey(&struRsa, pu8PublicKey);
-
-    s32Ret = rsa_pkcs1_encrypt(&struRsa, RSA_PUBLIC, u32Len, pu8Plaintext, pu8CipherText);
-    rsa_free(&struRsa);
-    return s32Ret;
-}
 /*************************************************
 * Function: SEC_DecipherTextByRsa
 * Description: 
@@ -41,8 +20,7 @@ s32 SEC_CipherTextByRsa(const u8 *pu8Plaintext,
 *************************************************/
 s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
                           const u8 *pu8CipherText,
-                          u8 *pu8PlainText,
-                          u32 u32PlainTextLen)
+                          u8 *pu8PlainText)
 {
     rsa_context struRsa;
     s32 s32len = 128;
@@ -50,7 +28,7 @@ s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
     SEC_InitRsaContextWithPrivateKey(&struRsa, pu8PrivateKey);
 
     s32Ret = rsa_pkcs1_decrypt(&struRsa, RSA_PRIVATE, &s32len, pu8CipherText,
-        pu8PlainText, u32PlainTextLen);
+        pu8PlainText, 40);
     rsa_free(&struRsa);
     return s32Ret;
 }
@@ -197,5 +175,37 @@ void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa,
     ++s32Index;
 
     mpi_read_binary(&pstrRsa->QP, pu8PrivateKey + s32Index, 64);
+}
+
+/*************************************************
+* Function: SEC_Encrypt
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void SEC_Encrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvSend, u8 *pu8buf, int length)
+{
+    aes_setkey_enc(&aes, pu8Key, 128);
+    aes_crypt_cbc(&aes, AES_ENCRYPT, length, pu8IvSend, pu8buf, pu8buf);
+    memcpy(pstruCon->IvSend, pu8buf, 16);
+}
+/*************************************************
+* Function: SEC_Decrypt
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void SEC_Decrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvRecv, u8 *pu8buf, int length)
+{
+    unsigned char next_iv[16];
+    memcpy(next_iv, pu8buf, 16);
+
+    aes_setkey_dec(&aes, pu8Key, 128);
+    aes_crypt_cbc(&aes, AES_DECRYPT, length, pu8IvRecv, pu8buf, pu8buf);
+    memcpy(pstruCon->IvRecv, next_iv, 16);
 }
 /******************************* FILE END ***********************************/

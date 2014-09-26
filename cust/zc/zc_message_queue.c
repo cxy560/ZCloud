@@ -10,8 +10,7 @@
 
 #include <zc_message_queue.h>
 #include <zc_protocol_interface.h>
-#include <uiplib.h>
-#include <uip.h>
+
 
 extern MSG_Buffer g_struRecvBuffer;
 extern MSG_Queue  g_struRecvQueue;
@@ -116,7 +115,7 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
         else
         {
             pstruMsg = (ZC_Message *)(pu8Data);
-            u32MsgLen =  HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+            u32MsgLen =  ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
 
             if (u32MsgLen > MSG_BUFFER_MAXLEN)
             {
@@ -145,7 +144,7 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
     if (MSG_BUFFER_SEGMENT_HEAD == g_struRecvBuffer.u8Status)
     {
         pstruMsg = (ZC_Message *)(g_struRecvBuffer.u8MsgBuffer);
-        u32MsgLen = HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+        u32MsgLen = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
 
         if (u32MsgLen <= u32DataLen + g_struRecvBuffer.u32Len)
         {
@@ -185,7 +184,7 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
                 (sizeof(ZC_Message) - g_struRecvBuffer.u32Len));
 
             pstruMsg = (ZC_Message *)(g_struRecvBuffer.u8MsgBuffer);
-            u32MsgLen = HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+            u32MsgLen = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
 
             if (u32MsgLen <= u32DataLen + g_struRecvBuffer.u32Len)
             {

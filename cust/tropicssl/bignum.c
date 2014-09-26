@@ -42,6 +42,7 @@
  */
 
 #include "config.h"
+#define TROPICSSL_BIGNUM_C
 
 #if defined(TROPICSSL_BIGNUM_C)
 
@@ -371,74 +372,6 @@ int mpi_write_string(const mpi * X, int radix, char *s, int *slen)
 cleanup:
 
 	mpi_free(&T);
-
-	return (ret);
-}
-
-/*
- * Read X from an opened file
- */
-int mpi_read_file(mpi * X, int radix, FILE * fin)
-{
-	t_int d;
-	int slen;
-	char *p;
-	char s[1024];
-
-	memset(s, 0, sizeof(s));
-	if (fgets(s, sizeof(s) - 1, fin) == NULL)
-		return (TROPICSSL_ERR_MPI_FILE_IO_ERROR);
-
-	slen = strlen(s);
-	if (s[slen - 1] == '\n') {
-		slen--;
-		s[slen] = '\0';
-	}
-	if (s[slen - 1] == '\r') {
-		slen--;
-		s[slen] = '\0';
-	}
-
-	p = s + slen;
-	while (--p >= s)
-		if (mpi_get_digit(&d, radix, *p) != 0)
-			break;
-
-	return (mpi_read_string(X, radix, p + 1));
-}
-
-/*
- * Write X into an opened file (or stdout if fout == NULL)
- */
-int mpi_write_file(const char *p, const mpi * X, int radix, FILE * fout)
-{
-	int n, ret;
-	size_t slen;
-	size_t plen;
-	char s[1024];
-
-	n = sizeof(s);
-	memset(s, 0, n);
-	n -= 2;
-
-	MPI_CHK(mpi_write_string(X, radix, s, (int *)&n));
-
-	if (p == NULL)
-		p = "";
-
-	plen = strlen(p);
-	slen = strlen(s);
-	s[slen++] = '\r';
-	s[slen++] = '\n';
-
-	if (fout != NULL) {
-		if (fwrite(p, 1, plen, fout) != plen ||
-		    fwrite(s, 1, slen, fout) != slen)
-			return (TROPICSSL_ERR_MPI_FILE_IO_ERROR);
-	} else
-		printf("%s%s", p, s);
-
-cleanup:
 
 	return (ret);
 }
@@ -846,6 +779,9 @@ int mpi_sub_int(mpi * X, const mpi * A, int b)
 
 	return (mpi_sub_mpi(X, A, &_B));
 }
+#define  XIP_ATTRIBUTE(x)    __attribute__ ((section(x)))
+
+static void mpi_mul_hlp(int i, t_int * s, t_int * d, t_int b) XIP_ATTRIBUTE(".xipsec1");
 
 /*
  * Helper for mpi multiplication

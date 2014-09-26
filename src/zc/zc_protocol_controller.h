@@ -12,7 +12,7 @@
 
 #include <zc_common.h>
 #include <zc_module_config.h>
-
+#include <zc_protocol_interface.h>
 /*PCT Main State Machine*/
 #define    PCT_STATE_SLEEP                  (0)
 #define    PCT_STATE_INIT                   (1)
@@ -21,7 +21,6 @@
 #define    PCT_STATE_WAIT_ACCESSRSP         (4)
 #define    PCT_STATE_CONNECT_CLOUD          (5)
 
-#define    PCT_MAX_BUF_LEN               (1000)
 
 
 typedef struct
@@ -36,10 +35,10 @@ typedef struct
     u8  u8IpAddress[ZC_IPADDR_MAX_LEN];
 }PTC_Connection;
 
-typedef u32 (*pFunSendDataToCloud)(PTC_Connection *pstruConnection, u8 *pu8Data, u32 u32DataLen);
+typedef void (*pFunSendDataToCloud)(PTC_Connection *pstruConnection);
 typedef u32 (*pFunFirmwareUpdate)(u8 *pu8NewVerFile, u32 u32DataLen);
 typedef u32 (*pFunSendDataToMoudle)(u8 *pu8Data, u32 u32DataLen);
-typedef u32 (*pFunRecvDataFromMoudle)(u8 **pu8Data, u32 *pu32DataLen);
+typedef u32 (*pFunRecvDataFromMoudle)(u8 *pu8Data, u32 u32DataLen);
 typedef u32 (*pFunGetCloudKey)(u8 *pu8Key);
 typedef u32 (*pFunGetPrivateKey)(u8 *pu8Key);
 typedef u32 (*pFunGetVersion)(u8 *pu8Version);
@@ -73,21 +72,36 @@ typedef struct
     
     PTC_Connection struCloudConnection;
     
-    u8   u8DeviceId[ZC_DEVICE_ID_MAX_LEN];      
+    u8   u8DeviceId[ZC_HS_DEVICE_ID_LEN];      
     u8   u8Version[ZC_FIRMWARE_VER_MAX_LEN];
-    u8   u8Msg1Rand[ZC_FIRMWARE_VER_MAX_LEN];
     
     u8   u8CloudPublicKey[ZC_CLOUD_PUBLIC_KEY_LEN];
     u8   u8MoudlePrivateKey[ZC_MOUDLE_PRIVATE_KEY_LEN];
-  
+    u8   u8SessionKey[ZC_HS_SESSION_KEY_LEN];
+    u8   IvSend[16];
+    u8   IvRecv[16];
+
     PTC_ModuleAdapter *pstruMoudleFun;      /*Communication With Cloud*/
 }PTC_ProtocolCon;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+void PCT_Init(PTC_ModuleAdapter *pstruAdapter);
+void PCT_SendEmptyMsg();
+void PCT_SendCloudAccessMsg2(PTC_ProtocolCon *pstruContoller, u8 *pu8RandMsg);
+u32  PCT_SendCloudAccessMsg4(PTC_ProtocolCon *pstruContoller, ZC_Message *pstruMsg);
+void PCT_DisConnectCloud(PTC_ProtocolCon *pstruContoller);
+void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller);
+void PCT_HandleMoudleEvent(u8 *pu8Msg, u32 u32DataLen);
+void PCT_RecvAccessMsg1(PTC_ProtocolCon *pstruContoller);
+void PCT_RecvAccessMsg3(PTC_ProtocolCon *pstruContoller);
+void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller);
+void PCT_Run();
+void PCT_WakeUp();
+void PCT_Sleep();
 void PCT_SendMsgToCloud(u8 *pu8Msg, u32 u32Len);
-
+void PCT_SendErrorMsg(u8 u8MsgId, u8 *pu8Error, u16 u16ErrorLen);
 
 
 #ifdef __cplusplus
