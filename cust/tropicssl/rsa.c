@@ -39,8 +39,8 @@
  *	http://www.cacr.math.uwaterloo.ca/hac/about/chap8.pdf
  */
 
-#include "config.h"
-#define TROPICSSL_RSA_C
+#include "secconfig.h"
+
 #if defined(TROPICSSL_RSA_C)
 
 #include "rsa.h"
@@ -49,10 +49,6 @@
 #include <string.h>
 #include <stdio.h>
 
-int rand()
-{
-    return 0;
-}
 /*
  * Initialize an RSA context
  */

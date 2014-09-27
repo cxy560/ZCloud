@@ -13,18 +13,35 @@
 #include <zc_protocol_interface.h>
 #include <zc_message_queue.h>
 #include <zc_cloud_event.h>
+#include <Random.h>
+#include <xip_ovly.h>
 
 extern PTC_ProtocolCon  g_struProtocolController;
 PTC_ModuleAdapter g_struMt7681Adapter;
 
 u32 g_u32Timer = 0;
 
-extern MSG_Buffer g_struRecvBuffer;
-extern MSG_Queue  g_struRecvQueue;
-extern MSG_Queue  g_struSendQueue;
+XIP_ATTRIBUTE(".xipsec1") MSG_Buffer g_struRecvBuffer;
+XIP_ATTRIBUTE(".xipsec1") MSG_Queue  g_struRecvQueue;
+XIP_ATTRIBUTE(".xipsec1") MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
+XIP_ATTRIBUTE(".xipsec1") MSG_Queue  g_struSendQueue;
 
+XIP_ATTRIBUTE(".xipsec1") u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
 
-
+#ifndef ZC_OFF_LINETEST
+/*************************************************
+* Function: rand
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 rand()
+{
+    return apiRand();
+}
+#endif
 /*************************************************
 * Function: MT_SendDataToCloud
 * Description: 
@@ -323,6 +340,25 @@ void MT_Init()
 * Parameter: 
 * History:
 *************************************************/
+void MT_Rand(u8 *pu8Rand)
+{
+    u32 u32Rand;
+    u32 u32Index; 
+    for (u32Index = 0; u32Index < 10; u32Index++)
+    {
+        u32Rand = apiRand();
+        memcpy(pu8Rand, &u32Rand, 4);
+    }
+}
+
+/*************************************************
+* Function: MT_CloudAppCall
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
 void MT_CloudAppCall()
 {
 
@@ -331,8 +367,9 @@ void MT_CloudAppCall()
     {
         /*Send Access to Cloud*/
         ZC_Printf("Connect to cloud\n");
-        g_u32Timer = 0;        
-        PCT_SendEmptyMsg();
+        g_u32Timer = 0; 
+        MT_Rand(g_struProtocolController.RandMsg);
+        PCT_SendCloudAccessMsg1(&g_struProtocolController);
         return;
     }
 

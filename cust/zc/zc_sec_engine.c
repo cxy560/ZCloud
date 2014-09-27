@@ -8,7 +8,6 @@
 ******************************************************************************
 */
 #include <zc_sec_engine.h>
-aes_context aes;
 
 /*************************************************
 * Function: SEC_DecipherTextByRsa
@@ -33,42 +32,6 @@ s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
     return s32Ret;
 }
 
-/*************************************************
-* Function: SEC_CalculateHmac
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void SEC_CalculateHmac(const u8 *pu8Text,
-                       const u8 *pu8Key,
-                       u8 *pu8hmac)
-{
-    sha1_hmac(pu8Key, 40, pu8Text, 128, pu8hmac);
-}
-
-/*************************************************
-* Function: SEC_VerifySignature
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-s32 SEC_VerifySignature(const u8 *pu8Signature,
-                     const u8 *pu8PubKey,
-                     const u8 *pu8ExpectedHmac)
-{
-    rsa_context struRsa;
-    s32 s32Ret;
-    SEC_InitRsaContextWithPublicKey(&struRsa, pu8PubKey);
-
-    s32Ret = rsa_pkcs1_verify(&struRsa, RSA_PUBLIC, RSA_RAW, 20,
-        pu8ExpectedHmac, pu8Signature);
-    rsa_free(&struRsa);
-    return s32Ret;
-}
 
 /*************************************************
 * Function: SEC_InitRsaContextWithPublicKey
@@ -187,8 +150,8 @@ void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa,
 *************************************************/
 void SEC_Encrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvSend, u8 *pu8buf, int length)
 {
-    aes_setkey_enc(&aes, pu8Key, 128);
-    aes_crypt_cbc(&aes, AES_ENCRYPT, length, pu8IvSend, pu8buf, pu8buf);
+    u32 u32Len;
+    AES_CBC_Encrypt(pu8buf, length, pu8Key, 128, pu8IvSend, 16, pu8buf, &u32Len);
     memcpy(pstruCon->IvSend, pu8buf, 16);
 }
 /*************************************************
@@ -202,10 +165,10 @@ void SEC_Encrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvSend, u8 *pu8bu
 void SEC_Decrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvRecv, u8 *pu8buf, int length)
 {
     unsigned char next_iv[16];
+    u32 u32Len;
     memcpy(next_iv, pu8buf, 16);
 
-    aes_setkey_dec(&aes, pu8Key, 128);
-    aes_crypt_cbc(&aes, AES_DECRYPT, length, pu8IvRecv, pu8buf, pu8buf);
+    AES_CBC_Decrypt(pu8buf, length, pu8Key, 128, pu8IvRecv, 16, pu8buf, &u32Len);
     memcpy(pstruCon->IvRecv, next_iv, 16);
 }
 /******************************* FILE END ***********************************/

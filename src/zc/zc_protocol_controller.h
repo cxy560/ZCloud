@@ -19,6 +19,7 @@
 #define    PCT_STATE_ACCESS_NET             (2)
 #define    PCT_STATE_WAIT_ACCESS            (3)
 #define    PCT_STATE_WAIT_ACCESSRSP         (4)
+#define    PCT_STATE_WAIT_MSG4              (6)
 #define    PCT_STATE_CONNECT_CLOUD          (5)
 
 
@@ -80,6 +81,7 @@ typedef struct
     u8   u8SessionKey[ZC_HS_SESSION_KEY_LEN];
     u8   IvSend[16];
     u8   IvRecv[16];
+    u8   RandMsg[ZC_HS_MSG_LEN];
 
     PTC_ModuleAdapter *pstruMoudleFun;      /*Communication With Cloud*/
 }PTC_ProtocolCon;
@@ -89,13 +91,13 @@ extern "C" {
 #endif
 void PCT_Init(PTC_ModuleAdapter *pstruAdapter);
 void PCT_SendEmptyMsg();
-void PCT_SendCloudAccessMsg2(PTC_ProtocolCon *pstruContoller, u8 *pu8RandMsg);
-u32  PCT_SendCloudAccessMsg4(PTC_ProtocolCon *pstruContoller, ZC_Message *pstruMsg);
+void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller);
+void  PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller);
 void PCT_DisConnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_HandleMoudleEvent(u8 *pu8Msg, u32 u32DataLen);
-void PCT_RecvAccessMsg1(PTC_ProtocolCon *pstruContoller);
-void PCT_RecvAccessMsg3(PTC_ProtocolCon *pstruContoller);
+void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller);
+void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller);
 void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller);
 void PCT_Run();
 void PCT_WakeUp();

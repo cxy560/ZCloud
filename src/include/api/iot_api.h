@@ -763,7 +763,7 @@ typedef struct GNU_PACKED t_HWTimerPWMInfo
  ******************************************************************************/
 
 INT32 __romtext memcmp(const void * cs,const void * ct, unsigned long count);
-INT32 atoi(const int8 *s);
+unsigned int atoi(const unsigned char *s);
 VOID  Printf_High(const char *fmt, ...);
 
 /*Notice:  not allow to use malloc again before free the old one*/

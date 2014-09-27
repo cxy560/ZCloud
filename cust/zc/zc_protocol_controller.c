@@ -14,16 +14,15 @@
 #include <zc_message_queue.h>
 #include <zc_protocol_interface.h>
 
-#define  XIP_ATTRIBUTE(x)    __attribute__ ((section(x)))
 
 
 PTC_ProtocolCon  g_struProtocolController;
-XIP_ATTRIBUTE(".xipsec1") MSG_Buffer g_struRecvBuffer;
-XIP_ATTRIBUTE(".xipsec1") MSG_Queue  g_struRecvQueue;
-XIP_ATTRIBUTE(".xipsec1") MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
-XIP_ATTRIBUTE(".xipsec1") MSG_Queue  g_struSendQueue;
+extern MSG_Buffer g_struRecvBuffer;
+extern MSG_Queue  g_struRecvQueue;
+extern MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
+extern MSG_Queue  g_struSendQueue;
 
-u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
+extern u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
 /*************************************************
 * Function: PCT_Init
 * Description: 
@@ -96,79 +95,65 @@ void PCT_SendErrorMsg(u8 u8MsgId, u8 *pu8Error, u16 u16ErrorLen)
 }
 
 /*************************************************
-* Function: PCT_SendCloudAccessMsg2
+* Function: PCT_SendCloudAccessMsg1
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-void PCT_SendCloudAccessMsg2(PTC_ProtocolCon *pstruContoller, u8 *pu8RandMsg)
+void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
 {
     rsa_context rsa;
     s32 s32Ret;
     u32 u32Len;
-    ZC_HandShakeMsg2 struMsg2;
+    ZC_HandShakeMsg1 struMsg1;
     
-    memcpy(struMsg2.RandMsg, pu8RandMsg, ZC_HS_MSG_LEN);
-    memcpy(struMsg2.DeviceId, pstruContoller->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
-    
+    memcpy(struMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
+    memcpy(struMsg1.DeviceId, pstruContoller->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+
     SEC_InitRsaContextWithPublicKey(&rsa, pstruContoller->u8CloudPublicKey);
-    s32Ret = rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, 52, (u8*)&struMsg2, (u8*)&struMsg2);
+    s32Ret = rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, 52, (u8*)&struMsg1, (u8*)&struMsg1);
     rsa_free(&rsa);
 
     if (s32Ret)
     {
         return;
     } 
-    EVENT_BuildMsg(pstruContoller, ZC_CODE_HANDSHAKE_2, 1, g_u8MsgBuildBuffer, &u32Len, 
-        (u8*)&struMsg2, sizeof(ZC_HandShakeMsg2));
+    EVENT_BuildMsg(pstruContoller, ZC_CODE_HANDSHAKE_1, 1, g_u8MsgBuildBuffer, &u32Len, 
+        (u8*)&struMsg1, sizeof(ZC_HandShakeMsg1));
     
     PCT_SendMsgToCloud((u8*)&g_u8MsgBuildBuffer, u32Len);
+    pstruContoller->u8MainState = PCT_STATE_WAIT_ACCESSRSP;
 }
 
 /*************************************************
-* Function: PCT_SendCloudAccessMsg4
+* Function: PCT_SendCloudAccessMsg3
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-u32 PCT_SendCloudAccessMsg4(PTC_ProtocolCon *pstruContoller, ZC_Message *pstruMsg)
+void PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller)
 {
-    unsigned char credentials[40];
-    unsigned char hmac[20];
-    ZC_HandShakeMsg3 *pstruMsg3;
+    u32 u32Len;
+    ZC_HandShakeMsg3 struMsg3;
     
-    pstruMsg3 = (ZC_HandShakeMsg3 *)(pstruMsg->payload);
+    memcpy(struMsg3.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
 
-    if (0 != SEC_DecipherTextByRsa(pstruContoller->u8MoudlePrivateKey,
-        pstruMsg3->SignedEncryptedCredentials,
-        credentials))
-    {
-        PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
-        return ZC_RET_ERROR;
-    }
-
-    SEC_CalculateHmac(pstruMsg3->SignedEncryptedCredentials, credentials, hmac);
-
-    if (0 == SEC_VerifySignature(pstruMsg3->Hmac,
-        pstruContoller->u8CloudPublicKey,
-        hmac))
-    {
-        memcpy(pstruContoller->u8SessionKey, credentials, ZC_HS_SESSION_KEY_LEN);
-        memcpy(pstruContoller->IvRecv,    credentials + 16, 16);
-        memcpy(pstruContoller->IvSend,    credentials + 16, 16);
-
-        return ZC_RET_OK;
-    }
-    else
-    {
-        PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
-        return ZC_RET_ERROR;
-    }
-
+    SEC_Encrypt(pstruContoller, 
+        pstruContoller->u8SessionKey, 
+        pstruContoller->IvSend,
+        (u8*)&struMsg3,
+        sizeof(ZC_HandShakeMsg3));
+    
+    EVENT_BuildMsg(pstruContoller, ZC_CODE_HANDSHAKE_3, 1, g_u8MsgBuildBuffer, &u32Len, 
+        (u8*)&struMsg3, sizeof(ZC_HandShakeMsg3));
+    
+    PCT_SendMsgToCloud((u8*)&g_u8MsgBuildBuffer, u32Len);
+    pstruContoller->u8MainState = PCT_STATE_WAIT_MSG4;
+    return;
 }
 /*************************************************
 * Function: PCT_DisConnectCloud
@@ -219,18 +204,20 @@ void PCT_HandleMoudleEvent(u8 *pu8Msg, u32 u32DataLen)
     return;
 }
 /*************************************************
-* Function: PCT_RecvAccessMsg1
+* Function: PCT_RecvAccessMsg2
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-void PCT_RecvAccessMsg1(PTC_ProtocolCon *pstruContoller)
+void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
 {
     MSG_Buffer *pstruBuffer;
     ZC_Message *pstruMsg;
+    ZC_HandShakeMsg2 struMsg2;
     
+    s32 s32RetVal;
     pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
     if (NULL == pstruBuffer)
     {
@@ -240,30 +227,47 @@ void PCT_RecvAccessMsg1(PTC_ProtocolCon *pstruContoller)
     pstruMsg = (ZC_Message*)pstruBuffer->u8MsgBuffer;
     ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message));
 
-    if (ZC_CODE_HANDSHAKE_1 == pstruMsg->MsgCode)
+    if (ZC_CODE_HANDSHAKE_2 == pstruMsg->MsgCode)
     {
-        PCT_SendCloudAccessMsg2(pstruContoller, (u8*)(pstruMsg + 1));
+        s32RetVal = SEC_DecipherTextByRsa(pstruContoller->u8MoudlePrivateKey,
+            pstruMsg->payload,
+            (u8*)&struMsg2);    
+        if (s32RetVal)
+        {
+            PCT_DisConnectCloud(pstruContoller);
+        }
+        else
+        {
+            if (0 == memcmp(struMsg2.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
+            {
+                memcpy(pstruContoller->u8SessionKey, struMsg2.SessionKey, ZC_HS_SESSION_KEY_LEN);
+                PCT_SendCloudAccessMsg3(pstruContoller);
+            }
+            else
+            {
+                PCT_DisConnectCloud(pstruContoller);
+            }
+        }
     }
     
-    pstruContoller->u8MainState = PCT_STATE_WAIT_ACCESSRSP;
     PCT_SendEmptyMsg();
     pstruBuffer->u32Len = 0;
     pstruBuffer->u8Status = MSG_BUFFER_IDLE;
 }
 
 /*************************************************
-* Function: PCT_RecvAccessMsg3
+* Function: PCT_RecvAccessMsg4
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-void PCT_RecvAccessMsg3(PTC_ProtocolCon *pstruContoller)
+void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
 {
     MSG_Buffer *pstruBuffer;
     ZC_Message *pstruMsg;
-    u32 u32RetVal;
+    ZC_HandShakeMsg4 *pstruMsg4;
     pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
     if (NULL == pstruBuffer)
     {
@@ -272,23 +276,23 @@ void PCT_RecvAccessMsg3(PTC_ProtocolCon *pstruContoller)
     
     pstruMsg = (ZC_Message*)pstruBuffer->u8MsgBuffer;
     ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message));
-    if (ZC_CODE_HANDSHAKE_3 == pstruMsg->MsgCode)
+    if (ZC_CODE_HANDSHAKE_4 == pstruMsg->MsgCode)
     {
-        u32RetVal = PCT_SendCloudAccessMsg4(pstruContoller, pstruMsg);
-        if (ZC_RET_ERROR == u32RetVal)
+        SEC_Decrypt(pstruContoller, 
+            pstruContoller->u8SessionKey, 
+            pstruContoller->IvRecv, 
+            pstruMsg->payload, ZC_HTONS(pstruMsg->Payloadlen));
+        pstruMsg4 = (ZC_HandShakeMsg4 *)pstruMsg->payload;
+        if (0 == memcmp(pstruMsg4->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
         {
-            pstruContoller->u8MainState = PCT_STATE_WAIT_ACCESS;
+            pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD;            
         }
         else
         {
-            pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD;
+            PCT_DisConnectCloud(pstruContoller);
         }
+
     }
-    else if (ZC_CODE_ERR == pstruMsg->MsgCode)
-    {
-        pstruContoller->u8MainState = PCT_STATE_WAIT_ACCESS;
-    }
-    
     PCT_SendEmptyMsg();
     pstruBuffer->u32Len = 0;
     pstruBuffer->u8Status = MSG_BUFFER_IDLE;
@@ -348,11 +352,13 @@ void PCT_Run()
             PCT_ConnectCloud(pstruContoller);
             break;
         case PCT_STATE_WAIT_ACCESS:
-            PCT_RecvAccessMsg1(pstruContoller);
             break;
         case PCT_STATE_WAIT_ACCESSRSP:
-            PCT_RecvAccessMsg3(pstruContoller);
+            PCT_RecvAccessMsg2(pstruContoller);
             break;    
+        case PCT_STATE_WAIT_MSG4:
+            PCT_RecvAccessMsg4(pstruContoller);
+            break;
         case PCT_STATE_CONNECT_CLOUD:
             PCT_HandleEvent(pstruContoller);
             break;                       

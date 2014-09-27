@@ -53,3 +53,27 @@ u16 *resolv_lookup(char *name)
 {
     return (u16*)g_u8Ipaddr;    
 }
+
+void AES_CBC_Encrypt(
+    u8 PlainText[],
+    u32 PlainTextLength,
+    u8 Key[],
+    u32 KeyLength,
+    u8 IV[],
+    u32 IVLength,
+    u8 CipherText[],
+    u32 *CipherTextLength)
+{
+}
+
+void AES_CBC_Decrypt(
+    u8 PlainText[],
+    u32 PlainTextLength,
+    u8 Key[],
+    u32 KeyLength,
+    u8 IV[],
+    u32 IVLength,
+    u8 CipherText[],
+    u32 *CipherTextLength)
+{
+}

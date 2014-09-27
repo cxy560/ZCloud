@@ -11,8 +11,6 @@
 #ifndef  __ZC_SEC_ENGINE_H__ 
 #define  __ZC_SEC_ENGINE_H__
 #include <rsa.h>
-#include <sha1.h>
-#include <aes.h>
 #include <zc_common.h>
 #include <zc_protocol_controller.h>
 
@@ -25,13 +23,6 @@ s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
     const u8 *pu8CipherText,
     u8 *pu8PlainText);
     
-void SEC_CalculateHmac(const u8 *pu8Text,
-    const u8 *pu8Key,
-    u8 *pu8hmac);
-    
-s32 SEC_VerifySignature(const u8 *pu8Signature,
-    const u8 *pu8PubKey,
-    const u8 *pu8ExpectedHmac);
     
 void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa,
     const u8 *pu8Pubkey);

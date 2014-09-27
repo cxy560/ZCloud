@@ -13,10 +13,15 @@
 
 #define ZC_HS_MSG_LEN                       (40)
 #define ZC_HS_DEVICE_ID_LEN                 (12)
-#define ZC_HS_MAC_LEN                       (20)
-#define ZC_HS_SIGNATURE_LEN                 (128)
 #define ZC_HS_SESSION_KEY_LEN               (16)
 #define ZC_HS_SESSION_IV_LEN                (16)
+
+typedef struct
+{
+    u16 u16TotalMsg;
+    u8  u8SecType;
+    u8  u8AlgType;
+}ZC_SecHeader;
 
 /*ZCloud Message*/
 typedef struct
@@ -72,44 +77,35 @@ typedef struct{
 }ZC_ErrorMsg;
 
 
-/*first handshake msg, send by cloud to moudle*/
-typedef struct
-{
-    u8 RandMsg[ZC_HS_MSG_LEN];
-}ZC_HandShakeMsg1;
-
-/*Second handshake msg, send by moudle to cloud, 
+/*first handshake msg, send by moudle to cloud
 encrypt by cloud public key*/
 typedef struct
 {
     u8 RandMsg[ZC_HS_MSG_LEN];
     u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
-    u8 Pad[256 - ZC_HS_DEVICE_ID_LEN - ZC_HS_MSG_LEN];
-}ZC_HandShakeMsg2;
+}ZC_HandShakeMsg1;
 
-/*3rd handshake msg, send by cloud to moudle,
+/*Second handshake msg, send by cloud to moudle, 
 encrypt by moudle public key*/
 typedef struct
 {
-    u8 SignedEncryptedCredentials[ZC_HS_SIGNATURE_LEN];   /*Include Session key*/
-    u8 Hmac[ZC_HS_MAC_LEN];
-}ZC_HandShakeMsg3;
+    u8 RandMsg[ZC_HS_MSG_LEN];
+    u8 SessionKey[ZC_HS_SESSION_KEY_LEN];
+}ZC_HandShakeMsg2;
 
-/*Session Key*/
-typedef struct
-{
-    u8 Key[ZC_HS_SESSION_KEY_LEN];
-    u8 Iv[ZC_HS_SESSION_IV_LEN];
-    u16 MsgId;
-    u8  Token;
-    u8  Salt[5];
-}ZC_SessionKey;
-
-/*4th handshake msg, send by moudle to cloud,
+/*3rd handshake msg, send by moudle to cloud,
 encrypt by session key*/
 typedef struct
 {
-    u8 u8Hello[256];   /*TODO*/
+    u8 RandMsg[ZC_HS_MSG_LEN];
+}ZC_HandShakeMsg3;
+
+
+/*4th handshake msg, send by cloud to moudle,
+encrypt by session key*/
+typedef struct
+{
+    u8 RandMsg[ZC_HS_MSG_LEN];
 }ZC_HandShakeMsg4;
 #endif
 /******************************* FILE END ***********************************/

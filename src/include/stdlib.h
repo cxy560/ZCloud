@@ -5,7 +5,9 @@
 
 void *malloc(size_t size);
 void free(void *ptr);
-int32 atoi(const int8 *s);
-
+unsigned int atoi(const unsigned char *s);
+#ifndef NULL
+#define NULL                ((void *)0)
+#endif
 #endif /* _STDLIB_H_ */
 
