@@ -302,6 +302,7 @@ u32 MT_GetCloudIp(u8 *pu8CloudIp)
 * Parameter: 
 * History:
 *************************************************/
+u32 MT_ConnectToCloud(PTC_Connection *pstruConnection) XIP_ATTRIBUTE(".xipsec1");
 u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
 {
     struct uip_conn *conn=NULL;

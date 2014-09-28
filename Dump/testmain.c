@@ -227,35 +227,8 @@ void testrecvbuffer()
 }
 
 
-void newrsa()
-{
-    rsa_keyset keyset;
-    rsa_genkey(&keyset);
-}
 
 
-void testrsa()
-{
-    u32 u32Index;
-    for (u32Index = 0; u32Index < 52; u32Index++)
-    {
-        g_u8DumpCloudMsg[u32Index] = u32Index;
-    }
-
-    ZC_TraceData(g_u8DumpCloudMsg, 52);
-    ZC_Printf("++++++++++++++++++++++++++++++++++++++++++++\n");
-    SEC_EncryptTextByRsa(g_struProtocolController.u8CloudPublicKey,
-        g_u8DumpCloudMsg,
-        g_u8DumpCloudMsg+52,
-        52);
-    ZC_TraceData(g_u8DumpCloudMsg+52, 52);
-    ZC_Printf("++++++++++++++++++++++++++++++++++++++++++++\n");
-    ZC_TraceData(g_u8DumpCloudMsg, 52);
-    g_struProtocolController.u8ReconnectTimer = 1;
-    //PCT_SendCloudAccessMsg1(&g_struProtocolController);
-    
-    rsa_self_test(1);
-}
 void main()
 {
   newrsa();

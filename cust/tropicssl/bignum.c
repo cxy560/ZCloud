@@ -288,7 +288,7 @@ cleanup:
 
 	return (ret);
 }
-
+#ifdef ZC_OFF_LINETEST
 /*
  * Helper to write the digits high-order first
  */
@@ -374,7 +374,7 @@ cleanup:
 
 	return (ret);
 }
-
+#endif
 /*
  * Import X from unsigned binary data, big endian
  */

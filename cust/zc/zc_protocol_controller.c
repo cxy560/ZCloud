@@ -119,6 +119,7 @@ void PCT_SendErrorMsg(u8 u8MsgId, u8 *pu8Error, u16 u16ErrorLen)
 void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
 {
     u16 u16Len;
+    ZC_HandShakeMsg1 tempstruMsg1;
     ZC_HandShakeMsg1 struMsg1;
     s32 s32RetVal;
     
@@ -129,11 +130,11 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
         pstruContoller->u8ReconnectTimer = PCT_TIMER_INVAILD;
     }
 
-    memcpy(struMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
-    memcpy(struMsg1.DeviceId, pstruContoller->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+    memcpy(tempstruMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
+    memcpy(tempstruMsg1.DeviceId, pstruContoller->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
 
     s32RetVal = SEC_EncryptTextByRsa(pstruContoller->u8CloudPublicKey,
-        (u8*)&struMsg1,
+        (u8*)&tempstruMsg1,
         (u8*)&struMsg1,
         sizeof(struMsg1));
     if (s32RetVal)

@@ -26,7 +26,7 @@ s32 SEC_EncryptTextByRsa(const u8 *pu8PublicKey,
     s32 s32Ret;
 
     SEC_InitRsaContextWithPublicKey(&rsa, pu8PublicKey);
-    s32Ret = rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, 52, pu8PlainText, pu8CipherText);
+    s32Ret = rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, u16DataLen, pu8PlainText, pu8CipherText);
     rsa_free(&rsa);
 
     return s32Ret;
@@ -48,12 +48,12 @@ s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
                           u16 u16DataLen)
 {
     rsa_context struRsa;
-    s32 s32len = 128;
+    s32 s32len;
     s32 s32Ret;
     SEC_InitRsaContextWithPrivateKey(&struRsa, pu8PrivateKey);
 
     s32Ret = rsa_pkcs1_decrypt(&struRsa, RSA_PRIVATE, &s32len, pu8CipherText,
-        pu8PlainText, 40);
+        pu8PlainText, u16DataLen);
     rsa_free(&struRsa);
     return s32Ret;
 }
@@ -72,9 +72,9 @@ void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa,
 {
     rsa_init(pstruRsa, RSA_PKCS_V15, RSA_RAW, NULL, NULL);
 
-    pstruRsa->len = 256;
-    mpi_read_binary(&pstruRsa->N, pu8Pubkey + 33, 256);
-    mpi_read_string(&pstruRsa->E, 16, "10001");
+    pstruRsa->len = 128;
+    mpi_read_binary(&pstruRsa->N, pu8Pubkey, 128);
+    mpi_read_binary(&pstruRsa->E, pu8Pubkey+128, 3);
 }
 
 /*************************************************
@@ -88,82 +88,27 @@ void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa,
 void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa,
                                       const u8 *pu8PrivateKey)
 {
-    s32 s32Index = 9;
+    u8 u8Index;
+    u16 u16StartPos;
+    u8 u8BufLen[6] = {128,64,64,64,64,64};
+    mpi *pstruMpi[6];
     rsa_init(pstrRsa, RSA_PKCS_V15, RSA_RAW, NULL, NULL);
 
-
     pstrRsa->len = 128;
+      
+    pstruMpi[0] = &pstrRsa->N;
+    pstruMpi[1] = &pstrRsa->P;
+    pstruMpi[2] = &pstrRsa->Q;
+    pstruMpi[3] = &pstrRsa->DP;
+    pstruMpi[4] = &pstrRsa->DQ;    
+    pstruMpi[5] = &pstrRsa->QP;  
 
-    
-    if (pu8PrivateKey[s32Index] & 1)
+    u16StartPos = 0;
+    for (u8Index = 0; u8Index < 6; u8Index++)
     {
-        // key contains an extra zero byte
-        ++s32Index;
+        mpi_read_binary(pstruMpi[u8Index], pu8PrivateKey + u16StartPos, u8BufLen[u8Index]);
+        u16StartPos += u8BufLen[u8Index];
     }
-    ++s32Index;
-
-    mpi_read_binary(&pstrRsa->N, pu8PrivateKey + s32Index, 128);
-    mpi_read_string(&pstrRsa->E, 16, "10001");
-
-    s32Index = s32Index + 135;
-    if (pu8PrivateKey[s32Index] & 1)
-    {
-        // key contains an extra zero byte
-        ++s32Index;
-    }
-    ++s32Index;
-
-    mpi_read_binary(&pstrRsa->D, pu8PrivateKey + s32Index, 128);
-
-    s32Index = s32Index + 129;
-    if (pu8PrivateKey[s32Index] & 1)
-    {
-        // key contains an extra zero byte
-        ++s32Index;
-    }
-    ++s32Index;
-
-    mpi_read_binary(&pstrRsa->P, pu8PrivateKey + s32Index, 64);
-
-    s32Index = s32Index + 65;
-    if (pu8PrivateKey[s32Index] & 1)
-    {
-        // key contains an extra zero byte
-        ++s32Index;
-    }
-    ++s32Index;
-
-    mpi_read_binary(&pstrRsa->Q, pu8PrivateKey + s32Index, 64);
-
-    s32Index = s32Index + 65;
-    if (pu8PrivateKey[s32Index] & 1)
-    {
-        // key contains an extra zero byte
-        ++s32Index;
-    }
-    ++s32Index;
-
-    mpi_read_binary(&pstrRsa->DP, pu8PrivateKey + s32Index, 64);
-
-    s32Index = s32Index + 65;
-    if (pu8PrivateKey[s32Index] & 1)
-    {
-        // key contains an extra zero byte
-        ++s32Index;
-    }
-    ++s32Index;
-
-    mpi_read_binary(&pstrRsa->DQ, pu8PrivateKey + s32Index, 64);
-
-    s32Index = s32Index + 65;
-    if (pu8PrivateKey[s32Index] & 1)
-    {
-        // key contains an extra zero byte
-        ++s32Index;
-    }
-    ++s32Index;
-
-    mpi_read_binary(&pstrRsa->QP, pu8PrivateKey + s32Index, 64);
 }
 
 /*************************************************
