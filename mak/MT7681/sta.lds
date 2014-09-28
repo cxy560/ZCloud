@@ -102,8 +102,8 @@ SECTIONS
 		KEEP(*(.Xcpt))
 		KEEP(*(.ctxsw))
 		KEEP(*(.startup))
-		*(.text)
-		*(.text.*)
+		*(EXCLUDE_FILE (*obj/sta/tropicssl/*.o).text)
+		*(EXCLUDE_FILE (*obj/sta/tropicssl/*.o).text.*)
 	} > SRAM = 0
 
 	
@@ -434,6 +434,8 @@ SECTIONS
 	.xipsec1 :       
 	{                    
 		/*KEEP(*(.xipsec1))*/  
+		obj/sta/tropicssl/*.o(.text.*)
+		obj/sta/tropicssl/*.o(.text)
 	} > FLASH_XIP_STA     
 	
 	.xipsec2 : 

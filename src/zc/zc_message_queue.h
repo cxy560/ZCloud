@@ -15,7 +15,6 @@
 
 #define  MSG_QUEUE_MAXLEN               (5)
 #define  MSG_BUFFER_MAXLEN              (1000)
-#define  MSG_BUFFER_MAX_NUM             (5)
 
 #define  MSG_BUFFER_IDLE                (0)
 #define  MSG_BUFFER_FULL                (1)

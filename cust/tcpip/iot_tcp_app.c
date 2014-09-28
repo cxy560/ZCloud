@@ -110,11 +110,6 @@ iot_tcp_appcall(void)
 	if (uip_newdata()) {
 		printf("RX fd : %d\n", uip_conn->fd);
 		if (lport == IoTpAd.ComCfg.Local_TCP_Srv_Port || lport==7682) {
-#if ENABLE_DATAPARSING_SEQUENCE_MGMT		
-			IoT_process_app_packet(uip_conn->fd, uip_appdata,uip_datalen());
-#else
-			IoT_process_app_packet(uip_appdata,uip_datalen());
-#endif
 #if CFG_SUPPORT_TCPIP_ROBUST_TEST
 		} else if (lport==7684) {
 			uip_send(uip_appdata, uip_datalen());

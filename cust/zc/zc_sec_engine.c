@@ -22,19 +22,16 @@ s32 SEC_EncryptTextByRsa(const u8 *pu8PublicKey,
     u8 *pu8CipherText,
     u16 u16DataLen)
 {
-    //rsa_context rsa;
-    //s32 s32Ret;
+    rsa_context rsa;
+    s32 s32Ret;
 
-    //SEC_InitRsaContextWithPublicKey(&rsa, pu8PublicKey);
-    //s32Ret = rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, 52, pu8PlainText, pu8CipherText);
-    //rsa_free(&rsa);
+    SEC_InitRsaContextWithPublicKey(&rsa, pu8PublicKey);
+    s32Ret = rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, 52, pu8PlainText, pu8CipherText);
+    rsa_free(&rsa);
 
-    //if (s32Ret)
-    //{
-    //    return;
-    //}
-    memcpy(pu8CipherText, pu8PlainText, u16DataLen);
-    return 0;
+    return s32Ret;
+    
+
 }
 
 /*************************************************
@@ -50,17 +47,15 @@ s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
                           u8 *pu8PlainText,
                           u16 u16DataLen)
 {
-    //rsa_context struRsa;
-    //s32 s32len = 128;
-    //s32 s32Ret;
-    //SEC_InitRsaContextWithPrivateKey(&struRsa, pu8PrivateKey);
+    rsa_context struRsa;
+    s32 s32len = 128;
+    s32 s32Ret;
+    SEC_InitRsaContextWithPrivateKey(&struRsa, pu8PrivateKey);
 
-    //s32Ret = rsa_pkcs1_decrypt(&struRsa, RSA_PRIVATE, &s32len, pu8CipherText,
-    //    pu8PlainText, 40);
-    //rsa_free(&struRsa);
-    //return s32Ret;
-    memcpy(pu8PlainText, pu8CipherText, u16DataLen);
-    return 0;
+    s32Ret = rsa_pkcs1_decrypt(&struRsa, RSA_PRIVATE, &s32len, pu8CipherText,
+        pu8PlainText, 40);
+    rsa_free(&struRsa);
+    return s32Ret;
 }
 
 

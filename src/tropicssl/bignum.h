@@ -73,12 +73,6 @@ typedef unsigned long long t_dbl;
 #endif
 #endif
 
-#if (XIP_ENABLE != 0)
-#define  XIP_ATTRIBUTE(x)    __attribute__ ((section(x)))
-#else
-#define  XIP_ATTRIBUTE(x)
-#endif
-
 /**
  * \brief          MPI structure
  */
@@ -155,7 +149,7 @@ extern "C" {
 	 *
 	 * \return         0 if successful, or an TROPICSSL_ERR_MPI_XXX error code
 	 */
-	int mpi_read_string(mpi * X, int radix, const char *s) XIP_ATTRIBUTE(".xipsec1");
+	int mpi_read_string(mpi * X, int radix, const char *s);
 
 	/**
 	 * \brief          Export into an ASCII string
@@ -340,7 +334,7 @@ extern "C" {
 	 *
 	 * \note           Either Q or R can be NULL.
 	 */
-	int mpi_div_mpi(mpi * Q, mpi * R, const mpi * A, const mpi * B) XIP_ATTRIBUTE(".xipsec1");
+	int mpi_div_mpi(mpi * Q, mpi * R, const mpi * A, const mpi * B);
 
 	/**
 	 * \brief          Division by int: A = Q * b + R

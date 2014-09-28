@@ -156,8 +156,6 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
     }
     else
     {
-        iot_udp_send(pstruConnection->u32Socket, 
-            (u8*)pstruMsg, u16DataLen, pstruConnection->u8IpAddress, pstruConnection->u32Port);
     }
     
 

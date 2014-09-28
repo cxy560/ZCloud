@@ -42,7 +42,6 @@
  */
 
 #include "secconfig.h"
-#define TROPICSSL_BIGNUM_C
 
 #if defined(TROPICSSL_BIGNUM_C)
 
@@ -779,7 +778,7 @@ int mpi_sub_int(mpi * X, const mpi * A, int b)
 
 	return (mpi_sub_mpi(X, A, &_B));
 }
-static void mpi_mul_hlp(int i, t_int * s, t_int * d, t_int b) XIP_ATTRIBUTE(".xipsec1");
+
 /*
  * Helper for mpi multiplication
  */
