@@ -1,6 +1,8 @@
 #include <zc_common.h>
 #include <uip.h>
 #include <uiplib.h>
+#include <iot_tcpip_interface.h>
+#include <time.h>
 u8 uip_appdata[1024];
 struct uip_conn g_DumpConn;
 UIP_UDP_CONN g_DmupUdpConn;
@@ -28,14 +30,14 @@ int IoT_uart_output(u8 *msg, u16 count)
 struct uip_conn * uip_connect(uip_ipaddr_t *ripaddr, u16 rport)
 {
     static unsigned int ConnectTime = 0;
-    
-    ConnectTime++;
-    uip_flags = UIP_TIMEDOUT;    
 
-    if (10 == ConnectTime)
+    ConnectTime++;
+
+    if (2 == ConnectTime)
     {
         uip_flags = UIP_CONNECTED;
     }
+
     
     return &g_DumpConn;
 }
@@ -77,3 +79,38 @@ void AES_CBC_Decrypt(
     u32 *CipherTextLength)
 {
 }
+
+u32 clock_time()
+{
+    return clock();
+}
+void
+timer_set(struct timer *t, clock_time_t interval)
+{
+    t->interval = interval;
+    t->start = clock_time();
+}
+
+void
+timer_reset(struct timer *t)
+{
+    t->start += t->interval;
+}
+
+void
+timer_restart(struct timer *t)
+{
+    t->start = clock_time();
+}
+
+int
+timer_expired(struct timer *t)
+{
+    return (clock_time_t)(clock_time() - t->start) >= (clock_time_t)t->interval;
+}
+void
+uip_arp_out(void)
+{}
+void
+mt76xx_dev_send(void)
+{}

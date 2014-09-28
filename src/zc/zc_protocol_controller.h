@@ -19,9 +19,19 @@
 #define    PCT_STATE_ACCESS_NET             (2)
 #define    PCT_STATE_WAIT_ACCESS            (3)
 #define    PCT_STATE_WAIT_ACCESSRSP         (4)
-#define    PCT_STATE_WAIT_MSG4              (6)
-#define    PCT_STATE_CONNECT_CLOUD          (5)
+#define    PCT_STATE_WAIT_MSG4              (5)
+#define    PCT_STATE_CONNECT_CLOUD          (6)
+#define    PCT_STATE_DISCONNECT_CLOUD       (7)
 
+#define    PCT_INVAILD_SOCKET               (0xFFFFFFFF)
+
+#define    PCT_TIMER_RECONNECT              (0)
+#define    PCT_TIMER_REACCESS               (1)
+
+#define    PCT_TIMER_INTERVAL_RECONNECT     (1000)
+
+#define    PCT_KEY_UNRECVED     (0)
+#define    PCT_KEY_RECVED       (1)
 
 
 typedef struct
@@ -37,15 +47,17 @@ typedef struct
 }PTC_Connection;
 
 typedef void (*pFunSendDataToCloud)(PTC_Connection *pstruConnection);
-typedef u32 (*pFunFirmwareUpdate)(u8 *pu8NewVerFile, u32 u32DataLen);
-typedef u32 (*pFunSendDataToMoudle)(u8 *pu8Data, u32 u32DataLen);
-typedef u32 (*pFunRecvDataFromMoudle)(u8 *pu8Data, u32 u32DataLen);
+typedef u32 (*pFunFirmwareUpdate)(u8 *pu8NewVerFile, u16 u16DataLen);
+typedef u32 (*pFunSendDataToMoudle)(u8 *pu8Data, u16 u16DataLen);
+typedef u32 (*pFunRecvDataFromMoudle)(u8 *pu8Data, u16 u16DataLen);
 typedef u32 (*pFunGetCloudKey)(u8 *pu8Key);
 typedef u32 (*pFunGetPrivateKey)(u8 *pu8Key);
 typedef u32 (*pFunGetVersion)(u8 *pu8Version);
 typedef u32 (*pFunGetDeviceId)(u8 *pu8DeviceId);
 typedef u32 (*pFunGetCloudIp)(u8 *pu8CloudIp);
 typedef u32 (*pFunConnectToCloud)(PTC_Connection *pstruConnection);
+typedef u32 (*pFunSetTimer)(u8 u8Type, u32 Interval, u8 *pu8Index);
+
 
 typedef struct
 {
@@ -62,6 +74,7 @@ typedef struct
     pFunGetVersion              pfunGetVersion;
     pFunGetDeviceId             pfunGetDeviceId;
     pFunGetCloudIp              pfunGetCloudIP;
+    pFunSetTimer                pfunSetTimer;
 }PTC_ModuleAdapter;
 
 
@@ -69,7 +82,9 @@ typedef struct
 typedef struct
 {
     u8   u8MainState;                         /*State*/
-    u8   u8Pad[3];
+    u8   u8keyRecv;
+    u8   u8ReconnectTimer;
+    u8   u8AccessTimer;
     
     PTC_Connection struCloudConnection;
     
@@ -86,6 +101,8 @@ typedef struct
     PTC_ModuleAdapter *pstruMoudleFun;      /*Communication With Cloud*/
 }PTC_ProtocolCon;
 
+extern PTC_ProtocolCon  g_struProtocolController;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -95,15 +112,16 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller);
 void  PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller);
 void PCT_DisConnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller);
-void PCT_HandleMoudleEvent(u8 *pu8Msg, u32 u32DataLen);
+void PCT_HandleMoudleEvent(u8 *pu8Msg, u16 u16DataLen);
 void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller);
 void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller);
 void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller);
 void PCT_Run();
 void PCT_WakeUp();
 void PCT_Sleep();
-void PCT_SendMsgToCloud(u8 *pu8Msg, u32 u32Len);
+void PCT_SendMsgToCloud(u8 *pu8Msg, u16 u16Len);
 void PCT_SendErrorMsg(u8 u8MsgId, u8 *pu8Error, u16 u16ErrorLen);
+void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller);
 
 
 #ifdef __cplusplus

@@ -4,29 +4,27 @@
 #include <zc_message_queue.h>
 #include <iot_tcpip_interface.h>
 #include <zc_protocol_interface.h>
+#include <zc_protocol_controller.h>
 
 u8 g_u8DumpCloudMsg[10240];
 extern MSG_Buffer g_struRecvBuffer;
 extern MSG_Queue  g_struRecvQueue;
 
 
-void SimRecvMsg()
+void SimRecvMsg(u8 u8Code, u8 *pu8msg, u16 u16Datalen)
 {
     ZC_Message *pstruMsg;
     u32 u32Index;
-    u16 u16Len;
 
     pstruMsg = (ZC_Message *)uip_appdata;
 
-    u16Len = 100;
-    pstruMsg->Payloadlen = ZC_HTONS(u16Len);
-    for (u32Index = 0; u32Index < u16Len; u32Index++)
-    {
-        pstruMsg->payload[u32Index] = u32Index;
-    }
+    pstruMsg->MsgCode = u8Code;
+
+    pstruMsg->Payloadlen = ZC_HTONS(u16Datalen);
+    memcpy(pstruMsg->payload, pu8msg, u16Datalen);
     
     uip_flags = UIP_NEWDATA;
-    uip_len = u16Len + sizeof(ZC_Message);
+    uip_len = u16Datalen + sizeof(ZC_Message);
 }
 
 void logicTest()
@@ -37,6 +35,7 @@ void logicTest()
 
     while(1)
     {
+        ZC_Printf("u32Access status = %d\n", u32AccessOk);
         if (1 == u32AccessOk)
         {
             MT_WakeUp();
@@ -48,12 +47,36 @@ void logicTest()
         }
         else
         {
-            SimRecvMsg();
+            
+        }
+        MT_TimerExpired();
+        
+        if (5 == u32AccessOk)
+        {
+            uip_flags = UIP_TIMEDOUT;
+        }
+        /*else if (8 == u32AccessOk)
+        {
+            uip_flags = UIP_CONNECTED;
+        }
+        else if (u32AccessOk == 9)
+        {
+            SimRecvMsg(ZC_CODE_HANDSHAKE_2);
+        }
+        else if (u32AccessOk == 10)
+        {
+            SimRecvMsg(ZC_CODE_HANDSHAKE_4);
+        }*/
+        if (g_struProtocolController.u8MainState == PCT_STATE_WAIT_ACCESSRSP)
+        {
+            SimRecvMsg(ZC_CODE_HANDSHAKE_2, g_struProtocolController.RandMsg, sizeof(ZC_HandShakeMsg2));
+        }
+        if (g_struProtocolController.u8MainState == PCT_STATE_WAIT_MSG4)
+        {
+            //SimRecvMsg(ZC_CODE_HANDSHAKE_4, g_struProtocolController.RandMsg, sizeof(ZC_HandShakeMsg4));
         }
         MT_CloudAppCall();
         MT_Run();
-        uip_flags = UIP_POLL;
-        MT_CloudAppCall();
         u32AccessOk++;
     }
 

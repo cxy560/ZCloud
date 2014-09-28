@@ -170,6 +170,7 @@ int netif_rx(u8_t *p, u16_t len)
 void tcpip_periodic_timer()
 {
 	int i;
+    MT_TimerExpired();
 
 	if(timer_expired(&periodic_timer)) {
 		timer_reset(&periodic_timer);

@@ -58,6 +58,9 @@
 #define uip_aborted()    (uip_flags & UIP_ABORT)
 
 #define uip_datalen()       uip_len
+#define uip_close()         (uip_flags = UIP_CLOSE)
+
+#define uip_abort()         (uip_flags = UIP_ABORT)
 
 #define UIP_CONF_BYTE_ORDER      UIP_LITTLE_ENDIAN
 
@@ -73,7 +76,10 @@
 #ifndef UIP_BIG_ENDIAN
 #define UIP_BIG_ENDIAN     1234
 #endif /* UIP_BIG_ENDIAN */
-
+void MT_CloudAppCall();
+#define uip_poll_conn(conn) do { uip_flags = UIP_POLL; \
+    MT_CloudAppCall();\
+    } while (0)
 #if 0
 #ifndef HTONS
 #   if UIP_BYTE_ORDER == UIP_BIG_ENDIAN

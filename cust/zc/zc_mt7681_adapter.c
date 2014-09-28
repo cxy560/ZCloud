@@ -15,6 +15,8 @@
 #include <zc_cloud_event.h>
 #include <Random.h>
 #include <xip_ovly.h>
+#include <uip_timer.h>
+#include <zc_timer.h>
 
 extern PTC_ProtocolCon  g_struProtocolController;
 PTC_ModuleAdapter g_struMt7681Adapter;
@@ -27,6 +29,10 @@ XIP_ATTRIBUTE(".xipsec1") MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
 XIP_ATTRIBUTE(".xipsec1") MSG_Queue  g_struSendQueue;
 
 XIP_ATTRIBUTE(".xipsec1") u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
+
+struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
+
+
 
 #ifndef ZC_OFF_LINETEST
 /*************************************************
@@ -42,6 +48,68 @@ u32 rand()
     return apiRand();
 }
 #endif
+
+/*************************************************
+* Function: MT_TimerExpired
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MT_TimerExpired()
+{
+    u8 u8Index;
+    u8 u8Status;
+    for (u8Index = 0; u8Index < ZC_TIMER_MAX_NUM; u8Index++)
+    {   
+        TIMER_GetTimerStatus(u8Index, &u8Status);
+        if (ZC_TIMER_STATUS_USED == u8Status)
+        {
+            if (timer_expired(&g_struMtTimer[u8Index]))
+            {
+                TIMER_StopTimer(u8Index);
+                TIMER_TimeoutAction(u8Index);
+            }
+        }
+    }
+
+    if ((g_struProtocolController.u8MainState >= PCT_STATE_WAIT_ACCESSRSP)
+    && (PCT_INVAILD_SOCKET != g_struProtocolController.struCloudConnection.u32Socket))
+    {
+        uip_poll_conn(g_struProtocolController.struCloudConnection.u32Socket);
+        if (uip_len > 0) 
+        {
+            uip_arp_out();
+            mt76xx_dev_send();
+        }
+    }
+    
+}
+
+/*************************************************
+* Function: MT_SetTimer
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 MT_SetTimer(u8 u8Type, u32 u32Interval, u8 *pu8TimeIndex)
+{
+    u8 u8TimerIndex;
+    u32 u32Retval;
+    u32Retval = TIMER_FindIdleTimer(&u8TimerIndex);
+    if (ZC_RET_OK == u32Retval)
+    {
+        TIMER_AllocateTimer(u8Type, u8TimerIndex, (u8*)&g_struMtTimer[u8TimerIndex]);
+        timer_set(&g_struMtTimer[u8TimerIndex], u32Interval);
+        *pu8TimeIndex = u8TimerIndex;
+    }
+    return u32Retval;
+}
+
+
 /*************************************************
 * Function: MT_SendDataToCloud
 * Description: 
@@ -62,7 +130,7 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
         if (60 == g_u32Timer)
         {
             ZC_Message struHeart;
-            EVENT_BuildHeartMsg(NULL, (u8*)&struHeart, (u32*)&u16DataLen);
+            EVENT_BuildHeartMsg(NULL, (u8*)&struHeart, &u16DataLen);
             pstruMsg = &struHeart;
         }
         else
@@ -74,6 +142,9 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
     {
         pstruMsg = (ZC_Message*)pstruBuf->u8MsgBuffer;
         u16DataLen = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message); 
+
+        pstruBuf->u8Status = MSG_BUFFER_IDLE;
+        pstruBuf->u32Len = 0;
     }
     
     
@@ -88,8 +159,7 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
             (u8*)pstruMsg, u16DataLen, pstruConnection->u8IpAddress, pstruConnection->u32Port);
     }
     
-    pstruBuf->u8Status = MSG_BUFFER_IDLE;
-    pstruBuf->u32Len = 0;
+
     
     return;
     
@@ -131,7 +201,7 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_FirmwareUpdate(u8 *pu8NewVerFile, u32 u32DataLen)
+u32 MT_FirmwareUpdate(u8 *pu8NewVerFile, u16 u16DataLen)
 {
     return ZC_RET_OK;
 }
@@ -143,9 +213,9 @@ u32 MT_FirmwareUpdate(u8 *pu8NewVerFile, u32 u32DataLen)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_SendDataToMoudle(u8 *pu8Data, u32 u32DataLen)
+u32 MT_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 {
-    IoT_uart_output(pu8Data, u32DataLen);
+    IoT_uart_output(pu8Data, u16DataLen);
     return ZC_RET_OK;
 }
 /*************************************************
@@ -156,9 +226,9 @@ u32 MT_SendDataToMoudle(u8 *pu8Data, u32 u32DataLen)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_RecvDataFromMoudle(u8 *pu8Data, u32 u32DataLen)
+u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
 {
-    PCT_HandleMoudleEvent(pu8Data, u32DataLen);
+    PCT_HandleMoudleEvent(pu8Data, u16DataLen);
     return ZC_RET_OK;
 }
 /*************************************************
@@ -250,12 +320,6 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
         return ZC_RET_ERROR;
     }
     
-    for (u32Index = 0; u32Index < 2; u32Index++)
-    {
-        ZC_Printf("%02x ", pu16Test[u32Index]);
-    }
-    ZC_Printf("\n");    
-    
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
@@ -276,7 +340,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
             pstruConnection->u8IpAddress[7]);
 
     }
-    
+
     if (ZC_CONNECT_TYPE_TCP == pstruConnection->u8ConnectionType)
     {
       	conn = uip_connect(&ip, ZC_HTONS((u16_t)pstruConnection->u32Port));
@@ -330,6 +394,7 @@ void MT_Init()
     g_struMt7681Adapter.pfunGetVersion = MT_GetVersion;    
     g_struMt7681Adapter.pfunGetDeviceId = MT_GetDeviceId;   
     g_struMt7681Adapter.pfunGetCloudIP = MT_GetCloudIp;    
+    g_struMt7681Adapter.pfunSetTimer = MT_SetTimer;   
     PCT_Init(&g_struMt7681Adapter);
 }
 /*************************************************
@@ -347,7 +412,7 @@ void MT_Rand(u8 *pu8Rand)
     for (u32Index = 0; u32Index < 10; u32Index++)
     {
         u32Rand = apiRand();
-        memcpy(pu8Rand, &u32Rand, 4);
+        memcpy((pu8Rand + 4 * u32Index), &u32Rand, 4);
     }
 }
 
@@ -374,10 +439,10 @@ void MT_CloudAppCall()
     }
 
     /*Connect Time Out */
-    if(uip_timedout()) 
+    if(uip_timedout() || uip_closed() || uip_aborted()) 
     {
-        ZC_Printf("Time Out\n");
-        PCT_ConnectCloud(&g_struProtocolController);
+        ZC_Printf("uip flag = %d, Close Connection\n",uip_flags);
+        PCT_ReconnectCloud(&g_struProtocolController);
     }
 
     if(uip_acked()) 
@@ -393,19 +458,22 @@ void MT_CloudAppCall()
     
     if(uip_poll()) 
     {
-        g_u32Timer++;
-        ZC_Printf("Timer = %d\n", g_u32Timer);
-        MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
-
-        if (g_u32Timer == 60)
+        if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
         {
+            uip_close();
             g_u32Timer = 0;
         }
-    }
+        else
+        {
+            g_u32Timer++;
+            ZC_Printf("Timer = %d\n", g_u32Timer);
+            MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
 
-    if(uip_closed() || uip_aborted()) 
-    {
-        PCT_DisConnectCloud(&g_struProtocolController);
+            if (g_u32Timer == 60)
+            {
+                g_u32Timer = 0;
+            }
+        }
     }
 }
 

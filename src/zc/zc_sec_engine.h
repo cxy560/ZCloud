@@ -18,10 +18,15 @@
 extern "C" {
 #endif
 
+s32 SEC_EncryptTextByRsa(const u8 *pu8PublicKey,
+     u8 *pu8PlainText,
+     u8 *pu8CipherText,
+     u16 u16DataLen);
 
 s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
-    const u8 *pu8CipherText,
-    u8 *pu8PlainText);
+    u8 *pu8CipherText,
+    u8 *pu8PlainText,
+    u16 u16DataLen);
     
     
 void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa,

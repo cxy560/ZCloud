@@ -18,7 +18,7 @@
 * Parameter: 
 * History:
 *************************************************/
-u32  EVENT_BuildEmptyMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len)
+u32  EVENT_BuildEmptyMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u16 *pu16Len)
 {
     ZC_Message *pstruMsg = NULL;
     pstruMsg = (ZC_Message *)pu8Msg;
@@ -28,7 +28,7 @@ u32  EVENT_BuildEmptyMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len)
     pstruMsg->Version = ZC_VERSION;
 
 
-    *pu32Len = sizeof(ZC_Message) + pstruMsg->Payloadlen;
+    *pu16Len = sizeof(ZC_Message);
     return ZC_RET_OK;
 }
 
@@ -40,7 +40,7 @@ u32  EVENT_BuildEmptyMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len)
 * Parameter: 
 * History:
 *************************************************/
-u32  EVENT_BuildHeartMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len)
+u32  EVENT_BuildHeartMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u16 *pu16Len)
 {
     ZC_Message *pstruMsg = NULL;
     pstruMsg = (ZC_Message *)pu8Msg;
@@ -49,7 +49,7 @@ u32  EVENT_BuildHeartMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len)
     pstruMsg->Payloadlen = 0;
     pstruMsg->Version = ZC_VERSION;
 
-    *pu32Len = sizeof(ZC_Message) + pstruMsg->Payloadlen;
+    *pu16Len = sizeof(ZC_Message);
     return ZC_RET_OK;
 }
 
@@ -61,7 +61,7 @@ u32  EVENT_BuildHeartMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u32 *pu32Len)
 * Parameter: 
 * History:
 *************************************************/
-u32  EVENT_BuildMsg(PTC_ProtocolCon *pstruCon, u8 u8MsgId, u8 u8MsgCode, u8 *pu8Msg, u32 *pu32Len, u8 *pu8Payload, u16 u16PayloadLen)
+u32  EVENT_BuildMsg(PTC_ProtocolCon *pstruCon, u8 u8MsgId, u8 u8MsgCode, u8 *pu8Msg, u16 *pu16Len, u8 *pu8Payload, u16 u16PayloadLen)
 {
     ZC_Message *pstruMsg = NULL;
     pstruMsg = (ZC_Message *)pu8Msg;
@@ -72,7 +72,7 @@ u32  EVENT_BuildMsg(PTC_ProtocolCon *pstruCon, u8 u8MsgId, u8 u8MsgCode, u8 *pu8
     
     memcpy(pstruMsg->payload, pu8Payload, u16PayloadLen);
 
-    *pu32Len = sizeof(ZC_Message) + pstruMsg->Payloadlen;
+    *pu16Len = sizeof(ZC_Message) + u16PayloadLen;
     return ZC_RET_OK;
 }
 /******************************* FILE END ***********************************/
