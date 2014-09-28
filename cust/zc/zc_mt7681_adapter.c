@@ -24,6 +24,8 @@ PTC_ModuleAdapter g_struMt7681Adapter;
 u32 g_u32Timer = 0;
 
 MSG_Buffer g_struRecvBuffer;
+MSG_Buffer g_struRetxBuffer;
+
 MSG_Queue  g_struRecvQueue;
 MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
 MSG_Queue  g_struSendQueue;

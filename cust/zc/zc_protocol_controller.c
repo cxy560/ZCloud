@@ -22,6 +22,7 @@ extern MSG_Buffer g_struRecvBuffer;
 extern MSG_Queue  g_struRecvQueue;
 extern MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
 extern MSG_Queue  g_struSendQueue;
+extern MSG_Buffer g_struRetxBuffer;
 
 extern u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
 extern u16 g_u16TcpMss;
@@ -434,8 +435,18 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
         PCT_TIMER_INTERVAL_SENDMOUDLE, &pstruContoller->u8SendMoudleTimer);
     
     PCT_SendEmptyMsg();
-    pstruContoller->pu8SendMoudleBuffer = (u8*)pstruBuffer;
+
+    /*copy buffer*/
+    memcpy((u8*)g_struRetxBuffer.u8MsgBuffer, pstruBuffer->u8MsgBuffer, 
+        ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message));
+    g_struRetxBuffer.u32Len = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+    g_struRetxBuffer.u8Status = MSG_BUFFER_FULL;
+    pstruContoller->pu8SendMoudleBuffer = (u8*)&g_struRetxBuffer;
     pstruContoller->u8ReSendMoudleNum = 0;
+
+    pstruBuffer->u32Len = 0;
+    pstruBuffer->u8Status = MSG_BUFFER_IDLE;
+    
 } 
 
 /*************************************************
