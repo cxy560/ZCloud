@@ -23,15 +23,14 @@ PTC_ModuleAdapter g_struMt7681Adapter;
 
 u32 g_u32Timer = 0;
 
-XIP_ATTRIBUTE(".xipsec1") MSG_Buffer g_struRecvBuffer;
-XIP_ATTRIBUTE(".xipsec1") MSG_Queue  g_struRecvQueue;
-XIP_ATTRIBUTE(".xipsec1") MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
-XIP_ATTRIBUTE(".xipsec1") MSG_Queue  g_struSendQueue;
+MSG_Buffer g_struRecvBuffer;
+MSG_Queue  g_struRecvQueue;
+MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
+MSG_Queue  g_struSendQueue;
 
-XIP_ATTRIBUTE(".xipsec1") u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
+u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
 
 struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
-
 
 
 #ifndef ZC_OFF_LINETEST
@@ -99,6 +98,7 @@ u32 MT_SetTimer(u8 u8Type, u32 u32Interval, u8 *pu8TimeIndex)
 {
     u8 u8TimerIndex;
     u32 u32Retval;
+    ZC_Printf("SetTimer, u8Type= %d\n", u8Type);
     u32Retval = TIMER_FindIdleTimer(&u8TimerIndex);
     if (ZC_RET_OK == u32Retval)
     {
@@ -396,6 +396,7 @@ void MT_Init()
     g_struMt7681Adapter.pfunGetCloudIP = MT_GetCloudIp;    
     g_struMt7681Adapter.pfunSetTimer = MT_SetTimer;   
     PCT_Init(&g_struMt7681Adapter);
+    ZC_Printf("step4 \n");
 }
 /*************************************************
 * Function: MT_CloudAppCall
@@ -460,7 +461,9 @@ void MT_CloudAppCall()
     {
         if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
         {
-            uip_close();
+            ZC_Printf("disconnect\n", g_struProtocolController.u8MainState);
+            uip_abort();
+            PCT_ReconnectCloud(&g_struProtocolController);
             g_u32Timer = 0;
         }
         else

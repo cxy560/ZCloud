@@ -98,6 +98,7 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 {
     ZC_Message *pstruMsg;
     u32 u32MsgLen;
+    ZC_Printf("Recv Data datalen = %d,status=%d\n",u32DataLen, g_struRecvBuffer.u8Status);
     
     if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
     {
@@ -119,6 +120,8 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 
             if (u32MsgLen > MSG_BUFFER_MAXLEN)
             {
+                g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;
+                g_struRecvBuffer.u32Len = 0;
                 return ZC_RET_ERROR;
             }
 
@@ -185,6 +188,13 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 
             pstruMsg = (ZC_Message *)(g_struRecvBuffer.u8MsgBuffer);
             u32MsgLen = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+
+            if (u32MsgLen > MSG_BUFFER_MAXLEN)
+            {
+                g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;
+                g_struRecvBuffer.u32Len = 0;                
+                return ZC_RET_ERROR;
+            }
 
             if (u32MsgLen <= u32DataLen + g_struRecvBuffer.u32Len)
             {

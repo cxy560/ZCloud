@@ -52,7 +52,6 @@ iot_tcp_appcall(void)
    
     if (lport == ZC_MOUDLE_PORT)
     {
-        Printf_High("CloudApp\n");
         MT_CloudAppCall();
         return;
     }

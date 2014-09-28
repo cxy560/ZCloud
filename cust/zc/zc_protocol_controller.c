@@ -50,10 +50,14 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.struCloudConnection.u32Port = ZC_CLOUD_PORT;
     g_struProtocolController.struCloudConnection.u8IpType = ZC_IPTYPE_IPV4;
     g_struProtocolController.struCloudConnection.u8ConnectionType = ZC_CONNECT_TYPE_TCP;
-    
+
+
+    ZC_Printf("step 1\n");
     MSG_InitQueue(&g_struRecvQueue);
     MSG_InitQueue(&g_struSendQueue);
 
+
+    ZC_Printf("step 2\n");
 
     g_struRecvBuffer.u32Len = 0;
     g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;    
@@ -63,8 +67,10 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
         g_struSendBuffer[u32Index].u32Len = 0;
         g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_IDLE;
     }
+
     /*init ok if all result is ok*/
     g_struProtocolController.u8keyRecv = PCT_KEY_UNRECVED;
+    ZC_Printf("step 3\n");
 
     TIMER_Init();
     g_struProtocolController.u8ReconnectTimer = 0xff;
@@ -144,7 +150,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
 
     
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
-        PCT_TIMER_INTERVAL_RECONNECT * 10, &pstruContoller->u8AccessTimer);
+        PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8AccessTimer);
 }
 
 /*************************************************
@@ -173,7 +179,7 @@ void PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller)
 
     
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
-        PCT_TIMER_INTERVAL_RECONNECT * 10, &pstruContoller->u8AccessTimer);
+        PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8AccessTimer);
     return;
 }
 /*************************************************
@@ -226,6 +232,8 @@ void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller)
     {
         return;
     }
+    
+    ZC_Printf("PCT_ReconnectCloud\n");
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_RECONNECT, 
         PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8ReconnectTimer);
     pstruContoller->struCloudConnection.u32Socket = PCT_INVAILD_SOCKET;
@@ -385,7 +393,6 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
 void PCT_Run()
 {
     PTC_ProtocolCon *pstruContoller = &g_struProtocolController;
-    ZC_Printf("status = %d\n", pstruContoller->u8MainState);
     switch(pstruContoller->u8MainState)
     {
         case PCT_STATE_SLEEP:
