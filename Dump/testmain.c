@@ -6,6 +6,8 @@
 #include <zc_protocol_interface.h>
 #include <zc_protocol_controller.h>
 #include <windows.h>
+#include <zc_sec_engine.h>
+#include "rsa_genkey.h"
 
 u8 g_u8DumpCloudMsg[10240];
 extern MSG_Buffer g_struRecvBuffer;
@@ -223,7 +225,38 @@ void testrecvbuffer()
         
     }
 }
+
+
+void newrsa()
+{
+    rsa_keyset keyset;
+    rsa_genkey(&keyset);
+}
+
+
+void testrsa()
+{
+    u32 u32Index;
+    for (u32Index = 0; u32Index < 52; u32Index++)
+    {
+        g_u8DumpCloudMsg[u32Index] = u32Index;
+    }
+
+    ZC_TraceData(g_u8DumpCloudMsg, 52);
+    ZC_Printf("++++++++++++++++++++++++++++++++++++++++++++\n");
+    SEC_EncryptTextByRsa(g_struProtocolController.u8CloudPublicKey,
+        g_u8DumpCloudMsg,
+        g_u8DumpCloudMsg+52,
+        52);
+    ZC_TraceData(g_u8DumpCloudMsg+52, 52);
+    ZC_Printf("++++++++++++++++++++++++++++++++++++++++++++\n");
+    ZC_TraceData(g_u8DumpCloudMsg, 52);
+    g_struProtocolController.u8ReconnectTimer = 1;
+    //PCT_SendCloudAccessMsg1(&g_struProtocolController);
+    
+    rsa_self_test(1);
+}
 void main()
 {
-  testrecvbuffer();
+  newrsa();
 }
