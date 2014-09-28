@@ -63,7 +63,6 @@ u32 TIMER_FindIdleTimer(u8 *pu8TimerIndex)
 *************************************************/
 void TIMER_AllocateTimer(u8 u8Type, u8 u8TimerIndex, u8 *pu8Timer)
 {
-    ZC_Printf("Allocate Timer %d,type=%d\n", u8TimerIndex, u8Type);
     g_struTimer[u8TimerIndex].u8Status = ZC_TIMER_STATUS_USED;
     g_struTimer[u8TimerIndex].u8Type = u8Type;
     g_struTimer[u8TimerIndex].pu8Timer = pu8Timer;
@@ -97,8 +96,10 @@ void TIMER_TimeoutAction(u8 u8TimerIndex)
             PCT_ConnectCloud(&g_struProtocolController);
             break;
         case PCT_TIMER_REACCESS:
-            ZC_Printf("re access\n");
             PCT_DisConnectCloud(&g_struProtocolController);
+            break;
+        case PCT_TIMER_SENDMOUDLE:            
+            PCT_SendMoudleTimeout(&g_struProtocolController);
             break;
     }
 }
@@ -113,7 +114,6 @@ void TIMER_TimeoutAction(u8 u8TimerIndex)
 *************************************************/
 void TIMER_StopTimer(u8 u8TimerIndex)
 {
-    ZC_Printf("Stop Timer %d£¬type=%d\n", u8TimerIndex, g_struTimer[u8TimerIndex].u8Type);
     g_struTimer[u8TimerIndex].u8Status = ZC_TIMER_STATUS_IDLE;
 }
 

@@ -59,7 +59,6 @@ extern "C" {
 #endif
 
 void ZC_TraceData(u8* pData, u32 Len);
-
 #ifdef __cplusplus
 }
 #endif

@@ -98,7 +98,6 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 {
     ZC_Message *pstruMsg;
     u32 u32MsgLen;
-    ZC_Printf("Recv Data datalen = %d,status=%d\n",u32DataLen, g_struRecvBuffer.u8Status);
     
     if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
     {

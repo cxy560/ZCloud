@@ -32,6 +32,7 @@ u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
 
 struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 
+u16 g_u16TcpMss;
 
 #ifndef ZC_OFF_LINETEST
 /*************************************************
@@ -98,7 +99,6 @@ u32 MT_SetTimer(u8 u8Type, u32 u32Interval, u8 *pu8TimeIndex)
 {
     u8 u8TimerIndex;
     u32 u32Retval;
-    ZC_Printf("SetTimer, u8Type= %d\n", u8Type);
     u32Retval = TIMER_FindIdleTimer(&u8TimerIndex);
     if (ZC_RET_OK == u32Retval)
     {
@@ -141,7 +141,7 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
     else
     {
         pstruMsg = (ZC_Message*)pstruBuf->u8MsgBuffer;
-        u16DataLen = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message); 
+        u16DataLen = pstruBuf->u32Len; 
 
         pstruBuf->u8Status = MSG_BUFFER_IDLE;
         pstruBuf->u32Len = 0;
@@ -150,7 +150,6 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
     
     if (ZC_CONNECT_TYPE_TCP == pstruConnection->u8ConnectionType)
     {
-        ZC_Printf("send msg\n");
         uip_send((u8*)pstruMsg, u16DataLen);
     }
     else
@@ -395,8 +394,8 @@ void MT_Init()
     g_struMt7681Adapter.pfunGetDeviceId = MT_GetDeviceId;   
     g_struMt7681Adapter.pfunGetCloudIP = MT_GetCloudIp;    
     g_struMt7681Adapter.pfunSetTimer = MT_SetTimer;   
+    g_u16TcpMss = UIP_TCP_MSS;
     PCT_Init(&g_struMt7681Adapter);
-    ZC_Printf("step4 \n");
 }
 /*************************************************
 * Function: MT_CloudAppCall
@@ -469,7 +468,6 @@ void MT_CloudAppCall()
         else
         {
             g_u32Timer++;
-            ZC_Printf("Timer = %d\n", g_u32Timer);
             MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
 
             if (g_u32Timer == 60)

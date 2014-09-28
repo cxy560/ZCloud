@@ -24,6 +24,7 @@ extern MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
 extern MSG_Queue  g_struSendQueue;
 
 extern u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
+extern u16 g_u16TcpMss;
 /*************************************************
 * Function: PCT_Init
 * Description: 
@@ -52,12 +53,10 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.struCloudConnection.u8ConnectionType = ZC_CONNECT_TYPE_TCP;
 
 
-    ZC_Printf("step 1\n");
     MSG_InitQueue(&g_struRecvQueue);
     MSG_InitQueue(&g_struSendQueue);
 
 
-    ZC_Printf("step 2\n");
 
     g_struRecvBuffer.u32Len = 0;
     g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;    
@@ -70,10 +69,10 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
 
     /*init ok if all result is ok*/
     g_struProtocolController.u8keyRecv = PCT_KEY_UNRECVED;
-    ZC_Printf("step 3\n");
 
     TIMER_Init();
-    g_struProtocolController.u8ReconnectTimer = 0xff;
+    g_struProtocolController.u8ReconnectTimer = PCT_TIMER_INVAILD;
+    g_struProtocolController.u8SendMoudleTimer = PCT_TIMER_INVAILD;
 
     g_struProtocolController.u8MainState = (0 == u32Ret) ? (PCT_STATE_INIT) : (PCT_STATE_SLEEP);
 }
@@ -123,10 +122,10 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     s32 s32RetVal;
     
     /*stop reconnection timer*/
-    if (0xff != pstruContoller->u8ReconnectTimer)
+    if (PCT_TIMER_INVAILD != pstruContoller->u8ReconnectTimer)
     {
         TIMER_StopTimer(pstruContoller->u8ReconnectTimer);
-        pstruContoller->u8ReconnectTimer = 0xff;
+        pstruContoller->u8ReconnectTimer = PCT_TIMER_INVAILD;
     }
 
     memcpy(struMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
@@ -233,13 +232,49 @@ void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller)
         return;
     }
     
-    ZC_Printf("PCT_ReconnectCloud\n");
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_RECONNECT, 
         PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8ReconnectTimer);
     pstruContoller->struCloudConnection.u32Socket = PCT_INVAILD_SOCKET;
     pstruContoller->u8keyRecv = PCT_KEY_UNRECVED;    
 }
 
+/*************************************************
+* Function: PCT_SendMoudleTimeout
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController)
+{
+    MSG_Buffer *pstruBuffer;
+    ZC_Message *pstruMsg;
+    pstruBuffer = (MSG_Buffer *)pstruProtocolController->pu8SendMoudleBuffer;
+    pstruMsg = (ZC_Message*)pstruBuffer->u8MsgBuffer;
+
+    /*Send to Moudle*/
+    pstruProtocolController->u8ReSendMoudleNum++;
+    
+    if (pstruProtocolController->u8ReSendMoudleNum > PCT_SENDMOUDLE_NUM)
+    {
+        pstruBuffer = (MSG_Buffer *)pstruProtocolController->pu8SendMoudleBuffer;
+        pstruBuffer->u32Len = 0;
+        pstruBuffer->u8Status = MSG_BUFFER_IDLE;
+        pstruProtocolController->u8SendMoudleTimer = PCT_TIMER_INVAILD;
+        pstruProtocolController->u8ReSendMoudleNum = 0;
+        
+        PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
+    }
+    else
+    {
+        pstruProtocolController->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message));
+
+        pstruProtocolController->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDMOUDLE, 
+            PCT_TIMER_INTERVAL_SENDMOUDLE, &pstruProtocolController->u8SendMoudleTimer);
+    }
+
+}
 /*************************************************
 * Function: PCT_HandleMoudleEvent
 * Description: 
@@ -250,6 +285,17 @@ void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller)
 *************************************************/
 void PCT_HandleMoudleEvent(u8 *pu8Msg, u16 u16DataLen)
 {
+    MSG_Buffer *pstruBuffer;
+
+    if (PCT_TIMER_INVAILD != g_struProtocolController.u8SendMoudleTimer)
+    {
+        TIMER_StopTimer(g_struProtocolController.u8SendMoudleTimer);
+        pstruBuffer = (MSG_Buffer *)g_struProtocolController.pu8SendMoudleBuffer;
+        pstruBuffer->u32Len = 0;
+        pstruBuffer->u8Status = MSG_BUFFER_IDLE;
+        g_struProtocolController.u8SendMoudleTimer = PCT_TIMER_INVAILD;
+        g_struProtocolController.u8ReSendMoudleNum = 0;
+    }
     PCT_SendMsgToCloud(pu8Msg, u16DataLen);
     return;
 }
@@ -363,6 +409,12 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
 {
     MSG_Buffer *pstruBuffer;
     ZC_Message *pstruMsg;
+    
+    if (PCT_TIMER_INVAILD != pstruContoller->u8SendMoudleTimer)
+    {
+        return;
+    }
+    
     pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
     if (NULL == pstruBuffer)
     {
@@ -370,6 +422,7 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
     }
     
     pstruMsg = (ZC_Message*)pstruBuffer->u8MsgBuffer;
+
     ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message));
     SEC_Decrypt(&g_struProtocolController, 
         g_struProtocolController.u8SessionKey, 
@@ -377,9 +430,12 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
     /*Send to Moudle*/
     pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message));
     
+    pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDMOUDLE, 
+        PCT_TIMER_INTERVAL_SENDMOUDLE, &pstruContoller->u8SendMoudleTimer);
+    
     PCT_SendEmptyMsg();
-    pstruBuffer->u32Len = 0;
-    pstruBuffer->u8Status = MSG_BUFFER_IDLE;
+    pstruContoller->pu8SendMoudleBuffer = (u8*)pstruBuffer;
+    pstruContoller->u8ReSendMoudleNum = 0;
 } 
 
 /*************************************************
@@ -446,6 +502,7 @@ void PCT_Sleep()
 {
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
 }
+
 /*************************************************
 * Function: PCT_SendMsgToCloud
 * Description: 
@@ -457,27 +514,58 @@ void PCT_Sleep()
 void PCT_SendMsgToCloud(u8 *pu8Msg, u16 u16Len)
 {
     u32 u32Index;
+    u16 u16RemainLen;
     ZC_Message *pstruMsg;
+    
+    /*Check send buffer is enough*/
+    u16RemainLen = 0;
     for (u32Index = 0; u32Index < MSG_BUFFER_SEND_MAX_NUM; u32Index++)
     {
         if (MSG_BUFFER_IDLE == g_struSendBuffer[u32Index].u8Status)
         {
-            
-            memcpy(g_struSendBuffer[u32Index].u8MsgBuffer, pu8Msg, u16Len);
-            g_struSendBuffer[u32Index].u32Len = u16Len;
-            g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_FULL;
-            pstruMsg = (ZC_Message*)g_struSendBuffer[u32Index].u8MsgBuffer;
+            u16RemainLen += g_u16TcpMss; 
+        }
+    }
+    
+    if (u16Len > u16RemainLen)
+    {
+        return;
+    }
+    
+    pstruMsg = (ZC_Message*)pu8Msg;
 
-            if (PCT_KEY_RECVED == g_struProtocolController.u8keyRecv)
+    if (PCT_KEY_RECVED == g_struProtocolController.u8keyRecv)
+    {
+        SEC_Encrypt(&g_struProtocolController, 
+            g_struProtocolController.u8SessionKey, 
+            g_struProtocolController.IvSend,
+            pstruMsg->payload,
+            ZC_HTONS(pstruMsg->Payloadlen));            
+    }
+
+    u16RemainLen = u16Len;
+    
+    for (u32Index = 0; u32Index < MSG_BUFFER_SEND_MAX_NUM; u32Index++)
+    {
+        if (MSG_BUFFER_IDLE == g_struSendBuffer[u32Index].u8Status)
+        {
+            if (u16RemainLen > g_u16TcpMss)
             {
-                SEC_Encrypt(&g_struProtocolController, 
-                g_struProtocolController.u8SessionKey, 
-                g_struProtocolController.IvSend,
-                pstruMsg->payload,
-                ZC_HTONS(pstruMsg->Payloadlen));            
+                memcpy(g_struSendBuffer[u32Index].u8MsgBuffer, pu8Msg + (u16Len - u16RemainLen), g_u16TcpMss);
+                g_struSendBuffer[u32Index].u32Len = g_u16TcpMss;
+                g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_FULL;
+                MSG_PushMsg(&g_struSendQueue, (u8*)&g_struSendBuffer[u32Index]);
+                u16RemainLen -= g_u16TcpMss;
             }
-            MSG_PushMsg(&g_struSendQueue, (u8*)&g_struSendBuffer[u32Index]);
-            break;
+            else
+            {
+                memcpy(g_struSendBuffer[u32Index].u8MsgBuffer, pu8Msg + (u16Len - u16RemainLen), u16RemainLen);
+                g_struSendBuffer[u32Index].u32Len = u16RemainLen;
+                g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_FULL;
+                MSG_PushMsg(&g_struSendQueue, (u8*)&g_struSendBuffer[u32Index]);
+                break;
+            }
+            
         }
     }
 }

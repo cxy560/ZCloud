@@ -20,5 +20,5 @@ typedef uip_ip4addr_t uip_ipaddr_t;
 extern u8 uip_appdata[1024];
 extern u8 uip_flags;
 extern u16 uip_len;
-
+#define UIP_TCP_MSS 546
 #endif

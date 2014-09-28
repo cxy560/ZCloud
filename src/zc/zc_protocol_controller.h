@@ -27,13 +27,16 @@
 
 #define    PCT_TIMER_RECONNECT              (0)
 #define    PCT_TIMER_REACCESS               (1)
+#define    PCT_TIMER_SENDMOUDLE             (2)
 
 #define    PCT_TIMER_INTERVAL_RECONNECT     (1000)
+#define    PCT_TIMER_INTERVAL_SENDMOUDLE    (1000)
 
 #define    PCT_KEY_UNRECVED     (0)
 #define    PCT_KEY_RECVED       (1)
 
-
+#define    PCT_TIMER_INVAILD        (0xFF)
+#define    PCT_SENDMOUDLE_NUM       (4)
 typedef struct
 {
     u32 u32Socket;
@@ -86,6 +89,12 @@ typedef struct
     u8   u8ReconnectTimer;
     u8   u8AccessTimer;
     
+    u8   u8SendMoudleTimer;
+    u8   u8ReSendMoudleNum;
+    u8   u8Pad[2];
+    
+    u8   *pu8SendMoudleBuffer;
+    
     PTC_Connection struCloudConnection;
     
     u8   u8DeviceId[ZC_HS_DEVICE_ID_LEN];      
@@ -122,6 +131,7 @@ void PCT_Sleep();
 void PCT_SendMsgToCloud(u8 *pu8Msg, u16 u16Len);
 void PCT_SendErrorMsg(u8 u8MsgId, u8 *pu8Error, u16 u16ErrorLen);
 void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller);
+void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController);
 
 
 #ifdef __cplusplus

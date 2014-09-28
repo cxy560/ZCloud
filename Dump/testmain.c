@@ -5,6 +5,7 @@
 #include <iot_tcpip_interface.h>
 #include <zc_protocol_interface.h>
 #include <zc_protocol_controller.h>
+#include <windows.h>
 
 u8 g_u8DumpCloudMsg[10240];
 extern MSG_Buffer g_struRecvBuffer;
@@ -162,6 +163,21 @@ void testqueue()
         }
     }
 } 
+void testsendcloud()
+{
+    u32 u32Index;
+    MT_Init();
+    
+    for (u32Index = 0; u32Index < 1024; u32Index++)
+    {
+        g_u8DumpCloudMsg[u32Index] = u32Index;
+    }
+    PCT_SendMsgToCloud(g_u8DumpCloudMsg, 100);
+    
+    MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
+    MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
+
+}
 
 void testrecvbuffer()
 {
@@ -193,8 +209,21 @@ void testrecvbuffer()
     }
     
     ZC_Printf("\n");
+    
+    
+    PCT_HandleEvent(&g_struProtocolController);
+    
+    while(1)
+    {
+        MT_TimerExpired();
+        if (g_struProtocolController.u8ReSendMoudleNum == 2)
+        {
+            PCT_HandleMoudleEvent((u8 *)(g_u8DumpCloudMsg), 100);
+        }
+        
+    }
 }
 void main()
 {
-  logicTest();
+  testrecvbuffer();
 }
