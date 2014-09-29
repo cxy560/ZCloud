@@ -14,6 +14,35 @@
 
 extern MSG_Buffer g_struRecvBuffer;
 extern MSG_Queue  g_struRecvQueue;
+extern MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
+extern MSG_Queue  g_struSendQueue;
+extern MSG_Buffer g_struRetxBuffer;
+
+
+/*************************************************
+* Function: MSG_Init()
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MSG_Init()
+{
+    u32 u32Index;
+    MSG_InitQueue(&g_struRecvQueue);
+    MSG_InitQueue(&g_struSendQueue);
+
+
+    g_struRecvBuffer.u32Len = 0;
+    g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;    
+
+    for (u32Index = 0; u32Index < MSG_BUFFER_SEND_MAX_NUM; u32Index++)
+    {
+        g_struSendBuffer[u32Index].u32Len = 0;
+        g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_IDLE;
+    }
+}
 
 /*************************************************
 * Function: MSG_InitQueue

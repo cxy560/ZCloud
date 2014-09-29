@@ -11,7 +11,6 @@
 #include <zc_protocol_controller.h>
 ZC_Timer g_struTimer[ZC_TIMER_MAX_NUM];
 
-
 /*************************************************
 * Function: TIMER_Init
 * Description:

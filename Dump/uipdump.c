@@ -9,6 +9,7 @@ UIP_UDP_CONN g_DmupUdpConn;
 u8 uip_flags = 0;
 u16 uip_len = 0;
 u8 g_u8Ipaddr[4]={127,0,0,1};
+extern u8 g_u8DumpCloudMsg[102400];
 
 int iot_send(u8 fd, u8 *buf, u16 len)
 {
@@ -114,3 +115,13 @@ uip_arp_out(void)
 void
 mt76xx_dev_send(void)
 {}
+u32 spi_flash_write(u32 addr, u8 *data, u16 len)
+{
+    memcpy(g_u8DumpCloudMsg + addr, data, len);
+    return 0;
+}
+u32 spi_flash_read(u32 addr, u8 *data, u16 len)
+{
+    memcpy(data, g_u8DumpCloudMsg + addr, len);
+    return 0;
+}

@@ -16,7 +16,6 @@
 #include <zc_timer.h>
 
 
-
 PTC_ProtocolCon  g_struProtocolController;
 extern MSG_Buffer g_struRecvBuffer;
 extern MSG_Queue  g_struRecvQueue;
@@ -26,6 +25,25 @@ extern MSG_Buffer g_struRetxBuffer;
 
 extern u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
 extern u16 g_u16TcpMss;
+
+/*************************************************
+* Function: PCT_SendNotifyMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_SendNotifyMsg(u8 u8NotifyCode)
+{
+    u16 u16Len;
+    EVENT_BuildMsg(&g_struProtocolController, u8NotifyCode, 
+        0, g_u8MsgBuildBuffer, &u16Len, 
+        NULL, 0);
+    g_struProtocolController.pstruMoudleFun->pfunSendToMoudle(g_u8MsgBuildBuffer, u16Len);
+}
+
+
 /*************************************************
 * Function: PCT_Init
 * Description: 
@@ -36,46 +54,22 @@ extern u16 g_u16TcpMss;
 *************************************************/
 void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
 {
-    u32 u32Ret = 0;
-    u32 u32Index = 0;
     g_struProtocolController.pstruMoudleFun = pstruAdapter;
     g_struProtocolController.struCloudConnection.u32Socket = PCT_INVAILD_SOCKET;
 
-    /*initialize parameters*/
-    u32Ret = g_struProtocolController.pstruMoudleFun->pfunGetCloudKey(g_struProtocolController.u8CloudPublicKey);
-    u32Ret += g_struProtocolController.pstruMoudleFun->pfunGetDeviceId(g_struProtocolController.u8DeviceId);
-    u32Ret += g_struProtocolController.pstruMoudleFun->pfunGetVersion(g_struProtocolController.u8Version);
-    u32Ret += g_struProtocolController.pstruMoudleFun->pfunGetPrivateKey(g_struProtocolController.u8MoudlePrivateKey);
-    u32Ret += g_struProtocolController.pstruMoudleFun->pfunGetCloudIP(g_struProtocolController.struCloudConnection.u8IpAddress);
-    
     /*config connection type*/
-    g_struProtocolController.struCloudConnection.u32Port = ZC_CLOUD_PORT;
+    g_struProtocolController.struCloudConnection.u16Port = ZC_CLOUD_PORT;
     g_struProtocolController.struCloudConnection.u8IpType = ZC_IPTYPE_IPV4;
     g_struProtocolController.struCloudConnection.u8ConnectionType = ZC_CONNECT_TYPE_TCP;
 
-
-    MSG_InitQueue(&g_struRecvQueue);
-    MSG_InitQueue(&g_struSendQueue);
-
-
-
-    g_struRecvBuffer.u32Len = 0;
-    g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;    
-
-    for (u32Index = 0; u32Index < MSG_BUFFER_SEND_MAX_NUM; u32Index++)
-    {
-        g_struSendBuffer[u32Index].u32Len = 0;
-        g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_IDLE;
-    }
-
-    /*init ok if all result is ok*/
-    g_struProtocolController.u8keyRecv = PCT_KEY_UNRECVED;
-
+    MSG_Init();
     TIMER_Init();
+    
+    g_struProtocolController.u8keyRecv = PCT_KEY_UNRECVED;
     g_struProtocolController.u8ReconnectTimer = PCT_TIMER_INVAILD;
     g_struProtocolController.u8SendMoudleTimer = PCT_TIMER_INVAILD;
 
-    g_struProtocolController.u8MainState = (0 == u32Ret) ? (PCT_STATE_INIT) : (PCT_STATE_SLEEP);
+    g_struProtocolController.u8MainState = PCT_STATE_INIT;
 }
 /*************************************************
 * Function: PCT_SendEmptyMsg
@@ -121,6 +115,8 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     u16 u16Len;
     ZC_HandShakeMsg1 tempstruMsg1;
     ZC_HandShakeMsg1 struMsg1;
+    u8 *pu8DeviceId;
+    u8 *pu8Cloudkey;
     s32 s32RetVal;
     
     /*stop reconnection timer*/
@@ -129,11 +125,14 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
         TIMER_StopTimer(pstruContoller->u8ReconnectTimer);
         pstruContoller->u8ReconnectTimer = PCT_TIMER_INVAILD;
     }
-
+    pstruContoller->pstruMoudleFun->pfunGetDeviceId(&pu8DeviceId);
+    pstruContoller->pstruMoudleFun->pfunGetCloudKey(&pu8Cloudkey);
+    
     memcpy(tempstruMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
-    memcpy(tempstruMsg1.DeviceId, pstruContoller->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+    memcpy(tempstruMsg1.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
 
-    s32RetVal = SEC_EncryptTextByRsa(pstruContoller->u8CloudPublicKey,
+
+    s32RetVal = SEC_EncryptTextByRsa(pu8Cloudkey,
         (u8*)&tempstruMsg1,
         (u8*)&struMsg1,
         sizeof(struMsg1));
@@ -152,6 +151,8 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
         PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8AccessTimer);
+
+    PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
 }
 
 /*************************************************
@@ -195,6 +196,8 @@ void PCT_DisConnectCloud(PTC_ProtocolCon *pstruContoller)
 {
     pstruContoller->u8MainState = PCT_STATE_DISCONNECT_CLOUD;
     pstruContoller->u8keyRecv = PCT_KEY_UNRECVED;
+    MSG_Init();
+    PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECT);
 }
 
 /*************************************************
@@ -314,6 +317,7 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
     MSG_Buffer *pstruBuffer;
     ZC_Message *pstruMsg;
     ZC_HandShakeMsg2 struMsg2;
+    u8 *pu8PrivateKey;
     
     s32 s32RetVal;
     pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
@@ -323,12 +327,13 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
     }
 
     pstruMsg = (ZC_Message*)pstruBuffer->u8MsgBuffer;
+    pstruContoller->pstruMoudleFun->pfunGetPrivateKey(&pu8PrivateKey);
     ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message));
 
     if (ZC_CODE_HANDSHAKE_2 == pstruMsg->MsgCode)
     {
         TIMER_StopTimer(pstruContoller->u8AccessTimer);
-        s32RetVal = SEC_DecipherTextByRsa(pstruContoller->u8MoudlePrivateKey,
+        s32RetVal = SEC_DecipherTextByRsa(pu8PrivateKey,
             pstruMsg->payload,
             (u8*)&struMsg2,
             sizeof(struMsg2));
@@ -498,6 +503,7 @@ void PCT_WakeUp()
     if (PCT_STATE_INIT == g_struProtocolController.u8MainState)
     {
         g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET;
+        PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
     }
     
 }
@@ -512,7 +518,15 @@ void PCT_WakeUp()
 *************************************************/
 void PCT_Sleep()
 {
+    MSG_Init();
+
+    g_struProtocolController.u8keyRecv = PCT_KEY_UNRECVED;
+
+    TIMER_Init();
+    g_struProtocolController.u8ReconnectTimer = PCT_TIMER_INVAILD;
+    g_struProtocolController.u8SendMoudleTimer = PCT_TIMER_INVAILD;
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
+    PCT_SendNotifyMsg(ZC_CODE_WIFI_DISCONNECT);
 }
 
 /*************************************************

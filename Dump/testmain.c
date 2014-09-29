@@ -9,10 +9,10 @@
 #include <zc_sec_engine.h>
 #include "rsa_genkey.h"
 
-u8 g_u8DumpCloudMsg[10240];
+u8 g_u8DumpCloudMsg[102400];
 extern MSG_Buffer g_struRecvBuffer;
 extern MSG_Queue  g_struRecvQueue;
-
+IOT_ADAPTER   	IoTpAd;
 
 void SimRecvMsg(u8 u8Code, u8 *pu8msg, u16 u16Datalen)
 {
@@ -227,9 +227,18 @@ void testrecvbuffer()
 }
 
 
-
+void readcfg()
+{
+    u8 *pu8Test;
+    MT_Init();
+    testread();
+    g_struProtocolController.pstruMoudleFun->pfunGetCloudKey(&pu8Test);
+    g_struProtocolController.pstruMoudleFun->pfunGetDeviceId(&pu8Test);
+    g_struProtocolController.pstruMoudleFun->pfunGetPrivateKey(&pu8Test);
+    g_struProtocolController.pstruMoudleFun->pfunGetVersion(&pu8Test);
+}
 
 void main()
 {
-  newrsa();
+    readcfg();
 }

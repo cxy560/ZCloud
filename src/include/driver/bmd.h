@@ -202,12 +202,12 @@ typedef struct __BUFFER_INFO
     if (BWrite(_Buf) >= _num) \
     { \
         BWrite(_Buf) -= _num; \
-    } \  
+    }\
     else \
-    {    \
+    {\
         temp_len = _num - BWrite(_Buf);\
         BWrite(_Buf) = BLength(_Buf) - temp_len; \
-    } \       
+    } \
 }
 
 

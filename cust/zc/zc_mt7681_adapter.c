@@ -17,6 +17,7 @@
 #include <xip_ovly.h>
 #include <uip_timer.h>
 #include <zc_timer.h>
+#include <iot_api.h>
 
 extern PTC_ProtocolCon  g_struProtocolController;
 PTC_ModuleAdapter g_struMt7681Adapter;
@@ -35,6 +36,7 @@ u8 g_u8MsgBuildBuffer[MSG_BUFFER_MAXLEN];
 struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 
 u16 g_u16TcpMss;
+extern IOT_ADAPTER   	IoTpAd;
 
 #ifndef ZC_OFF_LINETEST
 /*************************************************
@@ -132,7 +134,7 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
         if (60 == g_u32Timer)
         {
             ZC_Message struHeart;
-            EVENT_BuildHeartMsg(NULL, (u8*)&struHeart, &u16DataLen);
+            EVENT_BuildHeartMsg(NULL, &struHeart, &u16DataLen);
             pstruMsg = &struHeart;
         }
         else
@@ -238,8 +240,9 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_GetCloudKey(u8 *pu8Key)
+u32 MT_GetCloudKey(u8 **pu8Key)
 {
+    *pu8Key = IoTpAd.UsrCfg.CloudKey;
     return ZC_RET_OK;
 }
 /*************************************************
@@ -250,8 +253,10 @@ u32 MT_GetCloudKey(u8 *pu8Key)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_GetPrivateKey(u8 *pu8Key)
+u32 MT_GetPrivateKey(u8 **pu8Key)
 {
+    *pu8Key = IoTpAd.UsrCfg.ProductKey;
+
     return ZC_RET_OK;
 }
 /*************************************************
@@ -262,8 +267,10 @@ u32 MT_GetPrivateKey(u8 *pu8Key)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_GetVersion(u8 *pu8Version)
+u32 MT_GetVersion(u8 **pu8Version)
 {
+    *pu8Version = IoTpAd.UsrCfg.ProductType;
+
     return ZC_RET_OK;
 }
 /*************************************************
@@ -274,26 +281,12 @@ u32 MT_GetVersion(u8 *pu8Version)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_GetDeviceId(u8 *pu8DeviceId)
+u32 MT_GetDeviceId(u8 **pu8DeviceId)
 {
+    *pu8DeviceId = IoTpAd.UsrCfg.ProductName;
     return ZC_RET_OK;
 }
-/*************************************************
-* Function: MT_GetCloudIp
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 MT_GetCloudIp(u8 *pu8CloudIp)
-{
-    pu8CloudIp[0] = 192;
-    pu8CloudIp[1] = 168;
-    pu8CloudIp[2] = 1;
-    pu8CloudIp[3] = 111;    
-    return ZC_RET_OK;
-}
+
 /*************************************************
 * Function: MT_ConnectToCloud
 * Description: 
@@ -302,7 +295,6 @@ u32 MT_GetCloudIp(u8 *pu8CloudIp)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_ConnectToCloud(PTC_Connection *pstruConnection) XIP_ATTRIBUTE(".xipsec1");
 u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
 {
     struct uip_conn *conn=NULL;
@@ -311,9 +303,8 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     uip_ipaddr_t ip;
 
     u16 *pu16Test = NULL;
-    u32 u32Index;
     
-    pu16Test = resolv_lookup("www.baidu.com");
+    pu16Test = resolv_lookup("www.baidu.com"/*IoTpAd.UsrCfg.CloudAddr*/);
 
     if(NULL == pu16Test)
     {
@@ -323,27 +314,16 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, pstruConnection->u8IpAddress[0],
-            pstruConnection->u8IpAddress[1],
-            pstruConnection->u8IpAddress[2],
-            pstruConnection->u8IpAddress[3]);
+        uip_ipaddr(ip, 192, 168, 1, 111);
     }
     else 
     {
-        uip_ip6addr(ip, pstruConnection->u8IpAddress[0],
-            pstruConnection->u8IpAddress[1],
-            pstruConnection->u8IpAddress[2],
-            pstruConnection->u8IpAddress[3],
-            pstruConnection->u8IpAddress[4],
-            pstruConnection->u8IpAddress[5],
-            pstruConnection->u8IpAddress[6],
-            pstruConnection->u8IpAddress[7]);
 
     }
 
     if (ZC_CONNECT_TYPE_TCP == pstruConnection->u8ConnectionType)
     {
-      	conn = uip_connect(&ip, ZC_HTONS((u16_t)pstruConnection->u32Port));
+      	conn = uip_connect(&ip, ZC_HTONS((u16_t)pstruConnection->u16Port));
 
     	if (NULL == conn) 
     	{
@@ -360,7 +340,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     }
     else
     {
-        udp_conn = uip_udp_new(&ip, ZC_HTONS((u16_t)pstruConnection->u32Port));
+        udp_conn = uip_udp_new(&ip, ZC_HTONS((u16_t)pstruConnection->u16Port));
         if (NULL == udp_conn)
         {
             return ZC_RET_ERROR;
@@ -393,7 +373,6 @@ void MT_Init()
     g_struMt7681Adapter.pfunGetPrivateKey = MT_GetPrivateKey; 
     g_struMt7681Adapter.pfunGetVersion = MT_GetVersion;    
     g_struMt7681Adapter.pfunGetDeviceId = MT_GetDeviceId;   
-    g_struMt7681Adapter.pfunGetCloudIP = MT_GetCloudIp;    
     g_struMt7681Adapter.pfunSetTimer = MT_SetTimer;   
     g_u16TcpMss = UIP_TCP_MSS;
     PCT_Init(&g_struMt7681Adapter);

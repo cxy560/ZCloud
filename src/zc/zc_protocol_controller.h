@@ -43,21 +43,17 @@ typedef struct
     
     u8  u8IpType;             /*IP Type,IPV6,IPV4*/
     u8  u8ConnectionType;
-    u8  u8Pad[2];
-    
-    u32 u32Port;
-    u8  u8IpAddress[ZC_IPADDR_MAX_LEN];
+    u16 u16Port;
 }PTC_Connection;
 
 typedef void (*pFunSendDataToCloud)(PTC_Connection *pstruConnection);
 typedef u32 (*pFunFirmwareUpdate)(u8 *pu8NewVerFile, u16 u16DataLen);
 typedef u32 (*pFunSendDataToMoudle)(u8 *pu8Data, u16 u16DataLen);
 typedef u32 (*pFunRecvDataFromMoudle)(u8 *pu8Data, u16 u16DataLen);
-typedef u32 (*pFunGetCloudKey)(u8 *pu8Key);
-typedef u32 (*pFunGetPrivateKey)(u8 *pu8Key);
-typedef u32 (*pFunGetVersion)(u8 *pu8Version);
-typedef u32 (*pFunGetDeviceId)(u8 *pu8DeviceId);
-typedef u32 (*pFunGetCloudIp)(u8 *pu8CloudIp);
+typedef u32 (*pFunGetCloudKey)(u8 **pu8Key);
+typedef u32 (*pFunGetPrivateKey)(u8 **pu8Key);
+typedef u32 (*pFunGetVersion)(u8 **pu8Version);
+typedef u32 (*pFunGetDeviceId)(u8 **pu8DeviceId);
 typedef u32 (*pFunConnectToCloud)(PTC_Connection *pstruConnection);
 typedef u32 (*pFunSetTimer)(u8 u8Type, u32 Interval, u8 *pu8Index);
 
@@ -76,7 +72,6 @@ typedef struct
     pFunGetPrivateKey           pfunGetPrivateKey;
     pFunGetVersion              pfunGetVersion;
     pFunGetDeviceId             pfunGetDeviceId;
-    pFunGetCloudIp              pfunGetCloudIP;
     pFunSetTimer                pfunSetTimer;
 }PTC_ModuleAdapter;
 
@@ -97,11 +92,6 @@ typedef struct
     
     PTC_Connection struCloudConnection;
     
-    u8   u8DeviceId[ZC_HS_DEVICE_ID_LEN];      
-    u8   u8Version[ZC_FIRMWARE_VER_MAX_LEN];
-    
-    u8   u8CloudPublicKey[ZC_CLOUD_PUBLIC_KEY_LEN];
-    u8   u8MoudlePrivateKey[ZC_MOUDLE_PRIVATE_KEY_LEN];
     u8   u8SessionKey[ZC_HS_SESSION_KEY_LEN];
     u8   IvSend[16];
     u8   IvRecv[16];

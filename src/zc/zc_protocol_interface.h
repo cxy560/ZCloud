@@ -24,7 +24,7 @@ typedef struct
 }ZC_SecHeader;
 
 /*ZCloud Message*/
-typedef struct
+typedef struct 
 {
     u8  Version;
     u8  MsgId;

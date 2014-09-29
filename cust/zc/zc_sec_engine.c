@@ -8,7 +8,6 @@
 ******************************************************************************
 */
 #include <zc_sec_engine.h>
-
 /*************************************************
 * Function: SEC_EncryptTextByRsa
 * Description:
@@ -107,7 +106,7 @@ void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa,
     for (u8Index = 0; u8Index < 6; u8Index++)
     {
         mpi_read_binary(pstruMpi[u8Index], pu8PrivateKey + u16StartPos, u8BufLen[u8Index]);
-        u16StartPos += u8BufLen[u8Index];
+        u16StartPos += (u16)u8BufLen[u8Index];
     }
 }
 

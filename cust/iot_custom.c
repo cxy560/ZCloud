@@ -52,6 +52,9 @@
 #define DEFAULT_VENDOR_NEME			"Mediatek"
 #define DEFAULT_PRODUCT_TYPE    	"IoT 1"
 #define DEFAULT_PRODUCT_NAME        "MT7681"
+#define DEFAULT_MOUDLE_KEY          "private"
+#define DEFAULT_CLOUD_KEY           "public"
+#define DEFAULT_CLOUD_ADDR          "www.baidu.com"
 
 
 /*Default setting of Common Config Block*/
@@ -105,11 +108,15 @@ IOT_COM_CFG Com_Cfg = {
  						DEFAULT_IOT_CMD_PWD
 					 };
 
+
 /*this is the User CFG region default table */
 IOT_USR_CFG Usr_Cfg = {
 						DEFAULT_VENDOR_NEME,
 						DEFAULT_PRODUCT_TYPE,
-						DEFAULT_PRODUCT_NAME
+						DEFAULT_PRODUCT_NAME,
+						DEFAULT_MOUDLE_KEY,
+                        DEFAULT_CLOUD_KEY,
+                        DEFAULT_CLOUD_ADDR
 					 };
 
 
@@ -310,44 +317,52 @@ VOID reset_cfg(VOID)
 ========================================================================*/
 BOOLEAN load_usr_cfg(VOID)
 {
-	//DBGPRINT_HIGH(RT_DEBUG_INFO,("%s \n",__FUNCTION__));
-
-	/* read settings stored on flash USER CONFIG BLOCK */
-	//memset(IoTpAd.flash_rw_buf, 0, sizeof(IoTpAd.flash_rw_buf));
+    u16_t CfgLen;
+    u16_t FlashLen;
+    u16_t ReadLen;
+    u32 u32FlashBase;
 	spi_flash_read(FLASH_USR_CFG_BASE, IoTpAd.flash_rw_buf, sizeof(IoTpAd.flash_rw_buf));
 
-#if 1  /*use stored flag to shrink code size*/
-	if (IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_INFO_STORED] == PRODUCT_INFO_STORED)
-	{
-	#if FLASH_STRUCT_MAPPING
-		/*if flash layout mapping  is same as IOT_COMMON_CFG  or IOT_USR_CFG,  
-		  can use the following method to shrink code size */
-
-		memcpy( IoTpAd.UsrCfg.VendorName,	
-				&IoTpAd.flash_rw_buf[FLASH_USR_CFG_VENDOR_NAME],	
-			    FLASH_USR_CFG_RESERVE_1 - FLASH_USR_CFG_VENDOR_NAME);
-	#else
-		/*if flash stored valid vendor name , product name and product type*/
-		memcpy(IoTpAd.UsrCfg.VendorName,	&IoTpAd.flash_rw_buf[FLASH_USR_CFG_VENDOR_NAME],	FLASH_USR_CFG_VENDOR_NAME_LEN);
-		memcpy(IoTpAd.UsrCfg.ProductType,	&IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_TYPE],	FLASH_USR_CFG_PRODUCT_TYPE_LEN);
-		memcpy(IoTpAd.UsrCfg.ProductName, 	&IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_NAME],	FLASH_USR_CFG_PRODUCT_NAME_LEN);
-	#endif
-	}
-#else
-	if ((check_data_valid(&IoTpAd.flash_rw_buf[FLASH_USR_CFG_VENDOR_NAME],  FLASH_USR_CFG_VENDOR_NAME_LEN)) &&
-		(check_data_valid(&IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_NAME], FLASH_USR_CFG_PRODUCT_NAME_LEN)) &&
-		(check_data_valid(&IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_TYPE], FLASH_USR_CFG_PRODUCT_TYPE_LEN)))
-	{
-		/*if flash stored valid vendor name , product name and product type*/
-		memcpy(IoTpAd.UsrCfg.VendorName, 	&IoTpAd.flash_rw_buf[FLASH_USR_CFG_VENDOR_NAME],  	FLASH_USR_CFG_VENDOR_NAME_LEN);
-		memcpy(IoTpAd.UsrCfg.ProductName, 	&IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_NAME], 	FLASH_USR_CFG_PRODUCT_NAME_LEN);
-		memcpy(IoTpAd.UsrCfg.ProductType, 	&IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_TYPE], 	FLASH_USR_CFG_PRODUCT_TYPE_LEN);
-	}
-#endif
-	else
-	{
-		reset_usr_cfg(TRUE);
-	}
+    if (IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_INFO_STORED] == PRODUCT_INFO_STORED)
+    {
+        FlashLen = sizeof(IoTpAd.flash_rw_buf);
+        ReadLen = 0;
+        CfgLen = sizeof(IOT_USR_CFG);
+        if ((CfgLen + FLASH_USR_CFG_PRODUCT_INFO_STORED_LEN) <= FlashLen)
+        {
+            memcpy((IoTpAd.UsrCfg.VendorName + ReadLen), 
+                IoTpAd.flash_rw_buf + FLASH_USR_CFG_PRODUCT_INFO_STORED_LEN, 
+                CfgLen);
+        }
+        else
+        {
+            memcpy((IoTpAd.UsrCfg.VendorName + ReadLen), 
+                IoTpAd.flash_rw_buf + FLASH_USR_CFG_PRODUCT_INFO_STORED_LEN, 
+                FlashLen - FLASH_USR_CFG_PRODUCT_INFO_STORED_LEN);
+                
+            ReadLen += FlashLen - FLASH_USR_CFG_PRODUCT_INFO_STORED_LEN;
+            u32FlashBase = FLASH_USR_CFG_BASE + FlashLen;
+            while (ReadLen + FlashLen <= CfgLen)
+            {
+                spi_flash_read(u32FlashBase, IoTpAd.flash_rw_buf, FlashLen);
+                
+                memcpy((IoTpAd.UsrCfg.VendorName + ReadLen), IoTpAd.flash_rw_buf, FlashLen);
+            
+                ReadLen += FlashLen;
+                u32FlashBase += FlashLen;
+            }
+            
+            if (ReadLen < CfgLen)
+            {
+                spi_flash_read(u32FlashBase, IoTpAd.flash_rw_buf, FlashLen);
+                memcpy((IoTpAd.UsrCfg.VendorName + ReadLen), IoTpAd.flash_rw_buf, CfgLen - ReadLen);
+            }
+        }
+    }
+    else
+    {
+        reset_usr_cfg(TRUE);
+    }
 
 
 	return TRUE;
@@ -363,7 +378,10 @@ BOOLEAN load_usr_cfg(VOID)
 
 BOOLEAN reset_usr_cfg(BOOLEAN bUpFlash)
 {
-	//DBGPRINT_HIGH(RT_DEBUG_INFO,("%s \n",__FUNCTION__));
+    u16_t CfgLen;
+    u16_t FlashLen;
+    u16_t ReadLen;
+    u32 u32FlashBase;
 	
 	memset(IoTpAd.flash_rw_buf ,0xff, sizeof(IoTpAd.flash_rw_buf));
 	
@@ -372,21 +390,49 @@ BOOLEAN reset_usr_cfg(BOOLEAN bUpFlash)
 	if(bUpFlash == TRUE)
 	{
 		IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_INFO_STORED] = PRODUCT_INFO_STORED;
-#if FLASH_STRUCT_MAPPING	
-		/*if flash layout mapping  is same as IOT_COMMON_CFG  or IOT_USR_CFG,  
-		  can use the following method to shrink code size */
-		
-		memcpy( &IoTpAd.flash_rw_buf[FLASH_USR_CFG_VENDOR_NAME],	
-			    IoTpAd.UsrCfg.VendorName,
-			    FLASH_USR_CFG_RESERVE_1 - FLASH_USR_CFG_VENDOR_NAME);
-#else
-		memcpy(&IoTpAd.flash_rw_buf[FLASH_USR_CFG_VENDOR_NAME] ,  Usr_Cfg.VendorName, FLASH_USR_CFG_VENDOR_NAME_LEN);
-		memcpy(&IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_TYPE] , Usr_Cfg.ProductType, FLASH_USR_CFG_PRODUCT_TYPE_LEN);
-		memcpy(&IoTpAd.flash_rw_buf[FLASH_USR_CFG_PRODUCT_NAME] , Usr_Cfg.ProductName, FLASH_USR_CFG_PRODUCT_NAME_LEN);
-#endif
-		spi_flash_write(FLASH_USR_CFG_BASE, IoTpAd.flash_rw_buf, sizeof(IoTpAd.flash_rw_buf));
-	}
-	
+
+        FlashLen = sizeof(IoTpAd.flash_rw_buf);
+        ReadLen = 0;
+        CfgLen = sizeof(IOT_USR_CFG);
+        if ((CfgLen + FLASH_USR_CFG_PRODUCT_INFO_STORED_LEN) <= FlashLen)
+        {
+            memcpy( &IoTpAd.flash_rw_buf[FLASH_USR_CFG_VENDOR_NAME],    
+                    IoTpAd.UsrCfg.VendorName,
+                    CfgLen);
+            spi_flash_write(FLASH_USR_CFG_BASE, IoTpAd.flash_rw_buf, FlashLen);
+        }
+        else
+        {
+            memcpy( &IoTpAd.flash_rw_buf[FLASH_USR_CFG_VENDOR_NAME],    
+                    IoTpAd.UsrCfg.VendorName,
+                    FlashLen - FLASH_USR_CFG_PRODUCT_INFO_STORED_LEN);
+                    
+            spi_flash_write(FLASH_USR_CFG_BASE, IoTpAd.flash_rw_buf, FlashLen);
+
+            ReadLen += FlashLen - FLASH_USR_CFG_PRODUCT_INFO_STORED_LEN;
+            u32FlashBase = FLASH_USR_CFG_BASE + FlashLen;
+            while (ReadLen + FlashLen <= CfgLen)
+            {
+                memcpy( IoTpAd.flash_rw_buf,    
+                        IoTpAd.UsrCfg.VendorName + ReadLen,
+                        FlashLen);
+                        
+                spi_flash_write(u32FlashBase, IoTpAd.flash_rw_buf, FlashLen);
+            
+                ReadLen += FlashLen;
+                u32FlashBase += FlashLen;
+            }
+            
+            if (ReadLen < CfgLen)
+            {
+                memcpy(IoTpAd.flash_rw_buf,    
+                    IoTpAd.UsrCfg.VendorName + ReadLen,
+                    CfgLen - ReadLen);
+                spi_flash_write(u32FlashBase, IoTpAd.flash_rw_buf, FlashLen);
+            }
+        }
+    }
+
 	return TRUE;
 }
 
