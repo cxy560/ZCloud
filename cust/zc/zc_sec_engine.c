@@ -60,7 +60,7 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
 
     pstruCon = &g_struProtocolController;
 
-    pstruCon->pstruMoudleFun->pfunGetCloudKey(&pu8PrivateKey);
+    pstruCon->pstruMoudleFun->pfunGetPrivateKey(&pu8PrivateKey);
 
 
     SEC_InitRsaContextWithPrivateKey(&struRsa, pu8PrivateKey);
@@ -91,9 +91,9 @@ void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa, const u8 *pu8Pubkey)
 {
     rsa_init(pstruRsa, RSA_PKCS_V15, RSA_RAW, NULL, NULL);
 
-    pstruRsa->len = 128;
-    mpi_read_binary(&pstruRsa->N, pu8Pubkey, 128);
-    mpi_read_binary(&pstruRsa->E, pu8Pubkey+128, 3);
+    pstruRsa->len = ZC_SEC_RSA_KEY_LEN >> 3;
+    mpi_read_binary(&pstruRsa->N, pu8Pubkey, pstruRsa->len);
+    mpi_read_binary(&pstruRsa->E, pu8Pubkey + pstruRsa->len, 3);
 }
 
 /*************************************************
@@ -108,11 +108,11 @@ void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa, const u8 *pu8Private
 {
     u8 u8Index;
     u16 u16StartPos;
-    u8 u8BufLen[6] = {128,64,64,64,64,64};
+    u8 u8BufLen[6] = {ZC_SEC_RSA_KEY_LEN >> 3,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4};
     mpi *pstruMpi[6];
     rsa_init(pstrRsa, RSA_PKCS_V15, RSA_RAW, NULL, NULL);
 
-    pstrRsa->len = 128;
+    pstrRsa->len = ZC_SEC_RSA_KEY_LEN >> 3;
       
     pstruMpi[0] = &pstrRsa->N;
     pstruMpi[1] = &pstrRsa->P;
@@ -200,6 +200,35 @@ u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
     
     return ZC_RET_OK;
 }
+/*************************************************
+* Function: SEC_PaddingCheck
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
+{
+    u16 LastBlockSize = 0;
+    *u16PaddingLen = 0;
+
+    switch(u8SecType)
+    {
+        case ZC_SEC_ALG_AES:
+        {
+            LastBlockSize = u16PlainLen % ZC_SEC_AES_BLOCK_SIZE;
+            if(LastBlockSize > 0)
+                *u16PaddingLen = ZC_SEC_AES_BLOCK_SIZE - LastBlockSize;
+            else
+                *u16PaddingLen = 0;
+            break;
+        }
+    }
+
+    return;
+}
+
 
 /*************************************************
 * Function: SEC_Encrypt

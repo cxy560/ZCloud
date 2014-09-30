@@ -14,6 +14,8 @@
 #include <zc_common.h>
 #include <zc_protocol_controller.h>
 
+#define  ZC_SEC_RSA_KEY_LEN        (1024)
+#define  ZC_SEC_AES_BLOCK_SIZE     (16)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,6 +28,7 @@ u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf);
 u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf);
 void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa, const u8 *pu8Pubkey);
 void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa, const u8 *pu8PrivateKey);
+void SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen);
 
 #ifdef __cplusplus
 }
