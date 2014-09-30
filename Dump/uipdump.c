@@ -3,7 +3,7 @@
 #include <uiplib.h>
 #include <iot_tcpip_interface.h>
 #include <time.h>
-u8 uip_appdata[1024];
+u8 uip_appdata[10240];
 struct uip_conn g_DumpConn;
 UIP_UDP_CONN g_DmupUdpConn;
 u8 uip_flags = 0;

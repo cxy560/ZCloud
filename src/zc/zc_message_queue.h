@@ -13,15 +13,17 @@
 
 #include <zc_common.h>
 
-#define  MSG_QUEUE_MAXLEN               (5)
-#define  MSG_BUFFER_MAXLEN              (1000)
+#define  MSG_QUEUE_MAXLEN               (2)
+#define  MSG_BUFFER_MAXLEN              (2)//(1000)
 
 #define  MSG_BUFFER_IDLE                (0)
 #define  MSG_BUFFER_FULL                (1)
 #define  MSG_BUFFER_SEGMENT_NOHEAD      (2)
 #define  MSG_BUFFER_SEGMENT_HEAD        (3)
 
-#define  MSG_BUFFER_SEND_MAX_NUM        (3)
+#define  MSG_BUFFER_SEND_MAX_NUM        (MSG_QUEUE_MAXLEN)
+#define  MSG_BULID_BUFFER_MAXLEN        (2)//(100)
+#define  MSG_CIPER_BUFFER_MAXLEN        (2)//(1000) 
 
 typedef struct struMSG_QueNode{
     struct struMSG_QueNode* pstruNext;

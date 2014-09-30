@@ -63,7 +63,8 @@ void newrsa()
     s32len = mpi_size(&rsa.E);
     mpi_write_binary(&rsa.E, u8publicBuf+sum, s32len);
     sum +=s32len;
-
+    ZC_TraceData(u8publicBuf, sum);
+    ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
     sum = 0;
     s32len = mpi_size(&rsa.N);
     mpi_write_binary(&rsa.N, u8TestBuf+sum, s32len);
@@ -88,6 +89,8 @@ void newrsa()
     s32len = mpi_size(&rsa.QP);
     mpi_write_binary(&rsa.QP, u8TestBuf+sum, s32len);
     sum +=s32len;
+    ZC_TraceData(u8TestBuf, sum);
+    ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
 
     testlen = 52;
     for (u32Index = 0; u32Index < testlen; u32Index++)
@@ -101,12 +104,13 @@ void newrsa()
 
         ZC_TraceData(u8PlainBuf,testlen);
         ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
-        SEC_EncryptTextByRsa(u8publicBuf,u8PlainBuf,g_u8DumpCloudMsg,testlen);
+        SEC_EncryptTextByRsa(u8publicBuf,u8PlainBuf,g_u8DumpCloudMsg,52);
+        //SEC_EncryptTextByRsa(u8publicBuf,u8PlainBuf+10,g_u8DumpCloudMsg+10,42);
           //rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, testlen, u8PlainBuf, g_u8DumpCloudMsg);
 
         ZC_TraceData(g_u8DumpCloudMsg,testlen);
         ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
-        SEC_DecipherTextByRsa(u8TestBuf, g_u8DumpCloudMsg, u8DeplainBuf,testlen);
+        SEC_DecryptTextByRsa(u8TestBuf, g_u8DumpCloudMsg, u8DeplainBuf,testlen);
         // rsa_pkcs1_decrypt(&rsa, RSA_PRIVATE, &s32len, g_u8DumpCloudMsg, u8DeplainBuf, testlen);
 
 

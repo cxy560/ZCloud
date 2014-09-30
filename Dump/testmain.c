@@ -16,18 +16,22 @@ IOT_ADAPTER   	IoTpAd;
 
 void SimRecvMsg(u8 u8Code, u8 *pu8msg, u16 u16Datalen)
 {
-    ZC_Message *pstruMsg;
+    ZC_SecHead *pstruMsg;
+    ZC_MessageHead *pstruHead;
     u32 u32Index;
 
-    pstruMsg = (ZC_Message *)uip_appdata;
+    pstruMsg = (ZC_SecHead *)uip_appdata;
+    pstruMsg->u8SecType = ZC_SEC_ALG_NONE;
+    pstruMsg->u16TotalMsg = ZC_HTONS(u16Datalen + sizeof(ZC_MessageHead));
+    
+    pstruHead = (ZC_MessageHead*)(pstruMsg + 1);
+    pstruHead->MsgCode = u8Code;
 
-    pstruMsg->MsgCode = u8Code;
-
-    pstruMsg->Payloadlen = ZC_HTONS(u16Datalen);
-    memcpy(pstruMsg->payload, pu8msg, u16Datalen);
+    pstruHead->Payloadlen = ZC_HTONS(u16Datalen);
+    memcpy(pstruHead + 1, pu8msg, u16Datalen);
     
     uip_flags = UIP_NEWDATA;
-    uip_len = u16Datalen + sizeof(ZC_Message);
+    uip_len = u16Datalen + sizeof(ZC_MessageHead) + sizeof(ZC_SecHead);
 }
 
 void logicTest()
@@ -168,13 +172,16 @@ void testqueue()
 void testsendcloud()
 {
     u32 u32Index;
+    ZC_SecHead struHead;
     MT_Init();
     
     for (u32Index = 0; u32Index < 1024; u32Index++)
     {
         g_u8DumpCloudMsg[u32Index] = u32Index;
     }
-    PCT_SendMsgToCloud(g_u8DumpCloudMsg, 100);
+    struHead.u8SecType = ZC_SEC_ALG_NONE;
+    struHead.u16TotalMsg = ZC_HTONS(800);
+    PCT_SendMsgToCloud(&struHead, g_u8DumpCloudMsg);
     
     MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
     MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
@@ -183,19 +190,23 @@ void testsendcloud()
 
 void testrecvbuffer()
 {
-    ZC_Message *pstruMsg;
+    ZC_SecHead *pstruMsg;
+    ZC_MessageHead *pstruHead;
     u32 u32Index;
     u16 u16Len;
 
     MT_Init();
     
-    pstruMsg = (ZC_Message *)g_u8DumpCloudMsg;
+    pstruMsg = (ZC_SecHead *)g_u8DumpCloudMsg;
+    pstruHead = (ZC_MessageHead*)(pstruMsg+1);
     
     u16Len = 100;
-    pstruMsg->Payloadlen = ZC_HTONS(u16Len);
+    pstruMsg->u16TotalMsg  = ZC_HTONS(u16Len+sizeof(ZC_MessageHead));
+    pstruHead->Payloadlen = ZC_HTONS(u16Len);
+    
     for (u32Index = 0; u32Index < u16Len; u32Index++)
     {
-        pstruMsg->payload[u32Index] = u32Index;
+        g_u8DumpCloudMsg[u32Index + sizeof(ZC_MessageHead) + sizeof(ZC_SecHead)] = u32Index;
     }
     
     for (u32Index = 0; u32Index < 210; u32Index++)
@@ -212,6 +223,7 @@ void testrecvbuffer()
     
     ZC_Printf("\n");
     
+    g_struProtocolController.u8keyRecv = 1;
     
     PCT_HandleEvent(&g_struProtocolController);
     
@@ -240,5 +252,5 @@ void readcfg()
 
 void main()
 {
-    readcfg();
+    TestSec();
 }

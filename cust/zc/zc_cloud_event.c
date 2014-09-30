@@ -8,7 +8,7 @@
 ******************************************************************************
 */
 #include <zc_cloud_event.h>
-#include <zc_protocol_interface.h>
+#include <zc_protocol_controller.h>
 
 /*************************************************
 * Function: EVENT_BuildEmptyMsg
@@ -18,17 +18,17 @@
 * Parameter: 
 * History:
 *************************************************/
-u32  EVENT_BuildEmptyMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u16 *pu16Len)
+u32  EVENT_BuildEmptyMsg(u8 *pu8Msg, u16 *pu16Len)
 {
-    ZC_Message *pstruMsg = NULL;
-    pstruMsg = (ZC_Message *)pu8Msg;
+    ZC_MessageHead *pstruMsg = NULL;
+    pstruMsg = (ZC_MessageHead *)pu8Msg;
     pstruMsg->MsgCode = ZC_CODE_EMPTY;
     pstruMsg->MsgId = 0;  
     pstruMsg->Payloadlen = 0;
     pstruMsg->Version = ZC_VERSION;
 
 
-    *pu16Len = sizeof(ZC_Message);
+    *pu16Len = sizeof(ZC_MessageHead);
     return ZC_RET_OK;
 }
 
@@ -40,16 +40,16 @@ u32  EVENT_BuildEmptyMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u16 *pu16Len)
 * Parameter: 
 * History:
 *************************************************/
-u32  EVENT_BuildHeartMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u16 *pu16Len)
+u32  EVENT_BuildHeartMsg(u8 *pu8Msg, u16 *pu16Len)
 {
-    ZC_Message *pstruMsg = NULL;
-    pstruMsg = (ZC_Message *)pu8Msg;
+    ZC_MessageHead *pstruMsg = NULL;
+    pstruMsg = (ZC_MessageHead *)pu8Msg;
     pstruMsg->MsgCode = ZC_CODE_HEARTBEAT;
     pstruMsg->MsgId = 0;  
     pstruMsg->Payloadlen = 0;
     pstruMsg->Version = ZC_VERSION;
 
-    *pu16Len = sizeof(ZC_Message);
+    *pu16Len = sizeof(ZC_MessageHead);
     return ZC_RET_OK;
 }
 
@@ -61,18 +61,18 @@ u32  EVENT_BuildHeartMsg(PTC_ProtocolCon *pstruCon, u8 *pu8Msg, u16 *pu16Len)
 * Parameter: 
 * History:
 *************************************************/
-u32  EVENT_BuildMsg(PTC_ProtocolCon *pstruCon, u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len, u8 *pu8Payload, u16 u16PayloadLen)
+u32  EVENT_BuildMsg(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len, u8 *pu8Payload, u16 u16PayloadLen)
 {
-    ZC_Message *pstruMsg = NULL;
-    pstruMsg = (ZC_Message *)pu8Msg;
+    ZC_MessageHead *pstruMsg = NULL;
+    pstruMsg = (ZC_MessageHead *)pu8Msg;
     pstruMsg->MsgCode = u8MsgCode;
     pstruMsg->MsgId = u8MsgId;  
     pstruMsg->Payloadlen = ZC_HTONS(u16PayloadLen);
     pstruMsg->Version = ZC_VERSION;
     
-    memcpy(pstruMsg->payload, pu8Payload, u16PayloadLen);
+    memcpy((pu8Msg + sizeof(ZC_MessageHead)), pu8Payload, u16PayloadLen);
 
-    *pu16Len = (u16)sizeof(ZC_Message) + u16PayloadLen;
+    *pu16Len = (u16)sizeof(ZC_MessageHead) + u16PayloadLen;
     return ZC_RET_OK;
 }
 /******************************* FILE END ***********************************/

@@ -18,24 +18,14 @@
 extern "C" {
 #endif
 
-s32 SEC_EncryptTextByRsa(const u8 *pu8PublicKey,
-     u8 *pu8PlainText,
-     u8 *pu8CipherText,
-     u16 u16DataLen);
-
-s32 SEC_DecipherTextByRsa(const u8 *pu8PrivateKey,
-    u8 *pu8CipherText,
-    u8 *pu8PlainText,
-    u16 u16DataLen);
-    
-    
-void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa,
-    const u8 *pu8Pubkey);
-    
-void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa,
-    const u8 *pu8PrivateKey);
-void SEC_Encrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvSend, u8 *pu8buf, int length);
-void SEC_Decrypt(PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvRecv, u8 *pu8buf, int length);
+u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len);
+u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len);
+u32 SEC_AesEncrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len);
+u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len);
+u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf);
+u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf);
+void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa, const u8 *pu8Pubkey);
+void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa, const u8 *pu8PrivateKey);
 
 #ifdef __cplusplus
 }

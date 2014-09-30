@@ -9,14 +9,9 @@
 */
 
 #include <zc_message_queue.h>
-#include <zc_protocol_interface.h>
+#include <zc_protocol_controller.h>
 
 
-extern MSG_Buffer g_struRecvBuffer;
-extern MSG_Queue  g_struRecvQueue;
-extern MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
-extern MSG_Queue  g_struSendQueue;
-extern MSG_Buffer g_struRetxBuffer;
 
 
 /*************************************************
@@ -125,7 +120,7 @@ u8* MSG_PopMsg(MSG_Queue *pstruMsgQueue)
 *************************************************/
 u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 {
-    ZC_Message *pstruMsg;
+    ZC_SecHead *pstruMsg;
     u32 u32MsgLen;
     
     if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
@@ -135,16 +130,16 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
     if (MSG_BUFFER_IDLE == g_struRecvBuffer.u8Status)
     {
 
-        if (u32DataLen < sizeof(ZC_Message))
+        if (u32DataLen < sizeof(ZC_SecHead))
         {
-            memcpy(g_struRecvBuffer.u8MsgBuffer, pu8Data, u32DataLen);
+            memcpy(g_u8CiperBuffer, pu8Data, u32DataLen);
             g_struRecvBuffer.u8Status = MSG_BUFFER_SEGMENT_NOHEAD;
             g_struRecvBuffer.u32Len = u32DataLen;
         }
         else
         {
-            pstruMsg = (ZC_Message *)(pu8Data);
-            u32MsgLen =  ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+            pstruMsg = (ZC_SecHead *)(pu8Data);
+            u32MsgLen =  ZC_HTONS(pstruMsg->u16TotalMsg) + sizeof(ZC_SecHead);
 
             if (u32MsgLen > MSG_BUFFER_MAXLEN)
             {
@@ -155,13 +150,13 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 
             if (u32MsgLen <= u32DataLen)
             {
-                memcpy(g_struRecvBuffer.u8MsgBuffer, pu8Data, u32MsgLen);
+                memcpy(g_u8CiperBuffer, pu8Data, u32MsgLen);
                 g_struRecvBuffer.u8Status = MSG_BUFFER_FULL;
                 g_struRecvBuffer.u32Len = u32MsgLen;
             }
             else
             {
-                memcpy(g_struRecvBuffer.u8MsgBuffer, pu8Data, u32DataLen);
+                memcpy(g_u8CiperBuffer, pu8Data, u32DataLen);
                 g_struRecvBuffer.u8Status = MSG_BUFFER_SEGMENT_HEAD;
                 g_struRecvBuffer.u32Len = u32DataLen;
             }
@@ -174,12 +169,12 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 
     if (MSG_BUFFER_SEGMENT_HEAD == g_struRecvBuffer.u8Status)
     {
-        pstruMsg = (ZC_Message *)(g_struRecvBuffer.u8MsgBuffer);
-        u32MsgLen = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+        pstruMsg = (ZC_SecHead *)(g_u8CiperBuffer);
+        u32MsgLen = ZC_HTONS(pstruMsg->u16TotalMsg) + sizeof(ZC_SecHead);
 
         if (u32MsgLen <= u32DataLen + g_struRecvBuffer.u32Len)
         {
-            memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+            memcpy((g_u8CiperBuffer + g_struRecvBuffer.u32Len), 
                 pu8Data, 
                 (u32MsgLen - g_struRecvBuffer.u32Len));
 
@@ -188,7 +183,7 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
         }
         else
         {
-            memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+            memcpy((g_u8CiperBuffer + g_struRecvBuffer.u32Len), 
                 pu8Data, 
                 u32DataLen);
             g_struRecvBuffer.u32Len += u32DataLen;
@@ -200,9 +195,9 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 
     if (MSG_BUFFER_SEGMENT_NOHEAD == g_struRecvBuffer.u8Status)
     {
-        if ((g_struRecvBuffer.u32Len + u32DataLen) < sizeof(ZC_Message))
+        if ((g_struRecvBuffer.u32Len + u32DataLen) < sizeof(ZC_SecHead))
         {
-            memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+            memcpy((g_u8CiperBuffer + g_struRecvBuffer.u32Len), 
                 pu8Data,
                 u32DataLen);
             g_struRecvBuffer.u32Len += u32DataLen;
@@ -210,12 +205,12 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
         }
         else
         {
-            memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+            memcpy((g_u8CiperBuffer + g_struRecvBuffer.u32Len), 
                 pu8Data,
-                (sizeof(ZC_Message) - g_struRecvBuffer.u32Len));
+                (sizeof(ZC_SecHead) - g_struRecvBuffer.u32Len));
 
-            pstruMsg = (ZC_Message *)(g_struRecvBuffer.u8MsgBuffer);
-            u32MsgLen = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_Message);
+            pstruMsg = (ZC_SecHead *)(g_u8CiperBuffer);
+            u32MsgLen = ZC_HTONS(pstruMsg->u16TotalMsg) + sizeof(ZC_SecHead);
 
             if (u32MsgLen > MSG_BUFFER_MAXLEN)
             {
@@ -226,7 +221,7 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 
             if (u32MsgLen <= u32DataLen + g_struRecvBuffer.u32Len)
             {
-                memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+                memcpy((g_u8CiperBuffer + g_struRecvBuffer.u32Len), 
                     pu8Data,
                     u32MsgLen - g_struRecvBuffer.u32Len);
                 g_struRecvBuffer.u8Status = MSG_BUFFER_FULL;
@@ -235,7 +230,7 @@ u32 MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
             }
             else
             {
-                memcpy((g_struRecvBuffer.u8MsgBuffer + g_struRecvBuffer.u32Len), 
+                memcpy((g_u8CiperBuffer + g_struRecvBuffer.u32Len), 
                     pu8Data,
                     u32DataLen);
                 g_struRecvBuffer.u8Status = MSG_BUFFER_SEGMENT_HEAD;

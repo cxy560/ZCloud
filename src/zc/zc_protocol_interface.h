@@ -16,15 +16,23 @@
 #define ZC_HS_SESSION_KEY_LEN               (16)
 #define ZC_HS_SESSION_IV_LEN                (16)
 
+
+#define ZC_SEC_ALG_NONE                     (0) 
+#define ZC_SEC_ALG_RSA                      (1) 
+#define ZC_SEC_ALG_AES                      (2) 
+
+
+
+
 typedef struct
 {
     u16 u16TotalMsg;
     u8  u8SecType;
-    u8  u8AlgType;
-}ZC_SecHeader;
+    u8  u8Resver;
+}ZC_SecHead;
 
 /*ZCloud Message*/
-typedef struct 
+typedef struct
 {
     u8  Version;
     u8  MsgId;
@@ -34,8 +42,7 @@ typedef struct
     u16 Payloadlen; 
     u8  TotalMsgCrc[2];
     
-    u8  payload[0];
-}ZC_Message;
+}ZC_MessageHead;
 
 /*ZCloud Message code*/
 typedef enum 

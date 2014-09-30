@@ -9,7 +9,7 @@
 */
 
 #include <zc_common.h>
-
+#include <zc_protocol_controller.h>
 extern 	char *optarg; 
 
 u32 g_TraceSwitch = 0;
@@ -41,8 +41,51 @@ void ZC_TraceData(u8* pData, u32 Len)
     
     ZC_Printf("\n");
 }
+
+#define  TESTLEN   48
+u8 u8Plain[TESTLEN];
+u8 u8Ciper[TESTLEN];
+u8 u8AfterPlain[TESTLEN];
+
+void TestSec()
+{
+    u32 u32Index;
+    MT_Init();
+    
+    for (u32Index = 0; u32Index < TESTLEN; u32Index++)
+    {
+        u8Plain[u32Index] = u32Index;
+    }
+    
+    g_struProtocolController.u8keyRecv = 1;
+    memset(g_struProtocolController.IvRecv, 1, 16);
+    memset(g_struProtocolController.IvSend, 1, 16);
+    
+    ZC_Printf("+++++++++++++++++++AES+++++++++++++++++++\n");
+    SEC_AesEncrypt(u8Ciper, u8Plain, TESTLEN);
+    ZC_TraceData(u8Plain, TESTLEN);
+    ZC_Printf("+++++++++++++\n");
+    ZC_TraceData(u8Ciper, TESTLEN);
+    ZC_Printf("+++++++++++++\n");
+    SEC_AesDecrypt(u8Ciper, u8AfterPlain, TESTLEN);
+    ZC_TraceData(u8AfterPlain, TESTLEN);    
+    ZC_Printf("+++++++++++++++++++AES+++++++++++++++++++\n");
+    
+    
+    ZC_Printf("+++++++++++++++++++RSA+++++++++++++++++++\n");
+    SEC_EncryptTextByRsa(u8Ciper, u8Plain, TESTLEN);
+    ZC_TraceData(u8Plain, TESTLEN);
+    ZC_Printf("+++++++++++++\n");
+    ZC_TraceData(u8Ciper, TESTLEN);
+    ZC_Printf("+++++++++++++\n");
+    SEC_DecryptTextByRsa(u8Ciper, u8AfterPlain, TESTLEN);
+    ZC_TraceData(u8AfterPlain, TESTLEN);    
+    ZC_Printf("+++++++++++++++++++RSA+++++++++++++++++++\n");
+}
+
 void IoT_exec_AT_cmd_TraceSwitch(u8 *pCmdBuf, u16 at_cmd_len)
 {
+    TestSec();
 #if 0
 	INT16 argc = 0;
 	char *argv[MAX_OPTION_COUNT];

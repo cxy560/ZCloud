@@ -100,6 +100,10 @@ void TIMER_TimeoutAction(u8 u8TimerIndex)
         case PCT_TIMER_SENDMOUDLE:            
             PCT_SendMoudleTimeout(&g_struProtocolController);
             break;
+        case PCT_TIMER_SENDHEART:            
+            PCT_SendHeartMsg();
+            break;
+            
     }
 }
 
