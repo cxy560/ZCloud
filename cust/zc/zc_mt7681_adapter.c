@@ -34,7 +34,8 @@ struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 
 u16 g_u16TcpMss;
 extern IOT_ADAPTER   	IoTpAd;
-
+extern R_RSA_PRIVATE_KEY PRIVATE_KEY1;
+extern R_RSA_PUBLIC_KEY PUBLIC_KEY1;
 #ifndef ZC_OFF_LINETEST
 /*************************************************
 * Function: rand
@@ -150,6 +151,7 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
 void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 {
     u32 u32RetVal;
+    u16 u16PlainLen;
     u32RetVal = MSG_RecvDataFromCloud(pu8Data, u32DataLen);
 
     if (ZC_RET_OK == u32RetVal)
@@ -157,9 +159,9 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
         if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
         {
             u32RetVal = SEC_Decrypt((ZC_SecHead*)g_u8CiperBuffer, 
-                g_u8CiperBuffer + sizeof(ZC_SecHead), g_struRecvBuffer.u8MsgBuffer);
+                g_u8CiperBuffer + sizeof(ZC_SecHead), g_struRecvBuffer.u8MsgBuffer, &u16PlainLen);
 
-            g_struRecvBuffer.u32Len -= sizeof(ZC_SecHead);
+            g_struRecvBuffer.u32Len = u16PlainLen;
             if (ZC_RET_OK == u32RetVal)
             {
                 u32RetVal = MSG_PushMsg(&g_struRecvQueue, (u8*)&g_struRecvBuffer);
@@ -217,7 +219,7 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
 *************************************************/
 u32 MT_GetCloudKey(u8 **pu8Key)
 {
-    *pu8Key = IoTpAd.UsrCfg.CloudKey;
+    *pu8Key = (u8*)&PUBLIC_KEY1;
     return ZC_RET_OK;
 }
 /*************************************************
@@ -230,7 +232,7 @@ u32 MT_GetCloudKey(u8 **pu8Key)
 *************************************************/
 u32 MT_GetPrivateKey(u8 **pu8Key)
 {
-    *pu8Key = IoTpAd.UsrCfg.ProductKey;
+    *pu8Key = (u8*)&PRIVATE_KEY1;
 
     return ZC_RET_OK;
 }

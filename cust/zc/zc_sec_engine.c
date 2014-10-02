@@ -18,20 +18,18 @@
 * Parameter:
 * History:
 *************************************************/
-u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
+u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16CiperLen)
 {
-    rsa_context rsa;
     s32 s32Ret;
-    PTC_ProtocolCon *pstruCon;
     u8 *pu8PublicKey;
-    pstruCon = &g_struProtocolController;
-
-    pstruCon->pstruMoudleFun->pfunGetCloudKey(&pu8PublicKey);
+    u32 u32OutLen;
     
-    SEC_InitRsaContextWithPublicKey(&rsa, pu8PublicKey);
-    s32Ret = rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, u16Len, pu8Plainbuf, pu8CiperBuf);
-    rsa_free(&rsa);
+    g_struProtocolController.pstruMoudleFun->pfunGetCloudKey(&pu8PublicKey);
     
+    
+    s32Ret = RSAPublicEncrypt(pu8CiperBuf, &u32OutLen, pu8Plainbuf, u16Len, (R_RSA_PUBLIC_KEY*)pu8PublicKey, 0);
+    
+    *pu16CiperLen = (u16)u32OutLen;
     if (s32Ret)
     {
         return ZC_RET_ERROR;
@@ -40,6 +38,7 @@ u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
     {
         return ZC_RET_OK;
     }
+    
 }
 
 /*************************************************
@@ -50,24 +49,18 @@ u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
 * Parameter: 
 * History:
 *************************************************/
-u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
+u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16PlainLen)
 {
-    rsa_context struRsa;
-    s32 s32len;
     s32 s32Ret;
-    PTC_ProtocolCon *pstruCon;
     u8 *pu8PrivateKey;
+    u32 u32OutLen;
 
-    pstruCon = &g_struProtocolController;
-
-    pstruCon->pstruMoudleFun->pfunGetPrivateKey(&pu8PrivateKey);
+    g_struProtocolController.pstruMoudleFun->pfunGetPrivateKey(&pu8PrivateKey);
 
 
-    SEC_InitRsaContextWithPrivateKey(&struRsa, pu8PrivateKey);
+    s32Ret = RSAPrivateDecrypt(pu8Plainbuf, &u32OutLen, pu8CiperBuf, u16Len, (R_RSA_PRIVATE_KEY*)pu8PrivateKey);
+    *pu16PlainLen = (u16)u32OutLen;
 
-    s32Ret = rsa_pkcs1_decrypt(&struRsa, RSA_PRIVATE, &s32len, pu8CiperBuf,
-        pu8Plainbuf, u16Len);
-    rsa_free(&struRsa);
     if (s32Ret)
     {
         return ZC_RET_ERROR;
@@ -75,57 +68,6 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
     else
     {
         return ZC_RET_OK;
-    }
-}
-
-
-/*************************************************
-* Function: SEC_InitRsaContextWithPublicKey
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa, const u8 *pu8Pubkey)
-{
-    rsa_init(pstruRsa, RSA_PKCS_V15, RSA_RAW, NULL, NULL);
-
-    pstruRsa->len = ZC_SEC_RSA_KEY_LEN >> 3;
-    mpi_read_binary(&pstruRsa->N, pu8Pubkey, pstruRsa->len);
-    mpi_read_binary(&pstruRsa->E, pu8Pubkey + pstruRsa->len, 3);
-}
-
-/*************************************************
-* Function: SEC_InitRsaContextWithPrivateKey
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa, const u8 *pu8PrivateKey)
-{
-    u8 u8Index;
-    u16 u16StartPos;
-    u8 u8BufLen[6] = {ZC_SEC_RSA_KEY_LEN >> 3,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4};
-    mpi *pstruMpi[6];
-    rsa_init(pstrRsa, RSA_PKCS_V15, RSA_RAW, NULL, NULL);
-
-    pstrRsa->len = ZC_SEC_RSA_KEY_LEN >> 3;
-      
-    pstruMpi[0] = &pstrRsa->N;
-    pstruMpi[1] = &pstrRsa->P;
-    pstruMpi[2] = &pstrRsa->Q;
-    pstruMpi[3] = &pstrRsa->DP;
-    pstruMpi[4] = &pstrRsa->DQ;    
-    pstruMpi[5] = &pstrRsa->QP;  
-
-    u16StartPos = 0;
-    for (u8Index = 0; u8Index < 6; u8Index++)
-    {
-        mpi_read_binary(pstruMpi[u8Index], pu8PrivateKey + u16StartPos, u8BufLen[u8Index]);
-        u16StartPos += (u16)u8BufLen[u8Index];
     }
 }
 
@@ -137,11 +79,13 @@ void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa, const u8 *pu8Private
 * Parameter: 
 * History:
 *************************************************/
-u32 SEC_AesEncrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
+u32 SEC_AesEncrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16CiperLen)
 {
-    u32 u32Len;
+    u16 u16OutLen;
     PTC_ProtocolCon *pstruCon;
-    u32Len = u16Len;
+
+    /*must assign the outlen*/
+    u16OutLen = u16Len;
 
     pstruCon = &g_struProtocolController;
     
@@ -153,7 +97,8 @@ u32 SEC_AesEncrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
     AES_CBC_Encrypt(pu8Plainbuf, u16Len, 
         pstruCon->u8SessionKey, ZC_HS_SESSION_KEY_LEN, 
         pstruCon->IvSend, 16, 
-        pu8CiperBuf, &u32Len);
+        pu8CiperBuf, &u16OutLen);
+    *pu16CiperLen = u16OutLen;  
     memcpy(pstruCon->IvSend, pu8CiperBuf, 16);
     
     return ZC_RET_OK;
@@ -166,14 +111,16 @@ u32 SEC_AesEncrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
 * Parameter: 
 * History:PTC_ProtocolCon *pstruCon, u8 *pu8Key, u8 *pu8IvRecv,
 *************************************************/
-u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
+u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16PlainLen)
 {
     u8 *pu8Key;
     u8 *pu8IvRecv;
     u8 u8NextIv[16];
-    u32 u32Len;
+    u16 u16OutLen;
     PTC_ProtocolCon *pstruCon;
-    u32Len = u16Len;
+    
+    /*must assign the outlen*/
+    u16OutLen = u16Len;
     pstruCon = &g_struProtocolController;
     
     if (PCT_KEY_RECVED != pstruCon->u8keyRecv)
@@ -195,7 +142,8 @@ u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
         memset(u8NextIv + u16Len, 0, 16 - u16Len);
     }
     
-    AES_CBC_Decrypt(pu8CiperBuf, u16Len, pu8Key, ZC_HS_SESSION_KEY_LEN, pu8IvRecv, 16, pu8Plainbuf, &u32Len);
+    AES_CBC_Decrypt(pu8CiperBuf, u16Len, pu8Key, ZC_HS_SESSION_KEY_LEN, pu8IvRecv, 16, pu8Plainbuf, &u16OutLen);
+    *pu16PlainLen = u16OutLen;
     memcpy(pstruCon->IvRecv, u8NextIv, 16);
     
     return ZC_RET_OK;
@@ -208,11 +156,11 @@ u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len)
 * Parameter: 
 * History:
 *************************************************/
-void SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
+u32 SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
 {
     u16 LastBlockSize = 0;
     *u16PaddingLen = 0;
-
+    
     switch(u8SecType)
     {
         case ZC_SEC_ALG_AES:
@@ -224,9 +172,22 @@ void SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
                 *u16PaddingLen = 0;
             break;
         }
+        case ZC_SEC_ALG_RSA:
+        {
+            if (u16PlainLen + 11 > ZC_SEC_RSA_KEY_LEN)
+            {
+               return ZC_RET_ERROR; 
+            }
+            else
+            {
+                *u16PaddingLen = ZC_HS_SESSION_KEY_LEN - u16PlainLen; 
+            } 
+            
+            break;
+        }
     }
 
-    return;
+    return ZC_RET_OK;
 }
 
 
@@ -238,7 +199,7 @@ void SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
 * Parameter: 
 * History:
 *************************************************/
-u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf)
+u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 *pu16CiperLen)
 {
     u32 u32RetVal = ZC_RET_ERROR;
     switch (pstruSecHead->u8SecType)
@@ -246,12 +207,13 @@ u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf)
         case ZC_SEC_ALG_NONE:
             memcpy(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));
             u32RetVal = ZC_RET_OK;
+            *pu16CiperLen = ZC_HTONS(pstruSecHead->u16TotalMsg);
             break;
         case ZC_SEC_ALG_RSA:
-            u32RetVal = SEC_EncryptTextByRsa(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));
+            u32RetVal = SEC_EncryptTextByRsa(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg), pu16CiperLen);
             break;
         case ZC_SEC_ALG_AES:
-            u32RetVal = SEC_AesEncrypt(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));
+            u32RetVal = SEC_AesEncrypt(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg), pu16CiperLen);
             break;                        
     }
     return u32RetVal;
@@ -264,7 +226,7 @@ u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf)
 * Parameter: 
 * History:
 *************************************************/
-u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf)
+u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 *pu16PlainLen)
 {
     u32 u32RetVal = ZC_RET_ERROR;
     switch (pstruSecHead->u8SecType)
@@ -272,12 +234,13 @@ u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf)
         case ZC_SEC_ALG_NONE:
             memcpy(pu8PlainBuf, pu8CiperBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));
             u32RetVal = ZC_RET_OK;
+            *pu16PlainLen = ZC_HTONS(pstruSecHead->u16TotalMsg);
             break;
         case ZC_SEC_ALG_RSA:
-            u32RetVal = SEC_DecryptTextByRsa(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));
+            u32RetVal = SEC_DecryptTextByRsa(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg), pu16PlainLen);
             break;
         case ZC_SEC_ALG_AES:
-            u32RetVal = SEC_AesDecrypt(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));
+            u32RetVal = SEC_AesDecrypt(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg), pu16PlainLen);
             break;                        
     }
     return u32RetVal;

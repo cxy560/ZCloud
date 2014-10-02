@@ -1,434 +1,110 @@
-/**
- * \file bignum.h
- *
- *  Based on XySSL: Copyright (C) 2006-2008  Christophe Devine
- *
- *  Copyright (C) 2009  Paul Bakker <polarssl_maintainer at polarssl dot org>
- *
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *
- *    * Redistributions of source code must retain the above copyright
- *      notice, this list of conditions and the following disclaimer.
- *    * Redistributions in binary form must reproduce the above copyright
- *      notice, this list of conditions and the following disclaimer in the
- *      documentation and/or other materials provided with the distribution.
- *    * Neither the names of PolarSSL or XySSL nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- *  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- *  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+/* NN.H - header file for NN.C
  */
-#ifndef TROPICSSL_BIGNUM_H
-#define TROPICSSL_BIGNUM_H
 
-#include <stdio.h>
-
-#define TROPICSSL_ERR_MPI_FILE_IO_ERROR                     -0x0002
-#define TROPICSSL_ERR_MPI_BAD_INPUT_DATA                    -0x0004
-#define TROPICSSL_ERR_MPI_INVALID_CHARACTER                 -0x0006
-#define TROPICSSL_ERR_MPI_BUFFER_TOO_SMALL                  -0x0008
-#define TROPICSSL_ERR_MPI_NEGATIVE_VALUE                    -0x000A
-#define TROPICSSL_ERR_MPI_DIVISION_BY_ZERO                  -0x000C
-#define TROPICSSL_ERR_MPI_NOT_ACCEPTABLE                    -0x000E
-
-#define MPI_CHK(f) if( ( ret = f ) != 0 ) goto cleanup
-
-/*
- * Define the base integer type, architecture-wise
+/* Type definitions.
+typedef UINT4 NN_DIGIT;
+typedef UINT2 NN_HALF_DIGIT;
  */
-#if defined(TROPICSSL_HAVE_INT8)
-typedef unsigned char t_int;
-typedef unsigned short t_dbl;
-#else
-#if defined(TROPICSSL_HAVE_INT16)
-typedef unsigned short t_int;
-typedef unsigned long t_dbl;
-#else
-typedef unsigned long t_int;
-#if defined(_MSC_VER) && defined(_M_IX86)
-typedef unsigned __int64 t_dbl;
-#else
-#if defined(__amd64__) || defined(__x86_64__)    || \
-        defined(__ppc64__) || defined(__powerpc64__) || \
-        defined(__ia64__)  || defined(__alpha__)
-typedef unsigned int t_dbl __attribute__ ((mode(TI)));
-#else
-typedef unsigned long long t_dbl;
-#endif
-#endif
-#endif
-#endif
 
-/**
- * \brief          MPI structure
+/* Constants.
+
+   Note: MAX_NN_DIGITS is long enough to hold any RSA modulus, plus
+   one more digit as required by R_GeneratePEMKeys (for n and phiN,
+   whose lengths must be even). All natural numbers have at most
+   MAX_NN_DIGITS digits, except for double-length intermediate values
+   in NN_Mult (t), NN_ModMult (t), NN_ModInv (w), and NN_Div (c).
  */
-typedef struct {
-	int s;			/*!<  integer sign      */
-	int n;			/*!<  total # of limbs  */
-	t_int *p;		/*!<  pointer to limbs  */
-} mpi;
+/* Length of digit in bits */
+#define NN_DIGIT_BITS 32
+#define NN_HALF_DIGIT_BITS 16
+/* Length of digit in bytes */
+#define NN_DIGIT_LEN (NN_DIGIT_BITS / 8)
+/* Maximum length in digits */
+#define MAX_NN_DIGITS \
+  ((MAX_RSA_MODULUS_LEN + NN_DIGIT_LEN - 1) / NN_DIGIT_LEN + 1)
+/* Maximum digits */
+#define MAX_NN_DIGIT 0xffffffff
+#define MAX_NN_HALF_DIGIT 0xffff
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/* Macros.
+ */
+#define LOW_HALF(x) ((x) & MAX_NN_HALF_DIGIT)
+#define HIGH_HALF(x) (((x) >> NN_HALF_DIGIT_BITS) & MAX_NN_HALF_DIGIT)
+#define TO_HIGH_HALF(x) (((NN_DIGIT)(x)) << NN_HALF_DIGIT_BITS)
+#define DIGIT_MSB(x) (unsigned int)(((x) >> (NN_DIGIT_BITS - 1)) & 1)
+#define DIGIT_2MSB(x) (unsigned int)(((x) >> (NN_DIGIT_BITS - 2)) & 3)
 
-	/**
-	 * \brief          Initialize one MPI
-	 */
-	void mpi_init(mpi * X);
+/* CONVERSIONS
+   NN_Decode (a, digits, b, len)   Decodes character string b into a.
+   NN_Encode (a, len, b, digits)   Encodes a into character string b.
 
-	/**
-	 * \brief          Unallocate one MPI
-	 */
-	void mpi_free(mpi * X);
+   ASSIGNMENTS
+   NN_Assign (a, b, digits)        Assigns a = b.
+   NN_ASSIGN_DIGIT (a, b, digits)  Assigns a = b, where b is a digit.
+   NN_AssignZero (a, b, digits)    Assigns a = 0.
+   NN_Assign2Exp (a, b, digits)    Assigns a = 2^b.
+     
+   ARITHMETIC OPERATIONS
+   NN_Add (a, b, c, digits)        Computes a = b + c.
+   NN_Sub (a, b, c, digits)        Computes a = b - c.
+   NN_Mult (a, b, c, digits)       Computes a = b * c.
+   NN_LShift (a, b, c, digits)     Computes a = b * 2^c.
+   NN_RShift (a, b, c, digits)     Computes a = b / 2^c.
+   NN_Div (a, b, c, cDigits, d, dDigits)  Computes a = c div d and b = c mod d.
 
-	/**
-	 * \brief          Enlarge to the specified number of limbs
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_grow(mpi * X, int nblimbs);
+   NUMBER THEORY
+   NN_Mod (a, b, bDigits, c, cDigits)  Computes a = b mod c.
+   NN_ModMult (a, b, c, d, digits) Computes a = b * c mod d.
+   NN_ModExp (a, b, c, cDigits, d, dDigits)  Computes a = b^c mod d.
+   NN_ModInv (a, b, c, digits)     Computes a = 1/b mod c.
+   NN_Gcd (a, b, c, digits)        Computes a = gcd (b, c).
 
-	/**
-	 * \brief          Copy the contents of Y into X
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_copy(mpi * X, const mpi * Y);
+   OTHER OPERATIONS
+   NN_EVEN (a, digits)             Returns 1 iff a is even.
+   NN_Cmp (a, b, digits)           Returns sign of a - b.
+   NN_EQUAL (a, digits)            Returns 1 iff a = b.
+   NN_Zero (a, digits)             Returns 1 iff a = 0.
+   NN_Digits (a, digits)           Returns significant length of a in digits.
+   NN_Bits (a, digits)             Returns significant length of a in bits.
+ */
+void NN_Decode PROTO_LIST
+  ((NN_DIGIT *, unsigned int, unsigned char *, unsigned int));
+void NN_Encode PROTO_LIST
+  ((unsigned char *, unsigned int, NN_DIGIT *, unsigned int));
 
-	/**
-	 * \brief          Swap the contents of X and Y
-	 */
-	void mpi_swap(mpi * X, mpi * Y);
+void NN_Assign PROTO_LIST ((NN_DIGIT *, NN_DIGIT *, unsigned int));
+void NN_AssignZero PROTO_LIST ((NN_DIGIT *, unsigned int));
+void NN_Assign2Exp PROTO_LIST ((NN_DIGIT *, unsigned int, unsigned int));
 
-	/**
-	 * \brief          Set value from integer
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_lset(mpi * X, int z);
+NN_DIGIT NN_Add PROTO_LIST
+  ((NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, unsigned int));
+NN_DIGIT NN_Sub PROTO_LIST
+  ((NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, unsigned int));
+void NN_Mult PROTO_LIST ((NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, unsigned int));
+void NN_Div PROTO_LIST
+  ((NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, unsigned int, NN_DIGIT *,
+    unsigned int));
+NN_DIGIT NN_LShift PROTO_LIST 
+  ((NN_DIGIT *, NN_DIGIT *, unsigned int, unsigned int));
+NN_DIGIT NN_RShift PROTO_LIST
+  ((NN_DIGIT *, NN_DIGIT *, unsigned int, unsigned int));
 
-	/**
-	 * \brief          Return the number of least significant bits
-	 */
-	int mpi_lsb(const mpi * X);
+void NN_Mod PROTO_LIST
+  ((NN_DIGIT *, NN_DIGIT *, unsigned int, NN_DIGIT *, unsigned int));
+void NN_ModMult PROTO_LIST 
+  ((NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, unsigned int));
+void NN_ModExp PROTO_LIST 
+  ((NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, unsigned int, NN_DIGIT *,
+    unsigned int));
+void NN_ModInv PROTO_LIST
+  ((NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, unsigned int));
+void NN_Gcd PROTO_LIST ((NN_DIGIT *, NN_DIGIT *, NN_DIGIT *, unsigned int));
 
-	/**
-	 * \brief          Return the number of most significant bits
-	 */
-	int mpi_msb(const mpi * X);
+int NN_Cmp PROTO_LIST ((NN_DIGIT *, NN_DIGIT *, unsigned int));
+int NN_Zero PROTO_LIST ((NN_DIGIT *, unsigned int));
+unsigned int NN_Bits PROTO_LIST ((NN_DIGIT *, unsigned int));
+unsigned int NN_Digits PROTO_LIST ((NN_DIGIT *, unsigned int));
 
-	/**
-	 * \brief          Return the total size in bytes
-	 */
-	int mpi_size(const mpi * X);
-
-	/**
-	 * \brief          Import from an ASCII string
-	 *
-	 * \param X        destination mpi
-	 * \param radix    input numeric base
-	 * \param s        null-terminated string buffer
-	 *
-	 * \return         0 if successful, or an TROPICSSL_ERR_MPI_XXX error code
-	 */
-	int mpi_read_string(mpi * X, int radix, const char *s);
-
-	/**
-	 * \brief          Export into an ASCII string
-	 *
-	 * \param X        source mpi
-	 * \param radix    output numeric base
-	 * \param s        string buffer
-	 * \param slen     string buffer size
-	 *
-	 * \return         0 if successful, or an TROPICSSL_ERR_MPI_XXX error code
-	 *
-	 * \note           Call this function with *slen = 0 to obtain the
-	 *                 minimum required buffer size in *slen.
-	 */
-	int mpi_write_string(const mpi * X, int radix, char *s, int *slen);
-
-	/**
-	 * \brief          Read X from an opened file
-	 *
-	 * \param X        destination mpi
-	 * \param radix    input numeric base
-	 * \param fin      input file handle
-	 *
-	 * \return         0 if successful, or an TROPICSSL_ERR_MPI_XXX error code
-	 */
-	int mpi_read_file(mpi * X, int radix, FILE * fin);
-
-	/**
-	 * \brief          Write X into an opened file, or stdout
-	 *
-	 * \param p        prefix, can be NULL
-	 * \param X        source mpi
-	 * \param radix    output numeric base
-	 * \param fout     output file handle
-	 *
-	 * \return         0 if successful, or an TROPICSSL_ERR_MPI_XXX error code
-	 *
-	 * \note           Set fout == NULL to print X on the console.
-	 */
-	int mpi_write_file(const char *p, const mpi * X, int radix, FILE * fout);
-
-	/**
-	 * \brief          Import X from unsigned binary data, big endian
-	 *
-	 * \param X        destination mpi
-	 * \param buf      input buffer
-	 * \param buflen   input buffer size
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_read_binary(mpi * X, const unsigned char *buf, int buflen);
-
-	/**
-	 * \brief          Export X into unsigned binary data, big endian
-	 *
-	 * \param X        source mpi
-	 * \param buf      output buffer
-	 * \param buflen   output buffer size
-	 *
-	 * \return         0 if successful,
-	 *                 TROPICSSL_ERR_MPI_BUFFER_TOO_SMALL if buf isn't large enough
-	 *
-	 * \note           Call this function with *buflen = 0 to obtain the
-	 *                 minimum required buffer size in *buflen.
-	 */
-	int mpi_write_binary(const mpi * X, unsigned char *buf, int buflen);
-
-	/**
-	 * \brief          Left-shift: X <<= count
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_shift_l(mpi * X, int count);
-
-	/**
-	 * \brief          Right-shift: X >>= count
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_shift_r(mpi * X, int count);
-
-	/**
-	 * \brief          Compare unsigned values
-	 *
-	 * \return         1 if |X| is greater than |Y|,
-	 *                -1 if |X| is lesser  than |Y| or
-	 *                 0 if |X| is equal to |Y|
-	 */
-	int mpi_cmp_abs(const mpi * X, const mpi * Y);
-
-	/**
-	 * \brief          Compare signed values
-	 *
-	 * \return         1 if X is greater than Y,
-	 *                -1 if X is lesser  than Y or
-	 *                 0 if X is equal to Y
-	 */
-	int mpi_cmp_mpi(const mpi * X, const mpi * Y);
-
-	/**
-	 * \brief          Compare signed values
-	 *
-	 * \return         1 if X is greater than z,
-	 *                -1 if X is lesser  than z or
-	 *                 0 if X is equal to z
-	 */
-	int mpi_cmp_int(const mpi * X, int z);
-
-	/**
-	 * \brief          Unsigned addition: X = |A| + |B|
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_add_abs(mpi * X, const mpi * A, const mpi * B);
-
-	/**
-	 * \brief          Unsigned substraction: X = |A| - |B|
-	 *
-	 * \return         0 if successful,
-	 *                 TROPICSSL_ERR_MPI_NEGATIVE_VALUE if B is greater than A
-	 */
-	int mpi_sub_abs(mpi * X, const mpi * A, const mpi * B);
-
-	/**
-	 * \brief          Signed addition: X = A + B
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_add_mpi(mpi * X, const mpi * A, const mpi * B);
-
-	/**
-	 * \brief          Signed substraction: X = A - B
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_sub_mpi(mpi * X, const mpi * A, const mpi * B);
-
-	/**
-	 * \brief          Signed addition: X = A + b
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_add_int(mpi * X, const mpi * A, int b);
-
-	/**
-	 * \brief          Signed substraction: X = A - b
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_sub_int(mpi * X, const mpi * A, int b);
-
-	/**
-	 * \brief          Baseline multiplication: X = A * B
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_mul_mpi(mpi * X, const mpi * A, const mpi * B);
-
-	/**
-	 * \brief          Baseline multiplication: X = A * b
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_mul_int(mpi * X, const mpi * A, t_int b);
-
-	/**
-	 * \brief          Division by mpi: A = Q * B + R
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed,
-	 *                 TROPICSSL_ERR_MPI_DIVISION_BY_ZERO if B == 0
-	 *
-	 * \note           Either Q or R can be NULL.
-	 */
-	int mpi_div_mpi(mpi * Q, mpi * R, const mpi * A, const mpi * B);
-
-	/**
-	 * \brief          Division by int: A = Q * b + R
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed,
-	 *                 TROPICSSL_ERR_MPI_DIVISION_BY_ZERO if b == 0
-	 *
-	 * \note           Either Q or R can be NULL.
-	 */
-	int mpi_div_int(mpi * Q, mpi * R, const mpi * A, int b);
-
-	/**
-	 * \brief          Modulo: R = A mod B
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed,
-	 *                 TROPICSSL_ERR_MPI_DIVISION_BY_ZERO if B == 0
-	 */
-	int mpi_mod_mpi(mpi * R, const mpi * A, const mpi * B);
-
-	/**
-	 * \brief          Modulo: r = A mod b
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed,
-	 *                 TROPICSSL_ERR_MPI_DIVISION_BY_ZERO if b == 0
-	 */
-	int mpi_mod_int(t_int * r, const mpi * A, int b);
-
-	/**
-	 * \brief          Sliding-window exponentiation: X = A^E mod N
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed,
-	 *                 TROPICSSL_ERR_MPI_BAD_INPUT_DATA if N is negative or even
-	 *
-	 * \note           _RR is used to avoid re-computing R*R mod N across
-	 *                 multiple calls, which speeds up things a bit. It can
-	 *                 be set to NULL if the extra performance is unneeded.
-	 */
-	int mpi_exp_mod(mpi * X, const mpi * A, const mpi * E, const mpi * N, mpi * _RR);
-
-	/**
-	 * \brief          Greatest common divisor: G = gcd(A, B)
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed
-	 */
-	int mpi_gcd(mpi * G, const mpi * A, const mpi * B);
-
-	/**
-	 * \brief          Modular inverse: X = A^-1 mod N
-	 *
-	 * \return         0 if successful,
-	 *                 1 if memory allocation failed,
-	 *                 TROPICSSL_ERR_MPI_BAD_INPUT_DATA if N is negative or nil
-	 *                 TROPICSSL_ERR_MPI_NOT_ACCEPTABLE if A has no inverse mod N
-	 */
-	int mpi_inv_mod(mpi * X, const mpi * A, const mpi * N);
-
-	/**
-	 * \brief          Miller-Rabin primality test
-	 *
-	 * \return         0 if successful (probably prime),
-	 *                 1 if memory allocation failed,
-	 *                 TROPICSSL_ERR_MPI_NOT_ACCEPTABLE if X is not prime
-	 */
-	int mpi_is_prime(mpi * X, int (*f_rng) (void *), void *p_rng);
-
-	/**
-	 * \brief          Prime number generation
-	 *
-	 * \param X        destination mpi
-	 * \param nbits    required size of X in bits
-	 * \param dh_flag  if 1, then (X-1)/2 will be prime too
-	 * \param f_rng    RNG function
-	 * \param p_rng    RNG parameter
-	 *
-	 * \return         0 if successful (probably prime),
-	 *                 1 if memory allocation failed,
-	 *                 TROPICSSL_ERR_MPI_BAD_INPUT_DATA if nbits is < 3
-	 */
-	int mpi_gen_prime(mpi * X, int nbits, int dh_flag,
-			  int (*f_rng) (void *), void *p_rng);
-
-	/**
-	 * \brief          Checkup routine
-	 *
-	 * \return         0 if successful, or 1 if the test failed
-	 */
-	int mpi_self_test(int verbose);
-
-#ifdef __cplusplus
-}
-#endif
-#endif				/* bignum.h */
+#define NN_ASSIGN_DIGIT(a, b, digits) {NN_AssignZero (a, digits); a[0] = b;}
+#define NN_EQUAL(a, b, digits) (! NN_Cmp (a, b, digits))
+#define NN_EVEN(a, digits) (((digits) == 0) || ! (a[0] & 1))

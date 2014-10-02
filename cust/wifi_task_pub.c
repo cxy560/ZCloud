@@ -400,7 +400,6 @@ VOID ws_init(OUT BOOLEAN *pb_enable)
 		pIoTMlme->ValidFlashStaCfg = load_sta_cfg();
 	}		
 #endif
-    Printf_High("ws_init");
 	pIoTMlme->ValidFlashStaCfg = load_sta_cfg();
 
 	/* The entry for customization */

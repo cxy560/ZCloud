@@ -33,7 +33,7 @@ IOT_USR_CFG Usr_Cfg = {
     DEFAULT_CLOUD_ADDR
 };
 
-
+#if 0
 void newrsa()
 {
     int ret;
@@ -120,7 +120,7 @@ void newrsa()
     }
 
 }
-
+#endif
 BOOLEAN reset_usr_cfg(BOOLEAN bUpFlash)
 {
     u16_t CfgLen;

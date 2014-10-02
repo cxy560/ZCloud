@@ -76,8 +76,6 @@ main (VOID)
 	{
 		IoTCustOp.IoTCustInit();
 	}
-    Printf_High("init wifiTASK_LowPrioTask \n");
-
 		/* Create Tasks */
 	/*******************************************************************************
 	 ****** CAUTION : SOFTWARE PROGRAMMER SHALL NOT MODIFY THE FOLLOWING CODES *****

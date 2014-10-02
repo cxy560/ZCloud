@@ -589,7 +589,12 @@ u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
     u16 u16Len;
     u16 u16PaddingLen;
     
-    SEC_PaddingCheck(pstruSecHead->u8SecType, ZC_HTONS(pstruSecHead->u16TotalMsg), &u16PaddingLen);
+    u32RetVal = SEC_PaddingCheck(pstruSecHead->u8SecType, ZC_HTONS(pstruSecHead->u16TotalMsg), &u16PaddingLen);
+    
+    if (ZC_RET_ERROR == u32RetVal)
+    {
+        return ZC_RET_ERROR;
+    }
 
     u16Len = ZC_HTONS(pstruSecHead->u16TotalMsg) + sizeof(ZC_SecHead) + u16PaddingLen;    
     
@@ -614,15 +619,14 @@ u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
         return ZC_RET_ERROR;
     }
 
-    /*first add pading,then Encrypt, final copy sechead*/
-    pstruSecHead->u16TotalMsg = ZC_HTONS(u16Len - sizeof(ZC_SecHead));
-    u32RetVal = SEC_Encrypt(pstruSecHead, g_u8CiperBuffer + sizeof(ZC_SecHead), pu8PlainData);
+    /*first check padding,then Encrypt, final copy sechead*/
+    u32RetVal = SEC_Encrypt(pstruSecHead, g_u8CiperBuffer + sizeof(ZC_SecHead), pu8PlainData, &u16Len);
     
     if (ZC_RET_ERROR == u32RetVal)
     {
         return ZC_RET_ERROR;
     }
-    
+    pstruSecHead->u16TotalMsg = ZC_HTONS(sizeof(ZC_SecHead) + u16Len);
     /*copy sechead*/
     memcpy(g_u8CiperBuffer, (u8*)pstruSecHead, sizeof(ZC_SecHead));
     

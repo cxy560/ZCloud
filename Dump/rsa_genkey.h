@@ -5,9 +5,9 @@
 #define _CRT_SECURE_NO_DEPRECATE 1
 #endif
 
-#include "rsa.h"
+#include <rsa.h>
 #include "havege.h"
-#include "bignum.h"
+#include <bignum.h>
 
 #define KEY_SIZE 1024
 #define EXPONENT 65537

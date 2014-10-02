@@ -1,6 +1,6 @@
 #include <string.h>
 #include "rsa_genkey.h"
-
+#if 0
 int rsa_genkey(rsa_keyset *keyset)
 {
     int ret;
@@ -44,3 +44,4 @@ exit:
     return( ret );
 }
 
+#endif

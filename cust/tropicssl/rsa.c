@@ -1,336 +1,445 @@
-/*
-*	The RSA public-key cryptosystem
-*
-*	Based on XySSL: Copyright (C) 2006-2008	 Christophe Devine
-*
-*	Copyright (C) 2009	Paul Bakker <polarssl_maintainer at polarssl dot org>
-*
-*	All rights reserved.
-*
-*	Redistribution and use in source and binary forms, with or without
-*	modification, are permitted provided that the following conditions
-*	are met:
-*
-*	  * Redistributions of source code must retain the above copyright
-*		notice, this list of conditions and the following disclaimer.
-*	  * Redistributions in binary form must reproduce the above copyright
-*		notice, this list of conditions and the following disclaimer in the
-*		documentation and/or other materials provided with the distribution.
-*	  * Neither the names of PolarSSL or XySSL nor the names of its contributors
-*		may be used to endorse or promote products derived from this software
-*		without specific prior written permission.
-*
-*	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-*	"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-*	LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-*	FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-*	OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-*	SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-*	TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-*	PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-*	LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-*	NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-*	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+/* RSA.C - RSA routines for RSAREF
 */
-/*
-*	RSA was designed by Ron Rivest, Adi Shamir and Len Adleman.
-*
-*	http://theory.lcs.mit.edu/~rivest/rsapaper.pdf
-*	http://www.cacr.math.uwaterloo.ca/hac/about/chap8.pdf
+//#include <memory.h>
+#include <rsa.h>
+#include <bignum.h>
+#include <zc_common.h>
+
+static int RSAPublicBlock PROTO_LIST 
+((unsigned char *, unsigned int *, unsigned char *, unsigned int,
+ R_RSA_PUBLIC_KEY *));
+static int RSAPrivateBlock PROTO_LIST 
+((unsigned char *, unsigned int *, unsigned char *, unsigned int,
+ R_RSA_PRIVATE_KEY *));
+unsigned char pkcsBlock[MAX_RSA_MODULUS_LEN];
+
+
+/* RSA public-key encryption, according to PKCS #1.
 */
-
-#include "secconfig.h"
-
-#if defined(TROPICSSL_RSA_C)
-
-#include "rsa.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
-/*
-* Initialize an RSA context
-*/
-void rsa_init(rsa_context * ctx,
-              int padding, int hash_id, int (*f_rng) (void *), void *p_rng)
+int RSAPublicEncrypt
+(output, outputLen, input, inputLen, publicKey, randomStruct)
+unsigned char *output;       /* output block */
+unsigned int *outputLen;     /* length of output block */
+unsigned char *input;        /* input block */
+unsigned int inputLen;       /* length of input block */
+R_RSA_PUBLIC_KEY *publicKey; /* RSA public key */
+R_RANDOM_STRUCT *randomStruct;/* random structure */
 {
-    memset(ctx, 0, sizeof(rsa_context));
+    int status;
+    unsigned char byte;
+    unsigned int i, modulusLen;
 
-    ctx->padding = padding;
-    ctx->hash_id = hash_id;
+    modulusLen = (publicKey->bits + 7) / 8;
+    if (inputLen + 11 > modulusLen)
+        return (RE_LEN);
 
-    ctx->f_rng = f_rng;
-    ctx->p_rng = p_rng;
+    pkcsBlock[0] = 0;
+    pkcsBlock[1] = 2;/* block type 2 */
+
+    for (i = 2; i < modulusLen - inputLen - 1; i++) {
+        /* Find nonzero random byte.
+        */
+        do {
+            byte = (unsigned char)rand();//R_GenerateBytes (&byte, 1, randomStruct);
+        } while (byte == 0);
+        pkcsBlock[i] = byte;
+    }
+    /* separator */
+    pkcsBlock[i++] = 0;
+  
+    R_memcpy ((POINTER)&pkcsBlock[i], (POINTER)input, inputLen);
+
+    /* encrypt */
+    status = RSAPublicBlock
+        (output, outputLen, pkcsBlock, modulusLen, publicKey);
+
+    /* Zeroize sensitive information.
+    */
+    byte = 0;
+    R_memset ((POINTER)pkcsBlock, 0, sizeof (pkcsBlock));
+
+    return (status);
 }
 
-#ifdef ZC_OFF_LINETEST
-
-/*
-* Generate an RSA keypair
+/* RSA private-key decryption, according to PKCS #1.
 */
-int rsa_gen_key(rsa_context * ctx, int nbits, int exponent)
+int RSAPrivateDecrypt (output, outputLen, input, inputLen, privateKey)
+unsigned char *output;          /* output block */
+unsigned int *outputLen;        /* length of output block */
+unsigned char *input;           /* input block */
+unsigned int inputLen;          /* length of input block */
+R_RSA_PRIVATE_KEY *privateKey;  /* RSA private key */
 {
-    int ret;
-    mpi P1, Q1, H, G;
+    int status;
+    unsigned int i, modulusLen, pkcsBlockLen;
 
-    if (ctx->f_rng == NULL || nbits < 128 || exponent < 3)
-        return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
 
-    mpi_init(&P1); mpi_init(&Q1); mpi_init(&H); mpi_init(&G);
+    // this code is very dangerous, be carefully , add by david
+    //********************************************
+    //  if(privateKey->bits==0)
+    //	  privateKey->bits = 1024;
+    //********************************************
 
-    /*
-    * find primes P and Q with Q < P so that:
-    * GCD( E, (P-1)*(Q-1) ) == 1
+    modulusLen = (privateKey->bits + 7) / 8;
+    if (inputLen > modulusLen)
+        return (RE_LEN);
+
+    if (status = RSAPrivateBlock
+        (pkcsBlock, &pkcsBlockLen, input, inputLen, privateKey))
+        return (status);
+
+    if (pkcsBlockLen != modulusLen)
+        return (RE_LEN);
+
+    /* Require block type 2.
     */
-    MPI_CHK(mpi_lset(&ctx->E, exponent));
+    //  if ((pkcsBlock[0] != 0) || (pkcsBlock[1] != 2))
+    //   return (RE_DATA);
 
-    do {
-        MPI_CHK(mpi_gen_prime(&ctx->P, (nbits + 1) >> 1, 0,
-            ctx->f_rng, ctx->p_rng));
+    for (i = 2; i < modulusLen-1; i++)
+        /* separator */
+        if (pkcsBlock[i] == 0)
+            break;
 
-        MPI_CHK(mpi_gen_prime(&ctx->Q, (nbits + 1) >> 1, 0,
-            ctx->f_rng, ctx->p_rng));
+    i++;
+    if (i >= modulusLen)
+        return (RE_DATA);
 
-        if (mpi_cmp_mpi(&ctx->P, &ctx->Q) < 0)
-            mpi_swap(&ctx->P, &ctx->Q);
+    *outputLen = modulusLen - i;
 
-        if (mpi_cmp_mpi(&ctx->P, &ctx->Q) == 0)
-            continue;
+    if (*outputLen + 11 > modulusLen)
+        return (RE_DATA);
 
-        MPI_CHK(mpi_mul_mpi(&ctx->N, &ctx->P, &ctx->Q));
-        if (mpi_msb(&ctx->N) != nbits)
-            continue;
+    R_memcpy ((POINTER)output, (POINTER)&pkcsBlock[i], *outputLen);
 
-        MPI_CHK(mpi_sub_int(&P1, &ctx->P, 1));
-        MPI_CHK(mpi_sub_int(&Q1, &ctx->Q, 1));
-        MPI_CHK(mpi_mul_mpi(&H, &P1, &Q1));
-        MPI_CHK(mpi_gcd(&G, &ctx->E, &H));
-    } while (mpi_cmp_int(&G, 1) != 0);
-
-    /*
-    * D  = E^-1 mod ((P-1)*(Q-1))
-    * DP = D mod (P - 1)
-    * DQ = D mod (Q - 1)
-    * QP = Q^-1 mod P
+    /* Zeroize sensitive information.
     */
-    MPI_CHK(mpi_inv_mod(&ctx->D, &ctx->E, &H));
-    MPI_CHK(mpi_mod_mpi(&ctx->DP, &ctx->D, &P1));
-    MPI_CHK(mpi_mod_mpi(&ctx->DQ, &ctx->D, &Q1));
-    MPI_CHK(mpi_inv_mod(&ctx->QP, &ctx->Q, &ctx->P));
-
-    ctx->len = (mpi_msb(&ctx->N) + 7) >> 3;
-
-cleanup:
-
-    mpi_free(&G); mpi_free(&H); mpi_free(&Q1); mpi_free(&P1);
-
-    if (ret != 0) {
-        rsa_free(ctx);
-        return (TROPICSSL_ERR_RSA_KEY_GEN_FAILED | ret);
-    }
+    R_memset ((POINTER)pkcsBlock, 0, sizeof (pkcsBlock));
 
     return (0);
 }
 
-#endif
+/* Raw RSA public-key operation. Output has same length as modulus.
 
-/*
-* Do an RSA public key operation
+Assumes inputLen < length of modulus.
+Requires input < modulus.
 */
-int rsa_public(rsa_context * ctx, const unsigned char *input, unsigned char *output)
+static int RSAPublicBlock (output, outputLen, input, inputLen, publicKey)
+unsigned char *output;           /* output block */
+unsigned int *outputLen;         /* length of output block */
+unsigned char *input;            /* input block */
+unsigned int inputLen;           /* length of input block */
+R_RSA_PUBLIC_KEY *publicKey;     /* RSA public key */
 {
-    int ret, olen;
-    mpi T;
+    NN_DIGIT c[MAX_NN_DIGITS], e[MAX_NN_DIGITS], m[MAX_NN_DIGITS],
+        n[MAX_NN_DIGITS];
+    unsigned int eDigits, nDigits;
 
-    mpi_init(&T);
+    NN_Decode (m, MAX_NN_DIGITS, input, inputLen);
+    NN_Decode (n, MAX_NN_DIGITS, publicKey->modulus, MAX_RSA_MODULUS_LEN);
+    NN_Decode (e, MAX_NN_DIGITS, publicKey->exponent, MAX_RSA_MODULUS_LEN);
+    nDigits = NN_Digits (n, MAX_NN_DIGITS);
+    eDigits = NN_Digits (e, MAX_NN_DIGITS);
 
-    MPI_CHK(mpi_read_binary(&T, input, ctx->len));
+    if (NN_Cmp (m, n, nDigits) >= 0)
+        return (RE_DATA);
+  
+    /* Compute c = m^e mod n.
+    */
+    NN_ModExp (c, m, e, eDigits, n, nDigits);
 
-    if (mpi_cmp_mpi(&T, &ctx->N) >= 0) {
-        mpi_free(&T);
-        return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
-    }
-
-    olen = ctx->len;
-    MPI_CHK(mpi_exp_mod(&T, &T, &ctx->E, &ctx->N, &ctx->RN));
-    MPI_CHK(mpi_write_binary(&T, output, olen));
-
-cleanup:
-
-    mpi_free(&T);
-
-    if (ret != 0)
-        return (TROPICSSL_ERR_RSA_PUBLIC_FAILED | ret);
+    *outputLen = (publicKey->bits + 7) / 8;
+    NN_Encode (output, *outputLen, c, nDigits);
+  
+    /* Zeroize sensitive information.
+    */
+    R_memset ((POINTER)c, 0, sizeof (c));
+    R_memset ((POINTER)m, 0, sizeof (m));
 
     return (0);
 }
 
-/*
-* Do an RSA private key operation
+/* Raw RSA private-key operation. Output has same length as modulus.
+
+Assumes inputLen < length of modulus.
+Requires input < modulus.
 */
-int rsa_private(rsa_context * ctx, const unsigned char *input, unsigned char *output)
+NN_DIGIT c[MAX_NN_DIGITS], cP[MAX_NN_DIGITS], cQ[MAX_NN_DIGITS],
+dP[MAX_NN_DIGITS], dQ[MAX_NN_DIGITS], mP[MAX_NN_DIGITS],
+mQ[MAX_NN_DIGITS], n[MAX_NN_DIGITS], p[MAX_NN_DIGITS], q[MAX_NN_DIGITS],
+qInv[MAX_NN_DIGITS], t[MAX_NN_DIGITS];
+
+static int RSAPrivateBlock (output, outputLen, input, inputLen, privateKey)
+unsigned char *output;          /* output block */
+unsigned int *outputLen;        /* length of output block */
+unsigned char *input;           /* input block */
+unsigned int inputLen;          /* length of input block */
+R_RSA_PRIVATE_KEY *privateKey;  /* RSA private key */
 {
-    int ret, olen;
-    mpi T, T1, T2;
 
-    mpi_init(&T); mpi_init(&T1); mpi_init(&T2);
+    unsigned int cDigits, nDigits, pDigits;
 
-    MPI_CHK(mpi_read_binary(&T, input, ctx->len));
+    NN_Decode (c, MAX_NN_DIGITS, input, inputLen);
+    NN_Decode (n, MAX_NN_DIGITS, privateKey->modulus, MAX_RSA_MODULUS_LEN);
+    NN_Decode (p, MAX_NN_DIGITS, privateKey->prime[0], MAX_RSA_PRIME_LEN);
+    NN_Decode (q, MAX_NN_DIGITS, privateKey->prime[1], MAX_RSA_PRIME_LEN);
+    NN_Decode 
+        (dP, MAX_NN_DIGITS, privateKey->primeExponent[0], MAX_RSA_PRIME_LEN);
+    NN_Decode 
+        (dQ, MAX_NN_DIGITS, privateKey->primeExponent[1], MAX_RSA_PRIME_LEN);
+    NN_Decode (qInv, MAX_NN_DIGITS, privateKey->coefficient, MAX_RSA_PRIME_LEN);
+    cDigits = NN_Digits (c, MAX_NN_DIGITS);
+    nDigits = NN_Digits (n, MAX_NN_DIGITS);
+    pDigits = NN_Digits (p, MAX_NN_DIGITS);
 
-    if (mpi_cmp_mpi(&T, &ctx->N) >= 0) {
-        mpi_free(&T);
-        return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
+    if (NN_Cmp (c, n, nDigits) >= 0)
+        return (RE_DATA);
+
+    /* Compute mP = cP^dP mod p  and  mQ = cQ^dQ mod q. (Assumes q has
+    length at most pDigits, i.e., p > q.)
+    */
+    NN_Mod (cP, c, cDigits, p, pDigits);
+    NN_Mod (cQ, c, cDigits, q, pDigits);
+    NN_ModExp (mP, cP, dP, pDigits, p, pDigits);
+    NN_AssignZero (mQ, nDigits);
+    NN_ModExp (mQ, cQ, dQ, pDigits, q, pDigits);
+
+    /* Chinese Remainder Theorem:
+    m = ((((mP - mQ) mod p) * qInv) mod p) * q + mQ.
+    */
+    if (NN_Cmp (mP, mQ, pDigits) >= 0)
+        NN_Sub (t, mP, mQ, pDigits);
+    else {
+        NN_Sub (t, mQ, mP, pDigits);
+        NN_Sub (t, p, t, pDigits);
     }
+    NN_ModMult (t, t, qInv, p, pDigits);
+    NN_Mult (t, t, q, pDigits);
+    NN_Add (t, t, mQ, nDigits);
+
+    *outputLen = (privateKey->bits + 7) / 8;
+    NN_Encode (output, *outputLen, t, nDigits);
+
+    /* Zeroize sensitive information.
+    */
+    R_memset ((POINTER)c, 0, sizeof (c));
+    R_memset ((POINTER)cP, 0, sizeof (cP));
+    R_memset ((POINTER)cQ, 0, sizeof (cQ));
+    R_memset ((POINTER)dP, 0, sizeof (dP));
+    R_memset ((POINTER)dQ, 0, sizeof (dQ));
+    R_memset ((POINTER)mP, 0, sizeof (mP));
+    R_memset ((POINTER)mQ, 0, sizeof (mQ));
+    R_memset ((POINTER)p, 0, sizeof (p));
+    R_memset ((POINTER)q, 0, sizeof (q));
+    R_memset ((POINTER)qInv, 0, sizeof (qInv));
+    R_memset ((POINTER)t, 0, sizeof (t));
+
+    return (0);
+}
 #if 0
-    MPI_CHK(mpi_exp_mod(&T, &T, &ctx->D, &ctx->N, &ctx->RN));
-#else
-    /*
-    * faster decryption using the CRT
-    *
-    * T1 = input ^ dP mod P
-    * T2 = input ^ dQ mod Q
+/*
+* key generation functions
+*/
+
+static int RSAFilter PROTO_LIST
+((NN_DIGIT *, unsigned int, NN_DIGIT *, unsigned int));
+static int RelativelyPrime PROTO_LIST
+((NN_DIGIT *, unsigned int, NN_DIGIT *, unsigned int));
+
+/* Generates an RSA key pair with a given length and public exponent.
+*/
+int R_GeneratePEMKeys (publicKey, privateKey, protoKey, randomStruct)
+R_RSA_PUBLIC_KEY *publicKey;       /* new RSA public key */
+R_RSA_PRIVATE_KEY *privateKey;     /* new RSA private key */
+R_RSA_PROTO_KEY *protoKey;         /* RSA prototype key */
+R_RANDOM_STRUCT *randomStruct;     /* random structure */
+{
+    NN_DIGIT d[MAX_NN_DIGITS], dP[MAX_NN_DIGITS], dQ[MAX_NN_DIGITS],
+        e[MAX_NN_DIGITS], n[MAX_NN_DIGITS], p[MAX_NN_DIGITS], phiN[MAX_NN_DIGITS],
+        pMinus1[MAX_NN_DIGITS], q[MAX_NN_DIGITS], qInv[MAX_NN_DIGITS],
+        qMinus1[MAX_NN_DIGITS], t[MAX_NN_DIGITS], u[MAX_NN_DIGITS],
+        v[MAX_NN_DIGITS];
+    int status;
+    unsigned int nDigits, pBits, pDigits, qBits;
+
+    if ((protoKey->bits < MIN_RSA_MODULUS_BITS) || 
+        (protoKey->bits > MAX_RSA_MODULUS_BITS))
+        return (RE_MODULUS_LEN);
+    nDigits = (protoKey->bits + NN_DIGIT_BITS - 1) / NN_DIGIT_BITS;
+    pDigits = (nDigits + 1) / 2;
+    pBits = (protoKey->bits + 1) / 2;
+    qBits = protoKey->bits - pBits;
+
+    /* NOTE: for 65537, this assumes NN_DIGIT is at least 17 bits. */
+    NN_ASSIGN_DIGIT
+        (e, protoKey->useFermat4 ? (NN_DIGIT)65537 : (NN_DIGIT)3, nDigits);
+
+    /* Generate prime p between 3*2^(pBits-2) and 2^pBits-1, searching
+    in steps of 2, until one satisfies gcd (p-1, e) = 1.
     */
-    MPI_CHK(mpi_exp_mod(&T1, &T, &ctx->DP, &ctx->P, &ctx->RP));
-    MPI_CHK(mpi_exp_mod(&T2, &T, &ctx->DQ, &ctx->Q, &ctx->RQ));
+    NN_Assign2Exp (t, pBits-1, pDigits);
+    NN_Assign2Exp (u, pBits-2, pDigits);
+    NN_Add (t, t, u, pDigits);
+    NN_ASSIGN_DIGIT (v, 1, pDigits);
+    NN_Sub (v, t, v, pDigits);
+    NN_Add (u, u, v, pDigits);
+    NN_ASSIGN_DIGIT (v, 2, pDigits);
+    do {
+        if (status = GeneratePrime (p, t, u, v, pDigits, randomStruct))
+            return (status);
+    }
+    while (! RSAFilter (p, pDigits, e, 1));
 
-    /*
-    * T = (T1 - T2) * (Q^-1 mod P) mod P
+    /* Generate prime q between 3*2^(qBits-2) and 2^qBits-1, searching
+    in steps of 2, until one satisfies gcd (q-1, e) = 1.
     */
-    MPI_CHK(mpi_sub_mpi(&T, &T1, &T2));
-    MPI_CHK(mpi_mul_mpi(&T1, &T, &ctx->QP));
-    MPI_CHK(mpi_mod_mpi(&T, &T1, &ctx->P));
+    NN_Assign2Exp (t, qBits-1, pDigits);
+    NN_Assign2Exp (u, qBits-2, pDigits);
+    NN_Add (t, t, u, pDigits);
+    NN_ASSIGN_DIGIT (v, 1, pDigits);
+    NN_Sub (v, t, v, pDigits);
+    NN_Add (u, u, v, pDigits);
+    NN_ASSIGN_DIGIT (v, 2, pDigits);
+    do {
+        if (status = GeneratePrime (q, t, u, v, pDigits, randomStruct))
+            return (status);
+    }
+    while (! RSAFilter (q, pDigits, e, 1));
 
-    /*
-    * output = T2 + T * Q
+    /* Sort so that p > q. (p = q case is extremely unlikely.)
     */
-    MPI_CHK(mpi_mul_mpi(&T1, &T, &ctx->Q));
-    MPI_CHK(mpi_add_mpi(&T, &T2, &T1));
-#endif
+    if (NN_Cmp (p, q, pDigits) < 0) {
+        NN_Assign (t, p, pDigits);
+        NN_Assign (p, q, pDigits);
+        NN_Assign (q, t, pDigits);
+    }
 
-    olen = ctx->len;
-    MPI_CHK(mpi_write_binary(&T, output, olen));
+    /* Compute n = pq, qInv = q^{-1} mod p, d = e^{-1} mod (p-1)(q-1),
+    dP = d mod p-1, dQ = d mod q-1.
+    */
+    NN_Mult (n, p, q, pDigits);
+    NN_ModInv (qInv, q, p, pDigits);
 
-cleanup:
+    NN_ASSIGN_DIGIT (t, 1, pDigits);
+    NN_Sub (pMinus1, p, t, pDigits);
+    NN_Sub (qMinus1, q, t, pDigits);
+    NN_Mult (phiN, pMinus1, qMinus1, pDigits);
 
-    mpi_free(&T); mpi_free(&T1); mpi_free(&T2);
+    NN_ModInv (d, e, phiN, nDigits);
+    NN_Mod (dP, d, nDigits, pMinus1, pDigits);
+    NN_Mod (dQ, d, nDigits, qMinus1, pDigits);
 
-    if (ret != 0)
-        return (TROPICSSL_ERR_RSA_PRIVATE_FAILED | ret);
+    publicKey->bits = privateKey->bits = protoKey->bits;
+    NN_Encode (publicKey->modulus, MAX_RSA_MODULUS_LEN, n, nDigits);
+    NN_Encode (publicKey->exponent, MAX_RSA_MODULUS_LEN, e, 1);
+    R_memcpy 
+        ((POINTER)privateKey->modulus, (POINTER)publicKey->modulus,
+        MAX_RSA_MODULUS_LEN);
+    R_memcpy
+        ((POINTER)privateKey->publicExponent, (POINTER)publicKey->exponent,
+        MAX_RSA_MODULUS_LEN);
+    NN_Encode (privateKey->exponent, MAX_RSA_MODULUS_LEN, d, nDigits);
+    NN_Encode (privateKey->prime[0], MAX_RSA_PRIME_LEN, p, pDigits);
+    NN_Encode (privateKey->prime[1], MAX_RSA_PRIME_LEN, q, pDigits);
+    NN_Encode (privateKey->primeExponent[0], MAX_RSA_PRIME_LEN, dP, pDigits);
+    NN_Encode (privateKey->primeExponent[1], MAX_RSA_PRIME_LEN, dQ, pDigits);
+    NN_Encode (privateKey->coefficient, MAX_RSA_PRIME_LEN, qInv, pDigits);
+
+    /* Zeroize sensitive information.
+    */
+    R_memset ((POINTER)d, 0, sizeof (d));
+    R_memset ((POINTER)dP, 0, sizeof (dP));
+    R_memset ((POINTER)dQ, 0, sizeof (dQ));
+    R_memset ((POINTER)p, 0, sizeof (p));
+    R_memset ((POINTER)phiN, 0, sizeof (phiN));
+    R_memset ((POINTER)pMinus1, 0, sizeof (pMinus1));
+    R_memset ((POINTER)q, 0, sizeof (q));
+    R_memset ((POINTER)qInv, 0, sizeof (qInv));
+    R_memset ((POINTER)qMinus1, 0, sizeof (qMinus1));
+    R_memset ((POINTER)t, 0, sizeof (t));
 
     return (0);
 }
 
-/*
-* Add the message padding, then do an RSA operation
+/* Returns nonzero iff GCD (a-1, b) = 1.
+
+Lengths: a[aDigits], b[bDigits].
+Assumes aDigits < MAX_NN_DIGITS, bDigits < MAX_NN_DIGITS.
 */
-int rsa_pkcs1_encrypt(rsa_context * ctx,
-                      int mode, int ilen,
-                      const unsigned char *input,
-                      unsigned char *output)
+static int RSAFilter (a, aDigits, b, bDigits)
+NN_DIGIT *a, *b;
+unsigned int aDigits, bDigits;
 {
-    int nb_pad, olen;
-    unsigned char *p = output;
+    int status;
+    NN_DIGIT aMinus1[MAX_NN_DIGITS], t[MAX_NN_DIGITS];
 
-    olen = ctx->len;
+    NN_ASSIGN_DIGIT (t, 1, aDigits);
+    NN_Sub (aMinus1, a, t, aDigits);
 
-    switch (ctx->padding) {
-    case RSA_PKCS_V15:
+    status = RelativelyPrime (aMinus1, aDigits, b, bDigits);
 
-        if (ilen < 0 || olen < ilen + 11)
-            return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
+    /* Zeroize sensitive information.
+    */
+    R_memset ((POINTER)aMinus1, 0, sizeof (aMinus1));
 
-        nb_pad = olen - 3 - ilen;
-
-        *p++ = 0;
-        *p++ = RSA_CRYPT;
-
-        while (nb_pad-- > 0) {
-            do {
-                *p = (unsigned char)rand();
-            } while (*p == 0);
-            p++;
-        }
-        *p++ = 0;
-        memcpy(p, input, ilen);
-        break;
-
-    default:
-
-        return (TROPICSSL_ERR_RSA_INVALID_PADDING);
-    }
-
-    return ((mode == RSA_PUBLIC)
-        ? rsa_public(ctx, output, output)
-        : rsa_private(ctx, output, output));
+    return (status);
 }
 
-/*
-* Do an RSA operation, then remove the message padding
+/* Returns nonzero iff a and b are relatively prime.
+
+Lengths: a[aDigits], b[bDigits].
+Assumes aDigits >= bDigits, aDigits < MAX_NN_DIGITS.
 */
-int rsa_pkcs1_decrypt(rsa_context * ctx,
-                      int mode, int *olen,
-                      const unsigned char *input,
-                      unsigned char *output,
-                      int output_max_len)
+static int RelativelyPrime (a, aDigits, b, bDigits)
+NN_DIGIT *a, *b;
+unsigned int aDigits, bDigits;
 {
-    int ret, ilen;
-    unsigned char *p;
-    unsigned char buf[512];
+    int status;
+    NN_DIGIT t[MAX_NN_DIGITS], u[MAX_NN_DIGITS];
 
-    ilen = ctx->len;
+    NN_AssignZero (t, aDigits);
+    NN_Assign (t, b, bDigits);
+    NN_Gcd (t, a, t, aDigits);
+    NN_ASSIGN_DIGIT (u, 1, aDigits);
 
-    if (ilen < 16 || ilen > (int)sizeof(buf))
-        return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
+    status = NN_EQUAL (t, u, aDigits);
 
-    ret = (mode == RSA_PUBLIC)
-        ? rsa_public(ctx, input, buf)
-        : rsa_private(ctx, input, buf);
+    /* Zeroize sensitive information.
+    */
+    R_memset ((POINTER)t, 0, sizeof (t));
 
-    if (ret != 0)
-        return (ret);
-
-    p = buf;
-
-    switch (ctx->padding) {
-    case RSA_PKCS_V15:
-
-        if (*p++ != 0 || *p++ != RSA_CRYPT)
-            return (TROPICSSL_ERR_RSA_INVALID_PADDING);
-
-        while (*p != 0) {
-            if (p >= buf + ilen - 1)
-                return (TROPICSSL_ERR_RSA_INVALID_PADDING);
-            p++;
-        }
-        p++;
-        break;
-
-    default:
-
-        return (TROPICSSL_ERR_RSA_INVALID_PADDING);
-    }
-
-    if (ilen - (int)(p - buf) > output_max_len)
-        return (TROPICSSL_ERR_RSA_OUTPUT_TO_LARGE);
-
-    *olen = ilen - (int)(p - buf);
-    memcpy(output, p, *olen);
-
-    return (0);
+    return (status);
 }
-
-
-/*
-* Free the components of an RSA key
-*/
-void rsa_free(rsa_context * ctx)
-{
-    mpi_free(&ctx->RQ); mpi_free(&ctx->RP); mpi_free(&ctx->RN);
-    mpi_free(&ctx->QP); mpi_free(&ctx->DQ); mpi_free(&ctx->DP);
-    mpi_free(&ctx->Q); mpi_free(&ctx->P); mpi_free(&ctx->D);
-    mpi_free(&ctx->E); mpi_free(&ctx->N);
-}
-
-
 #endif
+/*
+* memory funciton
+*/
+
+void R_memset (output, value, len)
+POINTER output;                                             /* output block */
+int value;                                                         /* value */
+unsigned int len;                                        /* length of block */
+{
+    if (len)
+        memset (output, value, len);
+}
+
+void R_memcpy (output, input, len)
+POINTER output;                                             /* output block */
+POINTER input;                                               /* input block */
+unsigned int len;                                       /* length of blocks */
+{
+    if (len)
+        memcpy (output, input, len);
+}
+
+int R_memcmp (firstBlock, secondBlock, len)
+POINTER firstBlock;                                          /* first block */
+POINTER secondBlock;                                        /* second block */
+unsigned int len;                                       /* length of blocks */
+{
+    if (len)
+        return (memcmp (firstBlock, secondBlock, len));
+    else
+        return (0);
+}
