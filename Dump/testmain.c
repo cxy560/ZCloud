@@ -249,8 +249,10 @@ void readcfg()
     g_struProtocolController.pstruMoudleFun->pfunGetPrivateKey(&pu8Test);
     g_struProtocolController.pstruMoudleFun->pfunGetVersion(&pu8Test);
 }
-
+extern IOT_USR_CFG Usr_Cfg;
 void main()
 {
+    memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
+
     TestSec();
 }

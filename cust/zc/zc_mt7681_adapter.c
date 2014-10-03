@@ -34,8 +34,6 @@ struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 
 u16 g_u16TcpMss;
 extern IOT_ADAPTER   	IoTpAd;
-extern R_RSA_PRIVATE_KEY PRIVATE_KEY1;
-extern R_RSA_PUBLIC_KEY PUBLIC_KEY1;
 #ifndef ZC_OFF_LINETEST
 /*************************************************
 * Function: rand
@@ -219,7 +217,7 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
 *************************************************/
 u32 MT_GetCloudKey(u8 **pu8Key)
 {
-    *pu8Key = (u8*)&PUBLIC_KEY1;
+    *pu8Key = IoTpAd.UsrCfg.CloudKey;
     return ZC_RET_OK;
 }
 /*************************************************
@@ -232,7 +230,7 @@ u32 MT_GetCloudKey(u8 **pu8Key)
 *************************************************/
 u32 MT_GetPrivateKey(u8 **pu8Key)
 {
-    *pu8Key = (u8*)&PRIVATE_KEY1;
+    *pu8Key = IoTpAd.UsrCfg.ProductKey;
 
     return ZC_RET_OK;
 }

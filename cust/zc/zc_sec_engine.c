@@ -9,6 +9,7 @@
 */
 #include <zc_sec_engine.h>
 #include <zc_protocol_controller.h>
+rsa_context *rsa;
 
 /*************************************************
 * Function: SEC_EncryptTextByRsa
@@ -21,15 +22,19 @@
 u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16CiperLen)
 {
     s32 s32Ret;
+    PTC_ProtocolCon *pstruCon;
     u8 *pu8PublicKey;
-    u32 u32OutLen;
-    
-    g_struProtocolController.pstruMoudleFun->pfunGetCloudKey(&pu8PublicKey);
-    
-    
-    s32Ret = RSAPublicEncrypt(pu8CiperBuf, &u32OutLen, pu8Plainbuf, u16Len, (R_RSA_PUBLIC_KEY*)pu8PublicKey, 0);
-    
-    *pu16CiperLen = (u16)u32OutLen;
+    pstruCon = &g_struProtocolController;
+
+    rsa = (rsa_context *)malloc(sizeof(rsa_context));
+    pstruCon->pstruMoudleFun->pfunGetCloudKey(&pu8PublicKey);
+
+    SEC_InitRsaContextWithPublicKey(rsa, pu8PublicKey);
+    s32Ret = rsa_pkcs1_encrypt(rsa, RSA_PUBLIC, u16Len, pu8Plainbuf, pu8CiperBuf);
+    *pu16CiperLen = rsa->len;
+    rsa_free(rsa);
+    free(rsa);
+
     if (s32Ret)
     {
         return ZC_RET_ERROR;
@@ -51,15 +56,28 @@ u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
 *************************************************/
 u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16PlainLen)
 {
+    rsa_context *pstruRsa;
+    s32 s32len;
     s32 s32Ret;
+    PTC_ProtocolCon *pstruCon;
     u8 *pu8PrivateKey;
-    u32 u32OutLen;
+    
+    pstruRsa = (rsa_context *)malloc(sizeof(rsa_context));
 
-    g_struProtocolController.pstruMoudleFun->pfunGetPrivateKey(&pu8PrivateKey);
+    pstruCon = &g_struProtocolController;
+
+    pstruCon->pstruMoudleFun->pfunGetPrivateKey(&pu8PrivateKey);
 
 
-    s32Ret = RSAPrivateDecrypt(pu8Plainbuf, &u32OutLen, pu8CiperBuf, u16Len, (R_RSA_PRIVATE_KEY*)pu8PrivateKey);
-    *pu16PlainLen = (u16)u32OutLen;
+    SEC_InitRsaContextWithPrivateKey(pstruRsa, pu8PrivateKey);
+
+    s32Ret = rsa_pkcs1_decrypt(pstruRsa, RSA_PRIVATE, &s32len, pu8CiperBuf,
+        pu8Plainbuf, u16Len);
+    ZC_Printf("rsa_pkcs1_decrypt = %d, u32RetVal = %d\n", s32len, s32Ret);
+    *pu16PlainLen = (u16)s32len;        
+    rsa_free(pstruRsa);
+    
+    free(rsa);
 
     if (s32Ret)
     {
@@ -70,7 +88,58 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
         return ZC_RET_OK;
     }
 }
+/*************************************************
+* Function: SEC_InitRsaContextWithPublicKey
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa, const u8 *pu8Pubkey)
+{
+    rsa_init(pstruRsa, RSA_PKCS_V15, RSA_RAW, NULL, NULL);
 
+    pstruRsa->len = ZC_SEC_RSA_KEY_LEN >> 3;
+    mpi_read_binary(&pstruRsa->N, pu8Pubkey, pstruRsa->len);
+    mpi_read_binary(&pstruRsa->E, pu8Pubkey + pstruRsa->len, 3);
+}
+
+/*************************************************
+* Function: SEC_InitRsaContextWithPrivateKey
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa, const u8 *pu8PrivateKey)
+{
+    u8 u8Index;
+    u16 u16StartPos;
+    u8 u8BufLen[6] = {ZC_SEC_RSA_KEY_LEN >> 3,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4,ZC_SEC_RSA_KEY_LEN >> 4};
+    mpi *pstruMpi[6];
+    rsa_init(pstrRsa, RSA_PKCS_V15, RSA_RAW, NULL, NULL);
+
+    pstrRsa->len = ZC_SEC_RSA_KEY_LEN >> 3;
+
+    pstruMpi[0] = &pstrRsa->N;
+    pstruMpi[1] = &pstrRsa->P;
+    pstruMpi[2] = &pstrRsa->Q;
+    pstruMpi[3] = &pstrRsa->DP;
+    pstruMpi[4] = &pstrRsa->DQ;    
+    pstruMpi[5] = &pstrRsa->QP;  
+
+    u16StartPos = 0;
+    for (u8Index = 0; u8Index < 6; u8Index++)
+    {
+        mpi_read_binary(pstruMpi[u8Index], pu8PrivateKey + u16StartPos, u8BufLen[u8Index]);
+        u16StartPos += (u16)u8BufLen[u8Index];
+    }
+    
+    ZC_Printf("pstrRsa->Q.s = %d, pstrRsa->Q.n = %d, pstrRsa->Q.p[0] = %d, pstrRsa->Q.p = %d\n",
+        pstrRsa->Q.s,pstrRsa->Q.n, pstrRsa->Q.p[0], pstrRsa->Q.p);
+}
 /*************************************************
 * Function: SEC_AesEncrypt
 * Description: 

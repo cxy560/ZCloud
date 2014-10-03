@@ -9,7 +9,7 @@
 #include "havege.h"
 #include <bignum.h>
 
-#define KEY_SIZE 1024
+#define KEY_SIZE 512
 #define EXPONENT 65537
 #define PUB_LEN  20
 
