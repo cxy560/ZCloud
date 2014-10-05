@@ -1236,9 +1236,9 @@ INT16 IoT_parse_ATcommand(PCHAR cmd_buf, INT16 at_cmd_len)
 	}
 	
 #endif
-    else if (!memcmp(cmd_buf,"TraceSwitch",sizeof("TraceSwitch")-1))
+    else if (!memcmp(cmd_buf,"TestSwitch",sizeof("TestSwitch")-1))
     {
-        IoT_exec_AT_cmd_TraceSwitch(cmd_buf, at_cmd_len);
+        IoT_exec_AT_cmd_TestSwitch(cmd_buf, at_cmd_len);
     }
     
 	return ret_code;

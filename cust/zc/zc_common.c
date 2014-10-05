@@ -13,7 +13,10 @@
 #include <zc_sec_engine.h>
 extern 	char *optarg; 
 
-u32 g_TraceSwitch = 0;
+u32 g_u32TraceSwitch = 0;
+u32  g_u32LoopFlag = 0;
+u32  g_u32SecSwitch = 0;
+
 /*************************************************
 * Function: ZC_TraceData
 * Description: 
@@ -25,6 +28,10 @@ u32 g_TraceSwitch = 0;
 void ZC_TraceData(u8* pData, u32 Len)
 {
     u32 Index;
+    if (0 == g_u32TraceSwitch)
+    {
+        return;
+    }
     ZC_Printf("++++++++++++++++++++++++++++++++++++++++++++++++\n");
     for (Index = 0; Index + 4 < Len; Index = Index + 4)
     {
@@ -79,22 +86,18 @@ void TestSec()
     ZC_Printf("+++++++++++++++++++RSA+++++++++++++++++++\n");
 }
 
-
-
-void IoT_exec_AT_cmd_TraceSwitch(u8 *pCmdBuf, u16 at_cmd_len)
+void IoT_exec_AT_cmd_TestSwitch(u8 *pCmdBuf, u16 at_cmd_len)
 {
-    TestSec();
-#if 0
-	INT16 argc = 0;
-	char *argv[MAX_OPTION_COUNT];
-	char *opString = "s:?";
+    
+#ifndef ZC_OFF_LINETEST
+	u16 argc = 0;
+	char *argv[15];
+	char *opString = "t:s:l:r:?";
 	char opt=0;
 	char *endptr;
 	
-	UINT8 switch_on=0;
-	UINT8 content=0;
 	
-	memset(argv,0,4*MAX_OPTION_COUNT);
+	memset(argv,0,4*15);
 	
 	split_string_cmd(pCmdBuf, at_cmd_len, &argc, argv);
 	
@@ -104,9 +107,21 @@ void IoT_exec_AT_cmd_TraceSwitch(u8 *pCmdBuf, u16 at_cmd_len)
 	{
 		switch (opt)
 		{
-    	case 's':
-    		g_TraceSwitch = simple_strtol(optarg,&endptr,0);
+    	case 't':
+    		g_u32TraceSwitch = simple_strtol(optarg,&endptr,0);
+    	    ZC_Printf("set Trace Switch to %d\n",g_u32TraceSwitch);    		
     		break;
+        case 's':
+            g_u32SecSwitch = simple_strtol(optarg,&endptr,0);
+    	    ZC_Printf("set Security Switch to %d\n",g_u32SecSwitch);    		
+            break;
+        case 'l':
+            g_u32LoopFlag = simple_strtol(optarg,&endptr,0);
+    	    ZC_Printf("set Loop Switch to %d\n",g_u32LoopFlag);    		
+            break;
+        case 'r':
+            TestSec();
+            break;
 
 		default:
 			break;

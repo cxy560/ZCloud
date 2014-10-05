@@ -92,6 +92,7 @@ void TIMER_TimeoutAction(u8 u8TimerIndex)
     switch (g_struTimer[u8TimerIndex].u8Type)
     {
         case PCT_TIMER_RECONNECT:
+            g_struProtocolController.u8ReconnectTimer = PCT_TIMER_INVAILD;
             PCT_ConnectCloud(&g_struProtocolController);
             break;
         case PCT_TIMER_REACCESS:

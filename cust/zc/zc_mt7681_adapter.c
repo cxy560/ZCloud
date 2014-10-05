@@ -80,6 +80,7 @@ void MT_TimerExpired()
         uip_poll_conn(g_struProtocolController.struCloudConnection.u32Socket);
         if (uip_len > 0) 
         {
+            ZC_Printf("pull have data %d\n", uip_len);
             uip_arp_out();
             mt76xx_dev_send();
         }
@@ -132,7 +133,7 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
     
     u16DataLen = pstruBuf->u32Len; 
     uip_send((u8*)pstruBuf->u8MsgBuffer, u16DataLen);
-    
+    ZC_Printf("send data len = %d\n", u16DataLen);
     pstruBuf->u8Status = MSG_BUFFER_IDLE;
     pstruBuf->u32Len = 0;
     return;
@@ -417,6 +418,7 @@ void MT_CloudAppCall()
         }
         else
         {
+            ZC_Printf("poll \n");
             MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
         }
     }

@@ -34,7 +34,7 @@
 #define    PCT_TIMER_SENDHEART              (3)
 
 #define    PCT_TIMER_INTERVAL_RECONNECT     (1000)
-#define    PCT_TIMER_INTERVAL_HEART         (1000)
+#define    PCT_TIMER_INTERVAL_HEART         (1000 * 120)
 #define    PCT_TIMER_INTERVAL_SENDMOUDLE    (1000)
 
 #define    PCT_KEY_UNRECVED     (0)
@@ -116,6 +116,8 @@ extern MSG_Buffer g_struRetxBuffer;
 extern u8 g_u8MsgBuildBuffer[MSG_BULID_BUFFER_MAXLEN];
 extern u8 g_u8CiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
 extern u16 g_u16TcpMss;
+extern u32 g_u32LoopFlag;
+extern u32 g_u32SecSwitch;
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,7 +125,7 @@ extern "C" {
 void PCT_SendNotifyMsg(u8 u8NotifyCode);
 void PCT_SendHeartMsg();
 void PCT_Init(PTC_ModuleAdapter *pstruAdapter);
-void PCT_SendEmptyMsg(u8 u8SecType);
+void PCT_SendEmptyMsg(u8 u8MsgId, u8 u8SecType);
 void PCT_SendErrorMsg(u8 u8MsgId, u8 *pu8Error, u16 u16ErrorLen);
 void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller);
 void PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller);

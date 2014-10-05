@@ -18,12 +18,12 @@
 * Parameter: 
 * History:
 *************************************************/
-u32  EVENT_BuildEmptyMsg(u8 *pu8Msg, u16 *pu16Len)
+u32  EVENT_BuildEmptyMsg(u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len)
 {
     ZC_MessageHead *pstruMsg = NULL;
     pstruMsg = (ZC_MessageHead *)pu8Msg;
     pstruMsg->MsgCode = ZC_CODE_EMPTY;
-    pstruMsg->MsgId = 0;  
+    pstruMsg->MsgId = u8MsgId;  
     pstruMsg->Payloadlen = 0;
     pstruMsg->Version = ZC_VERSION;
 

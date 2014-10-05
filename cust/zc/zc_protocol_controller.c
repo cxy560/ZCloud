@@ -97,7 +97,7 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
 * Parameter: 
 * History:
 *************************************************/
-void PCT_SendEmptyMsg(u8 u8SecType)
+void PCT_SendEmptyMsg(u8 u8MsgId, u8 u8SecType)
 {
     ZC_MessageHead struMsg;
     ZC_SecHead struSecHead;
@@ -105,7 +105,7 @@ void PCT_SendEmptyMsg(u8 u8SecType)
     
     u16 u16Len = 0;
     /*build msg*/
-    EVENT_BuildEmptyMsg((u8*)&struMsg, &u16Len);
+    EVENT_BuildEmptyMsg(u8MsgId, (u8*)&struMsg, &u16Len);
     
     /*build sec head*/
     struSecHead.u8SecType = u8SecType;
@@ -163,7 +163,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     pstruContoller->pstruMoudleFun->pfunGetDeviceId(&pu8DeviceId);
     
     memcpy(struMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
-    memcpy(struMsg1.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
+    memcpy(struMsg1.DeviceId, /*pu8DeviceId*/"zzzzzzzzzzzz", ZC_HS_DEVICE_ID_LEN);
 
    
     EVENT_BuildMsg(ZC_CODE_HANDSHAKE_1, 1, g_u8MsgBuildBuffer, &u16Len, 
@@ -253,6 +253,11 @@ void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller)
 {
     u32 u32Ret = ZC_RET_OK;
     
+    if (PCT_TIMER_INVAILD != pstruContoller->u8ReconnectTimer)
+    {
+        return;
+    }
+    
     /*Connect*/
     u32Ret = pstruContoller->pstruMoudleFun->pfunConnectToCloud(&pstruContoller->struCloudConnection);
     if (ZC_RET_OK != u32Ret)
@@ -281,7 +286,8 @@ void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller)
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_RECONNECT, 
         PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8ReconnectTimer);
     pstruContoller->struCloudConnection.u32Socket = PCT_INVAILD_SOCKET;
-    pstruContoller->u8keyRecv = PCT_KEY_UNRECVED;    
+    pstruContoller->u8keyRecv = PCT_KEY_UNRECVED; 
+    pstruContoller->u8MainState = PCT_STATE_ACCESS_NET; 
 }
 
 /*************************************************
@@ -296,11 +302,25 @@ void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController)
 {
     MSG_Buffer *pstruBuffer;
     ZC_MessageHead *pstruMsg;
+    ZC_SecHead struHead;
     pstruBuffer = (MSG_Buffer *)pstruProtocolController->pu8SendMoudleBuffer;
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
 
     /*Send to Moudle*/
     pstruProtocolController->u8ReSendMoudleNum++;
+
+    ZC_Printf("send moudle timeout, data len = %d\n",pstruBuffer->u32Len);
+    if (g_u32LoopFlag == 1)
+    {
+        struHead.u8SecType = ZC_SEC_ALG_NONE;
+        struHead.u16TotalMsg = ZC_HTONS(pstruBuffer->u32Len);
+        PCT_SendMsgToCloud(&struHead, pstruBuffer->u8MsgBuffer);
+        pstruBuffer->u32Len = 0;
+        pstruBuffer->u8Status = MSG_BUFFER_IDLE;
+        pstruProtocolController->u8SendMoudleTimer = PCT_TIMER_INVAILD;
+        pstruProtocolController->u8ReSendMoudleNum = 0;
+        return;
+    }
     
     if (pstruProtocolController->u8ReSendMoudleNum > PCT_SENDMOUDLE_NUM)
     {
@@ -394,7 +414,7 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
         }
     }
     
-    PCT_SendEmptyMsg(ZC_SEC_ALG_NONE);
+    PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_NONE);
     pstruBuffer->u32Len = 0;
     pstruBuffer->u8Status = MSG_BUFFER_IDLE;
 }
@@ -439,7 +459,7 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
         }
 
     }
-    PCT_SendEmptyMsg(ZC_SEC_ALG_AES);
+    PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
     pstruBuffer->u32Len = 0;
     pstruBuffer->u8Status = MSG_BUFFER_IDLE;
 
@@ -476,16 +496,20 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
     }
     
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
-
+    ZC_Printf("event %d recv len =%d\n", pstruMsg->MsgId, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
     ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
 
     /*Send to Moudle*/
-    pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
+    if (0 == g_u32LoopFlag)
+    {
+        pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
+    }
+
     
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDMOUDLE, 
         PCT_TIMER_INTERVAL_SENDMOUDLE, &pstruContoller->u8SendMoudleTimer);
     
-    PCT_SendEmptyMsg(ZC_SEC_ALG_AES);
+    PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
 
     /*copy buffer*/
     memcpy((u8*)g_struRetxBuffer.u8MsgBuffer, pstruBuffer->u8MsgBuffer, 
