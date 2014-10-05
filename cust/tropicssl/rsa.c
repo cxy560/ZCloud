@@ -267,7 +267,7 @@ int rsa_pkcs1_encrypt(rsa_context * ctx,
 /*
 * Do an RSA operation, then remove the message padding
 */
-unsigned char buf[512];
+unsigned char buf[64];
 
 int rsa_pkcs1_decrypt(rsa_context * ctx,
                       int mode, int *olen,

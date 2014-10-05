@@ -243,15 +243,11 @@ u32 SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
         }
         case ZC_SEC_ALG_RSA:
         {
-            if (u16PlainLen + 11 > ZC_SEC_RSA_KEY_LEN)
-            {
-               return ZC_RET_ERROR; 
-            }
+            LastBlockSize = u16PlainLen % (ZC_SEC_RSA_KEY_LEN >> 3);
+            if (LastBlockSize > 0)
+                *u16PaddingLen = (ZC_SEC_RSA_KEY_LEN >> 3) - LastBlockSize;
             else
-            {
-                *u16PaddingLen = ZC_HS_SESSION_KEY_LEN - u16PlainLen; 
-            } 
-            
+                *u16PaddingLen = 0;
             break;
         }
     }

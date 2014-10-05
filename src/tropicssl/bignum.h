@@ -72,7 +72,7 @@ typedef unsigned long long t_dbl;
 #endif
 #endif
 #endif
-#define MAX_BIGNUM_DIGITS  (35)
+#define MAX_BIGNUM_DIGITS  (20)  /*256*/
 /**
  * \brief          MPI structure
  */

@@ -15,7 +15,7 @@
 #include <rsa.h>
 #include <bignum.h>
 
-#define  ZC_SEC_RSA_KEY_LEN        (512) /*bit len*/
+#define  ZC_SEC_RSA_KEY_LEN        (256) /*bit len*/
 #define  ZC_SEC_AES_BLOCK_SIZE     (16)
 
 

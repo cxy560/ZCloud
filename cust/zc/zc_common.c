@@ -52,7 +52,7 @@ void TestSec()
     u32 u32Retval;
     MT_Init();
     
-    u16InputLen = 48;
+    u16InputLen = 20;
     for (u32Index = 0; u32Index < u16InputLen; u32Index++)
     {
         g_struRecvBuffer.u8MsgBuffer[u32Index] = u32Index;

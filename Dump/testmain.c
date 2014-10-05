@@ -252,7 +252,11 @@ void readcfg()
 extern IOT_USR_CFG Usr_Cfg;
 void main()
 {
+    u16 padding;
     memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
 
-    TestSec();
+    //TestSec();
+    //testcloud();
+
+    SEC_PaddingCheck(ZC_SEC_ALG_RSA, 52, &padding);
 }

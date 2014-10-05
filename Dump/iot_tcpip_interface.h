@@ -18,8 +18,8 @@ typedef struct _IOT_USER_CFG_{
     u8 VendorName[32];
     u8 ProductType[32];
     u8 ProductName[32];
-    u8 ProductKey[448];
-    u8 CloudKey[132];
+    u8 ProductKey[112];
+    u8 CloudKey[36];
     u8 CloudAddr[20];
 }IOT_USR_CFG;
 

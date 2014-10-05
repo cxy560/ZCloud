@@ -1200,7 +1200,7 @@ static void mpi_montred(mpi * A, const mpi * N, t_int mm, mpi * T)
 /*
  * Sliding-window exponentiation: X = A^E mod N	 (HAC 14.85)
  */
-mpi O_RR, O_T, O_W[30];
+mpi O_RR, O_T, O_W[64];
 
 int mpi_exp_mod(mpi * X, const mpi * A, const mpi * E, const mpi * N, mpi * _RR)
 {
