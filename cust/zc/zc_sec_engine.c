@@ -288,9 +288,11 @@ u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16PlainL
 u32 SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
 {
     u16 LastBlockSize = 0;
+    u8 u8SecFlag;
     *u16PaddingLen = 0;
-    
-    switch(u8SecType)
+
+    u8SecFlag = ZC_SEC_ALG_NONE;
+    switch(u8SecFlag)
     {
         case ZC_SEC_ALG_AES:
         {
@@ -327,7 +329,10 @@ u32 SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
 u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 *pu16CiperLen)
 {
     u32 u32RetVal = ZC_RET_ERROR;
-    switch (pstruSecHead->u8SecType)
+    
+    u8 u8SecFlag;
+    u8SecFlag = ZC_SEC_ALG_NONE;
+    switch (u8SecFlag)
     {
         case ZC_SEC_ALG_NONE:
             memcpy(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));
@@ -354,7 +359,11 @@ u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 
 u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 *pu16PlainLen)
 {
     u32 u32RetVal = ZC_RET_ERROR;
-    switch (pstruSecHead->u8SecType)
+
+    u8 u8SecFlag;
+    u8SecFlag = ZC_SEC_ALG_NONE;
+
+    switch (u8SecFlag)
     {
         case ZC_SEC_ALG_NONE:
             memcpy(pu8PlainBuf, pu8CiperBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));

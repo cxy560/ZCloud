@@ -19,7 +19,7 @@
 #define     ZC_MOUDLE_PRIVATE_KEY_LEN                       (448)   
 
 
-#define     ZC_CLOUD_PORT                                    (7688)
+#define     ZC_CLOUD_PORT                                    (8384)
 #define     ZC_MOUDLE_PORT                                   (7689)
 #endif
 /******************************* FILE END ***********************************/

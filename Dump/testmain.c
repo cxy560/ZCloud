@@ -175,14 +175,18 @@ void testsendcloud()
     ZC_SecHead struHead;
     MT_Init();
     
-    for (u32Index = 0; u32Index < 1024; u32Index++)
+    for (u32Index = 0; u32Index < 8; u32Index++)
     {
         g_u8DumpCloudMsg[u32Index] = u32Index;
     }
     struHead.u8SecType = ZC_SEC_ALG_NONE;
-    struHead.u16TotalMsg = ZC_HTONS(800);
+    struHead.u16TotalMsg = ZC_HTONS(8);
     PCT_SendMsgToCloud(&struHead, g_u8DumpCloudMsg);
-    
+  
+    struHead.u8SecType = ZC_SEC_ALG_NONE;
+    struHead.u16TotalMsg = ZC_HTONS(52);
+    PCT_SendMsgToCloud(&struHead, g_u8DumpCloudMsg);
+
     MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
     MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
 
@@ -255,7 +259,7 @@ void main()
     u16 padding;
     memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
 
-    TestSec();
+    //TestSec();
     //testcloud();
-
+    testsendcloud();
 }

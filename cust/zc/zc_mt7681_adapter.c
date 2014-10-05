@@ -131,7 +131,6 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
     }
     
     u16DataLen = pstruBuf->u32Len; 
-
     uip_send((u8*)pstruBuf->u8MsgBuffer, u16DataLen);
     
     pstruBuf->u8Status = MSG_BUFFER_IDLE;
@@ -289,7 +288,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192, 168, 1, 111);
+        uip_ipaddr(ip, 192, 168, 1, 101);
     }
     else 
     {

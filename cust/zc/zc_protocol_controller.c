@@ -101,6 +101,7 @@ void PCT_SendEmptyMsg(u8 u8SecType)
 {
     ZC_MessageHead struMsg;
     ZC_SecHead struSecHead;
+    u32 u32RetVal;
     
     u16 u16Len = 0;
     /*build msg*/
@@ -109,8 +110,9 @@ void PCT_SendEmptyMsg(u8 u8SecType)
     /*build sec head*/
     struSecHead.u8SecType = u8SecType;
     struSecHead.u16TotalMsg = ZC_HTONS(u16Len);
+
     
-    (void)PCT_SendMsgToCloud(&struSecHead, (u8*)&struMsg);
+    u32RetVal = PCT_SendMsgToCloud(&struSecHead, (u8*)&struMsg);
 }
 /*************************************************
 * Function: PCT_SendErrorMsg
@@ -177,12 +179,15 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
         PCT_DisConnectCloud(pstruContoller);
         return;
     }
-    
+
+    ZC_Printf("Send Msg1 \n");
+    ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
+
     pstruContoller->u8MainState = PCT_STATE_WAIT_ACCESSRSP;
 
     
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
-        PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8AccessTimer);
+        PCT_TIMER_INTERVAL_RECONNECT * 60, &pstruContoller->u8AccessTimer);
 
     PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
 }
@@ -216,7 +221,7 @@ void PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller)
     
     pstruContoller->u8MainState = PCT_STATE_WAIT_MSG4;
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
-        PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8AccessTimer);
+        PCT_TIMER_INTERVAL_RECONNECT*10, &pstruContoller->u8AccessTimer);
 
     return;
 }
@@ -378,10 +383,14 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
         {
             memcpy(pstruContoller->u8SessionKey, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
             PCT_SendCloudAccessMsg3(pstruContoller);
+            ZC_Printf("Recv Msg2 ok\n");
         }
         else
         {
             PCT_DisConnectCloud(pstruContoller);
+            ZC_Printf("Recv Msg2 rand error \n");            
+            ZC_TraceData(pstruMsg2->RandMsg, ZC_HS_MSG_LEN);
+            ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
         }
     }
     
@@ -418,11 +427,15 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
         TIMER_StopTimer(pstruContoller->u8AccessTimer);
         if (0 == memcmp(pstruMsg4->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
         {
-            pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD;            
+            pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD; 
+            ZC_Printf("recv msg4 ok\n");
         }
         else
         {
             PCT_DisConnectCloud(pstruContoller);
+            ZC_Printf("Recv msg4 rand error \n");            
+            ZC_TraceData(pstruMsg4->RandMsg, ZC_HS_MSG_LEN);
+            ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
         }
 
     }
@@ -626,11 +639,12 @@ u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
     {
         return ZC_RET_ERROR;
     }
-    pstruSecHead->u16TotalMsg = ZC_HTONS(sizeof(ZC_SecHead) + u16Len);
+    pstruSecHead->u16TotalMsg = ZC_HTONS(u16Len);
     /*copy sechead*/
     memcpy(g_u8CiperBuffer, (u8*)pstruSecHead, sizeof(ZC_SecHead));
     
     /*copy to buffer*/
+    u16Len = u16Len + sizeof(ZC_SecHead);
     u16RemainLen = u16Len;
     
     for (u32Index = 0; u32Index < MSG_BUFFER_SEND_MAX_NUM; u32Index++)
