@@ -200,7 +200,7 @@ void testrecvbuffer()
     pstruMsg = (ZC_SecHead *)g_u8DumpCloudMsg;
     pstruHead = (ZC_MessageHead*)(pstruMsg+1);
     
-    u16Len = 100;
+    u16Len = 68;
     pstruMsg->u16TotalMsg  = ZC_HTONS(u16Len+sizeof(ZC_MessageHead));
     pstruHead->Payloadlen = ZC_HTONS(u16Len);
     
@@ -255,8 +255,7 @@ void main()
     u16 padding;
     memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
 
-    //TestSec();
+    TestSec();
     //testcloud();
 
-    SEC_PaddingCheck(ZC_SEC_ALG_RSA, 52, &padding);
 }

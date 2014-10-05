@@ -165,14 +165,49 @@ void testcloud()
 {
     mpi X;  
     s32 s32len;
+    u8 u8PublicKey[2048];
+    u8 u8CiperBuf[1000] = {
+        //108, 240, 118, 120,
+        //21, 134, 166, 113,
+        //26, 172, 175, 71,
+        //107, 24, 164, 147,
+        //44, 204, 219, 36,
+        //168, 29, 114, 160,
+        //227, 137, 152, 196,
+        //20, 185, 27, 188
+        26, 230, 100, 126, 
+        46, 27, 102, 152, 
+        113, 174, 229, 144, 
+        193, 247, 20, 190, 
+        153, 10, 239, 200, 
+        179, 18, 141, 80, 
+        109, 242, 231, 242, 
+        200, 59, 150, 195
+    };
+    u16 u16CiperLen = 32;
+    u32 u32Retval;
+    u8 u8PlainBuf[1000];
     mpi_init(&X); 
     u8 u8Key[] = {"92843671885879468539136027873653378477792077665795012146250279466996190721073"};
-    mpi_read_string(&X, 10, u8Key);
+    
+    mpi_read_binary(&X, Usr_Cfg.CloudKey, ZC_SEC_RSA_KEY_LEN >> 3);
+    s32len = 2048;
+    mpi_write_string(&X, 10, u8PublicKey, &s32len);
+    ZC_Printf("public N = %s\n",u8PublicKey);
 
-    s32len = mpi_size(&X);
-    mpi_write_binary(&X, Usr_Cfg.CloudKey, s32len);
-    memcpy(&IoTpAd.UsrCfg, &Usr_Cfg, sizeof(IOT_USR_CFG));
-    TestSec();
+
+    MT_Init();
+    u32Retval = SEC_DecryptTextByRsa(u8CiperBuf, u8PlainBuf, u16CiperLen, &s32len);
+    ZC_TraceData(u8PlainBuf, s32len);
+
+
+    //mpi_read_string(&X, 10, u8Key);
+    //s32len = mpi_size(&X);
+    //mpi_write_binary(&X, Usr_Cfg.CloudKey, s32len);
+
+
+    //memcpy(&IoTpAd.UsrCfg, &Usr_Cfg, sizeof(IOT_USR_CFG));
+    //TestSec();
 
 }
 

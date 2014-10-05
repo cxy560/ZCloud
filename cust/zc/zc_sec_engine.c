@@ -9,7 +9,6 @@
 */
 #include <zc_sec_engine.h>
 #include <zc_protocol_controller.h>
-rsa_context *rsa;
 
 /*************************************************
 * Function: SEC_EncryptTextByRsa
@@ -24,14 +23,45 @@ u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
     s32 s32Ret;
     PTC_ProtocolCon *pstruCon;
     u8 *pu8PublicKey;
+    u16 u16ReadLen;
+    rsa_context *rsa;
+
     pstruCon = &g_struProtocolController;
 
     rsa = (rsa_context *)malloc(sizeof(rsa_context));
     pstruCon->pstruMoudleFun->pfunGetCloudKey(&pu8PublicKey);
 
     SEC_InitRsaContextWithPublicKey(rsa, pu8PublicKey);
-    s32Ret = rsa_pkcs1_encrypt(rsa, RSA_PUBLIC, u16Len, pu8Plainbuf, pu8CiperBuf);
-    *pu16CiperLen = rsa->len;
+
+    if (u16Len + 11 > rsa->len)
+    {
+        *pu16CiperLen = 0;
+        u16ReadLen = 0;
+        while (u16ReadLen + (rsa->len - 11) <= u16Len)
+        {
+            s32Ret = rsa_pkcs1_encrypt(rsa, RSA_PUBLIC, (rsa->len - 11), 
+                pu8Plainbuf + u16ReadLen, pu8CiperBuf + *pu16CiperLen);
+            if (s32Ret)
+            {
+                break;
+            }
+            *pu16CiperLen += rsa->len;
+            u16ReadLen += rsa->len - 11;
+        }
+
+        if (u16ReadLen < u16Len)
+        {
+            s32Ret = rsa_pkcs1_encrypt(rsa, RSA_PUBLIC, (u16Len - u16ReadLen),
+                pu8Plainbuf + u16ReadLen, pu8CiperBuf + *pu16CiperLen);
+            *pu16CiperLen += rsa->len;
+        }
+    }
+    else
+    {
+        s32Ret = rsa_pkcs1_encrypt(rsa, RSA_PUBLIC, u16Len, pu8Plainbuf, pu8CiperBuf);
+        *pu16CiperLen = rsa->len;
+    }
+   
     rsa_free(rsa);
     free(rsa);
 
@@ -59,6 +89,7 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
     rsa_context *pstruRsa;
     s32 s32len;
     s32 s32Ret;
+    u16 u16ReadLen;
     PTC_ProtocolCon *pstruCon;
     u8 *pu8PrivateKey;
     
@@ -71,13 +102,42 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
 
     SEC_InitRsaContextWithPrivateKey(pstruRsa, pu8PrivateKey);
 
-    s32Ret = rsa_pkcs1_decrypt(pstruRsa, RSA_PRIVATE, &s32len, pu8CiperBuf,
-        pu8Plainbuf, u16Len);
+    if (u16Len > pstruRsa->len)
+    {
+        *pu16PlainLen = 0;
+        u16ReadLen = 0;
+        while (u16ReadLen + pstruRsa->len <= u16Len)
+        {
+            s32Ret = rsa_pkcs1_decrypt(pstruRsa, RSA_PRIVATE, &s32len, (pu8CiperBuf + u16ReadLen),
+                pu8Plainbuf + *pu16PlainLen, u16Len);
+            if (s32Ret)
+            {
+                break;
+            }
+            
+            u16ReadLen += pstruRsa->len;
+            *pu16PlainLen += s32len;
+        }
+
+        if (u16ReadLen < u16Len)
+        {
+            s32Ret = rsa_pkcs1_decrypt(pstruRsa, RSA_PRIVATE, &s32len, (pu8CiperBuf + u16ReadLen),
+                pu8Plainbuf + *pu16PlainLen, u16Len);
+            *pu16PlainLen += s32len;
+        }
+        
+    }
+    else
+    {
+        s32Ret = rsa_pkcs1_decrypt(pstruRsa, RSA_PRIVATE, &s32len, pu8CiperBuf,
+            pu8Plainbuf, u16Len);
+        *pu16PlainLen = (u16)s32len;
+    }
+    
     ZC_Printf("rsa_pkcs1_decrypt = %d, u32RetVal = %d\n", s32len, s32Ret);
-    *pu16PlainLen = (u16)s32len;        
     rsa_free(pstruRsa);
     
-    free(rsa);
+    free(pstruRsa);
 
     if (s32Ret)
     {
