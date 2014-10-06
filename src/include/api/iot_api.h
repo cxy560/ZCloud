@@ -1094,13 +1094,13 @@ Note:
 */
 /* AES-CBC operations */
 VOID AES_CBC_Encrypt (
-    UINT8 PlainText[],
+    UINT8 *PlainText,
     UINT  PlainTextLength,
-    UINT8 Key[],
+    UINT8 *Key,
     UINT  KeyLength,
-    UINT8 IV[],
+    UINT8 *IV,
     UINT IVLength,
-    UINT8 CipherText[],
+    UINT8 *CipherText,
     UINT *CipherTextLength);
 
 /*
@@ -1126,13 +1126,13 @@ Note:
 ========================================================================
 */
 VOID AES_CBC_Decrypt (
-    UINT8 CipherText[],
+    UINT8 *CipherText,
     UINT  CipherTextLength,
-    UINT8 Key[],
+    UINT8 *Key,
     UINT  KeyLength,
-    UINT8 IV[],
+    UINT8 *IV,
     UINT IVLength,
-    UINT8 PlainText[],
+    UINT8 *PlainText,
     UINT *PlainTextLength);
 
 

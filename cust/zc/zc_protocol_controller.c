@@ -312,7 +312,7 @@ void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController)
     ZC_Printf("send moudle timeout, data len = %d\n",pstruBuffer->u32Len);
     if (g_u32LoopFlag == 1)
     {
-        struHead.u8SecType = ZC_SEC_ALG_NONE;
+        struHead.u8SecType = ZC_SEC_ALG_AES;
         struHead.u16TotalMsg = ZC_HTONS(pstruBuffer->u32Len);
         PCT_SendMsgToCloud(&struHead, pstruBuffer->u8MsgBuffer);
         pstruBuffer->u32Len = 0;
@@ -385,6 +385,7 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
     MSG_Buffer *pstruBuffer;
     ZC_MessageHead *pstruMsg;
     ZC_HandShakeMsg2 *pstruMsg2;
+    u32 u32Index;
  
     pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
     if (NULL == pstruBuffer)
@@ -402,7 +403,11 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
         if (0 == memcmp(pstruMsg2->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
         {
             memcpy(pstruContoller->u8SessionKey, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+            memcpy(pstruContoller->IvRecv, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+            memcpy(pstruContoller->IvSend, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+
             PCT_SendCloudAccessMsg3(pstruContoller);
+            
             ZC_Printf("Recv Msg2 ok\n");
         }
         else
@@ -414,7 +419,6 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
         }
     }
     
-    PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_NONE);
     pstruBuffer->u32Len = 0;
     pstruBuffer->u8Status = MSG_BUFFER_IDLE;
 }
@@ -459,7 +463,6 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
         }
 
     }
-    PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
     pstruBuffer->u32Len = 0;
     pstruBuffer->u8Status = MSG_BUFFER_IDLE;
 
@@ -655,6 +658,8 @@ u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
     {
         return ZC_RET_ERROR;
     }
+
+    u16Len = ZC_HTONS(pstruSecHead->u16TotalMsg) + u16PaddingLen;
 
     /*first check padding,then Encrypt, final copy sechead*/
     u32RetVal = SEC_Encrypt(pstruSecHead, g_u8CiperBuffer + sizeof(ZC_SecHead), pu8PlainData, &u16Len);

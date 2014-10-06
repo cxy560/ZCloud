@@ -59,19 +59,19 @@ Note:
 ========================================================================
 */
 VOID AES_CBC_Encrypt (
-    UINT8 PlainText[],
+    UINT8 *PlainText,
     UINT PlainTextLength,
-    UINT8 Key[],
+    UINT8 *Key,
     UINT KeyLength,
-    UINT8 IV[],
+    UINT8 *IV,
     UINT IVLength,
-    UINT8 CipherText[],
+    UINT8 *CipherText,
     UINT *CipherTextLength)
 {
     UINT PaddingSize, PlainBlockStart, CipherBlockStart, CipherBlockSize;
     UINT Index;
-    UINT8 Block[AES_BLOCK_SIZES];
 	UINT LastBlockSize=0;
+    UINT8 Block[AES_BLOCK_SIZES];
 	
     /*   
      * 1. Check the input parameters
@@ -85,7 +85,6 @@ VOID AES_CBC_Encrypt (
    		PaddingSize = ((UINT) AES_BLOCK_SIZES) - LastBlockSize;
 	else
 		PaddingSize = 0;
-	
     if (*CipherTextLength < (PlainTextLength + PaddingSize)) {
     	Printf_High("AES_CBC_Encrypt: cipher text length is %d bytes < (plain text length %d bytes + padding size %d bytes).\n", 
             *CipherTextLength, PlainTextLength, PaddingSize);
@@ -114,6 +113,7 @@ VOID AES_CBC_Encrypt (
      */
     PlainBlockStart = 0;
     CipherBlockStart = 0;
+    
     while ((PlainTextLength - PlainBlockStart) >= AES_BLOCK_SIZES)
     {
         if (CipherBlockStart == 0) {
@@ -123,7 +123,6 @@ VOID AES_CBC_Encrypt (
             for (Index = 0; Index < AES_BLOCK_SIZES; Index++)
                 Block[Index] = PlainText[PlainBlockStart + Index]^CipherText[CipherBlockStart - ((UINT) AES_BLOCK_SIZES) + Index];
         } /* End of if */
-            
         CipherBlockSize = *CipherTextLength - CipherBlockStart;
         RT_AES_Encrypt(
 				Block, 
@@ -136,9 +135,16 @@ VOID AES_CBC_Encrypt (
         PlainBlockStart += ((UINT) AES_BLOCK_SIZES);
         CipherBlockStart += CipherBlockSize;
     } /* End of while */
+    if (PlainTextLength == PlainBlockStart)
+    {
+       memset(Block, AES_BLOCK_SIZES, AES_BLOCK_SIZES);        
+    }
+    else
+    {
+       NdisMoveMemory(Block, (&PlainText[0] + PlainBlockStart), (PlainTextLength - PlainBlockStart));
+       memset((Block + (((UINT) AES_BLOCK_SIZES) -PaddingSize)), (UINT8) PaddingSize, PaddingSize);
+    }
 
-    NdisMoveMemory(Block, (&PlainText[0] + PlainBlockStart), (PlainTextLength - PlainBlockStart));
-    memset((Block + (((UINT) AES_BLOCK_SIZES) -PaddingSize)), (UINT8) PaddingSize, PaddingSize);
     if (CipherBlockStart == 0) {
        for (Index = 0; Index < AES_BLOCK_SIZES; Index++)
            Block[Index] ^= IV[Index];
@@ -148,6 +154,7 @@ VOID AES_CBC_Encrypt (
     } /* End of if */
     CipherBlockSize = *CipherTextLength - CipherBlockStart;
     RT_AES_Encrypt(Block, AES_BLOCK_SIZES , Key, KeyLength, CipherText + CipherBlockStart, &CipherBlockSize);
+
     CipherBlockStart += CipherBlockSize;
     *CipherTextLength = CipherBlockStart;
 } /* End of AES_CBC_Encrypt */
@@ -176,13 +183,13 @@ Note:
 ========================================================================
 */
 VOID AES_CBC_Decrypt (
-    UINT8 CipherText[],
+    UINT8 *CipherText,
     UINT CipherTextLength,
-    UINT8 Key[],
+    UINT8 *Key,
     UINT KeyLength,
-    UINT8 IV[],
+    UINT8 *IV,
     UINT IVLength,
-    UINT8 PlainText[],
+    UINT8 *PlainText,
     UINT *PlainTextLength)
 {
     UINT PaddingSize, PlainBlockStart, CipherBlockStart, PlainBlockSize;

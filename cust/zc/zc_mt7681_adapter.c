@@ -289,7 +289,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192, 168, 1, 101);
+        uip_ipaddr(ip, 192, 168, 1, 114);
     }
     else 
     {

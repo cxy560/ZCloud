@@ -210,11 +210,11 @@ void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa, const u8 *pu8Private
 *************************************************/
 u32 SEC_AesEncrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16CiperLen)
 {
-    u16 u16OutLen;
+    u32 u32OutLen;
     PTC_ProtocolCon *pstruCon;
 
     /*must assign the outlen*/
-    u16OutLen = u16Len;
+    u32OutLen = *pu16CiperLen;
 
     pstruCon = &g_struProtocolController;
     
@@ -226,10 +226,9 @@ u32 SEC_AesEncrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16CiperL
     AES_CBC_Encrypt(pu8Plainbuf, u16Len, 
         pstruCon->u8SessionKey, ZC_HS_SESSION_KEY_LEN, 
         pstruCon->IvSend, 16, 
-        pu8CiperBuf, &u16OutLen);
-    *pu16CiperLen = u16OutLen;  
-    memcpy(pstruCon->IvSend, pu8CiperBuf, 16);
-    
+        pu8CiperBuf, &u32OutLen);
+    *pu16CiperLen = (u16)u32OutLen;  
+    //memcpy(pstruCon->IvSend, pu8CiperBuf, 16);
     return ZC_RET_OK;
 }
 /*************************************************
@@ -244,12 +243,12 @@ u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16PlainL
 {
     u8 *pu8Key;
     u8 *pu8IvRecv;
-    u8 u8NextIv[16];
-    u16 u16OutLen;
+    //u8 u8NextIv[16];
+    u32 u32OutLen;
     PTC_ProtocolCon *pstruCon;
     
     /*must assign the outlen*/
-    u16OutLen = u16Len;
+    u32OutLen = u16Len;
     pstruCon = &g_struProtocolController;
     
     if (PCT_KEY_RECVED != pstruCon->u8keyRecv)
@@ -259,7 +258,7 @@ u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16PlainL
     
     pu8Key = pstruCon->u8SessionKey;
     pu8IvRecv = pstruCon->IvRecv;
-    
+#if 0    
     if (u16Len > 16)
     {
         memcpy(u8NextIv, pu8CiperBuf, 16);
@@ -270,11 +269,10 @@ u32 SEC_AesDecrypt(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16PlainL
         memcpy(u8NextIv, pu8CiperBuf, u16Len);
         memset(u8NextIv + u16Len, 0, 16 - u16Len);
     }
-    
-    AES_CBC_Decrypt(pu8CiperBuf, u16Len, pu8Key, ZC_HS_SESSION_KEY_LEN, pu8IvRecv, 16, pu8Plainbuf, &u16OutLen);
-    *pu16PlainLen = u16OutLen;
-    memcpy(pstruCon->IvRecv, u8NextIv, 16);
-    
+#endif    
+    AES_CBC_Decrypt(pu8CiperBuf, u16Len, pu8Key, ZC_HS_SESSION_KEY_LEN, pu8IvRecv, 16, pu8Plainbuf, &u32OutLen);
+    *pu16PlainLen = (u16)u32OutLen;
+    //memcpy(pstruCon->IvRecv, u8NextIv, 16);
     return ZC_RET_OK;
 }
 /*************************************************
@@ -290,11 +288,22 @@ u32 SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
     u16 LastBlockSize = 0;
     u8 u8SecFlag;
     *u16PaddingLen = 0;
+
     if (0 == g_u32SecSwitch)
     {
         u8SecFlag = ZC_SEC_ALG_NONE;
     }
-    else
+    else if (2 == g_u32SecSwitch)
+    {
+        if (ZC_SEC_ALG_RSA == u8SecType)
+        {
+            u8SecFlag = ZC_SEC_ALG_NONE;    
+        }
+        else
+        {
+            u8SecFlag = u8SecType;
+        }
+    }else
     {
         u8SecFlag = u8SecType;
     }
@@ -307,7 +316,7 @@ u32 SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
             if(LastBlockSize > 0)
                 *u16PaddingLen = ZC_SEC_AES_BLOCK_SIZE - LastBlockSize;
             else
-                *u16PaddingLen = 0;
+                *u16PaddingLen = ZC_SEC_AES_BLOCK_SIZE;
             break;
         }
         case ZC_SEC_ALG_RSA:
@@ -343,10 +352,21 @@ u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 
     {
         u8SecFlag = ZC_SEC_ALG_NONE;
     }
-    else
+    else if (2 == g_u32SecSwitch)
+    {
+        if (ZC_SEC_ALG_RSA == pstruSecHead->u8SecType)
+        {
+            u8SecFlag = ZC_SEC_ALG_NONE;    
+        }
+        else
+        {
+            u8SecFlag = pstruSecHead->u8SecType;
+        }
+    }else
     {
         u8SecFlag = pstruSecHead->u8SecType;
     }
+    
     switch (u8SecFlag)
     {
         case ZC_SEC_ALG_NONE:
@@ -380,7 +400,17 @@ u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 
     {
         u8SecFlag = ZC_SEC_ALG_NONE;
     }
-    else
+    else if (2 == g_u32SecSwitch)
+    {
+        if (ZC_SEC_ALG_RSA == pstruSecHead->u8SecType)
+        {
+            u8SecFlag = ZC_SEC_ALG_NONE;    
+        }
+        else
+        {
+            u8SecFlag = pstruSecHead->u8SecType;
+        }
+    }else
     {
         u8SecFlag = pstruSecHead->u8SecType;
     }
