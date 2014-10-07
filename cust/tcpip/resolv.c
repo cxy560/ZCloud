@@ -191,13 +191,9 @@ resolv_check_entries(void)
 	  continue;
 	}
       } else {
-        
-    Printf_High("here name = %s, state = %d\n", namemapptr->name, namemapptr->state);
 	namemapptr->state = STATE_ASKING;
 	namemapptr->tmr = 1;
 	namemapptr->retries = 0;
-    Printf_High("set %d name = %s, state = %d\n", i, namemapptr->name, namemapptr->state);
-	
       }
       hdr = (struct dns_hdr *)uip_appdata;
       memset(hdr, 0, sizeof(struct dns_hdr));
@@ -245,21 +241,20 @@ resolv_newdata(void)
   register struct namemap *namemapptr;
   
   hdr = (struct dns_hdr *)uip_appdata;
-  Printf_High("ID %d\n", htons(hdr->id));
-  Printf_High("Query %d\n", hdr->flags1 & DNS_FLAG1_RESPONSE);
-  Printf_High("Error %d\n", hdr->flags2 & DNS_FLAG2_ERR_MASK);
-  Printf_High("Num questions %d, answers %d, authrr %d, extrarr %d\n",
+  /*  printf("ID %d\n", htons(hdr->id));
+      printf("Query %d\n", hdr->flags1 & DNS_FLAG1_RESPONSE);
+      printf("Error %d\n", hdr->flags2 & DNS_FLAG2_ERR_MASK);
+      printf("Num questions %d, answers %d, authrr %d, extrarr %d\n",
       htons(hdr->numquestions),
       htons(hdr->numanswers),
       htons(hdr->numauthrr),
       htons(hdr->numextrarr));
- 
+  */
 
   /* The ID in the DNS header should be our entry into the name
      table. */
   i = htons(hdr->id);
   namemapptr = &names[i];
-  Printf_High("name = %s, state = %d\n", namemapptr->name, namemapptr->state);
   if(i < RESOLV_ENTRIES &&
      namemapptr->state == STATE_ASKING) {
     /* This entry is now finished. */
@@ -297,9 +292,9 @@ resolv_newdata(void)
       }
 
       ans = (struct dns_answer *)nameptr;
-      Printf_High("Answer: type %x, class %x, ttl %x, length %x\n",
+            /*Printf_High("Answer: type %x, class %x, ttl %x, length %x\n",
 	     htons(ans->type), htons(ans->class), (htons(ans->ttl[0])
-	     << 16) | htons(ans->ttl[1]), htons(ans->len));
+	     << 16) | htons(ans->ttl[1]), htons(ans->len));*/
 
       /* Check for IP address type and Internet class. Others are
 	 discarded. */
@@ -358,7 +353,7 @@ resolv_query(char *name)
     nameptr = &names[i];
   }
 
-  Printf_High("%s Using entry %d\n", name, i);
+  /*  printf("Using entry %d\n", i);*/
 
   strcpy(nameptr->name, name);
   nameptr->state = STATE_NEW;

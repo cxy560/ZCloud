@@ -289,7 +289,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192, 168, 1, 114);
+        uip_ipaddr(ip, /*192, 168, 1, 114*/101,251,106,4);
     }
     else 
     {
@@ -397,6 +397,7 @@ void MT_CloudAppCall()
     {
         ZC_Printf("uip flag = %d, Close Connection\n",uip_flags);
         PCT_ReconnectCloud(&g_struProtocolController);
+        uip_abort();
     }
 
     if(uip_acked()) 

@@ -156,6 +156,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     /*stop reconnection timer*/
     if (PCT_TIMER_INVAILD != pstruContoller->u8ReconnectTimer)
     {
+        ZC_Printf("msg1 stop u8ReconnectTimer\n");
         TIMER_StopTimer(pstruContoller->u8ReconnectTimer);
         pstruContoller->u8ReconnectTimer = PCT_TIMER_INVAILD;
     }
@@ -176,6 +177,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     
     if (ZC_RET_ERROR == u32RetVal)
     {
+        ZC_Printf("Send Msg1 fail disconnect\n");
         PCT_DisConnectCloud(pstruContoller);
         return;
     }
@@ -278,16 +280,26 @@ void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller)
 *************************************************/
 void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller)
 {
-    if (PCT_INVAILD_SOCKET == pstruContoller->struCloudConnection.u32Socket)
+    if (PCT_TIMER_INVAILD != pstruContoller->u8ReconnectTimer)
     {
+        ZC_Printf("already reconnected \n");
         return;
     }
     
+
+    MSG_Init();
+    g_struProtocolController.u8keyRecv = PCT_KEY_UNRECVED;
+    TIMER_Init();
+    g_struProtocolController.u8ReconnectTimer = PCT_TIMER_INVAILD;
+    g_struProtocolController.u8SendMoudleTimer = PCT_TIMER_INVAILD;
+    g_struProtocolController.u8HeartTimer = PCT_TIMER_INVAILD;
+    g_struProtocolController.u8MainState = PCT_STATE_INIT;
+
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_RECONNECT, 
         PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8ReconnectTimer);
     pstruContoller->struCloudConnection.u32Socket = PCT_INVAILD_SOCKET;
     pstruContoller->u8keyRecv = PCT_KEY_UNRECVED; 
-    pstruContoller->u8MainState = PCT_STATE_ACCESS_NET; 
+    pstruContoller->u8MainState = PCT_STATE_INIT;
 }
 
 /*************************************************

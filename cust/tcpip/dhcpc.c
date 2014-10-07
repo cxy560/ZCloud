@@ -344,13 +344,13 @@ _handle_dhcp(void)
 			Printf_High("Got IP:%d.%d.%d.%d\n",
 				uip_ipaddr1(s.ipaddr), uip_ipaddr2(s.ipaddr),
 				uip_ipaddr3(s.ipaddr), uip_ipaddr4(s.ipaddr));
-			Printf_High("Got netmask %d.%d.%d.%d\n",
+			printf("Got netmask %d.%d.%d.%d\n",
 				uip_ipaddr1(s.netmask), uip_ipaddr2(s.netmask),
 				uip_ipaddr3(s.netmask), uip_ipaddr4(s.netmask));
-			Printf_High("Got DNS server %d.%d.%d.%d\n",
+			printf("Got DNS server %d.%d.%d.%d\n",
 				uip_ipaddr1(s.dnsaddr), uip_ipaddr2(s.dnsaddr),
 				uip_ipaddr3(s.dnsaddr), uip_ipaddr4(s.dnsaddr));
-			Printf_High("Got default router %d.%d.%d.%d\n",
+			printf("Got default router %d.%d.%d.%d\n",
 				uip_ipaddr1(s.default_router), uip_ipaddr2(s.default_router),
 				uip_ipaddr3(s.default_router), uip_ipaddr4(s.default_router));
 
