@@ -187,7 +187,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
 
     
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
-        PCT_TIMER_INTERVAL_RECONNECT * 60, &pstruContoller->u8AccessTimer);
+        PCT_TIMER_INTERVAL_RECONNECT * 120, &pstruContoller->u8AccessTimer);
 
     PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
 }

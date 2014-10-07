@@ -13,9 +13,9 @@
 #include <zc_sec_engine.h>
 extern 	char *optarg; 
 
-u32 g_u32TraceSwitch = 0;
+u32 g_u32TraceSwitch = 1;
 u32  g_u32LoopFlag = 0;
-u32  g_u32SecSwitch = 2;
+u32  g_u32SecSwitch = 1;
 
 /*************************************************
 * Function: ZC_TraceData
@@ -35,18 +35,19 @@ void ZC_TraceData(u8* pData, u32 Len)
     ZC_Printf("++++++++++++++++++++++++++++++++++++++++++++++++\n");
     for (Index = 0; Index + 4 < Len; Index = Index + 4)
     {
-        ZC_Printf("%02x %02x %02x %02x\n",
+        ZC_Printf("0x%02x, 0x%02x, 0x%02x, 0x%02x,\n",
             pData[Index],
             pData[Index + 1],
             pData[Index + 2],
             pData[Index + 3]);
     }
     
-    for (; Index < Len; Index++)
+    for (; Index < Len - 1; Index++)
     {
-        ZC_Printf("%02x ", pData[Index]);
+        ZC_Printf("0x%02x, ", pData[Index]);
     }
-    
+    ZC_Printf("0x%02x", pData[Index]);
+
     ZC_Printf("\n++++++++++++++++++++++++++++++++++++++++++++++++\n");
 }
 
@@ -57,9 +58,10 @@ void TestRsaSec()
     u16 u16PlainLen;
     u16 u16InputLen;
     u32 u32Retval;
-    MT_Init();
+    ZC_MessageHead *pstruMsg;
     
     u16InputLen = 64;
+    
     for (u32Index = 0; u32Index < u16InputLen; u32Index++)
     {
         g_struRecvBuffer.u8MsgBuffer[u32Index] = u32Index;
@@ -84,6 +86,7 @@ void TestRsaSec()
     ZC_Printf("Ciperlen = %d, Plainlen = %d\n", u16CiperLen, u16PlainLen);
     ZC_TraceData(g_struRetxBuffer.u8MsgBuffer, u16PlainLen);    
     ZC_Printf("+++++++++++++++++++RSA+++++++++++++++++++\n");
+
 }
 void TestAesSec(u16 Len)
 {
@@ -160,7 +163,7 @@ void IoT_exec_AT_cmd_TestSwitch(u8 *pCmdBuf, u16 at_cmd_len)
             break;
         case 'r':
             ZC_Printf("test Sec\n");
-            TestAesSecMain();
+            TestRsaSec();
             break;
 
 		default:

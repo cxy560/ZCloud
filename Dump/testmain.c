@@ -257,9 +257,10 @@ extern IOT_USR_CFG Usr_Cfg;
 void main()
 {
     u16 padding;
+    MT_Init();
     memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
 
     //TestSec();
-    //testcloud();
-    testsendcloud();
+    testcloud();
+    //TestRsaSec();
 }
