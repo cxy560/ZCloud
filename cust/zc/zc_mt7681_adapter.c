@@ -34,6 +34,8 @@ struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 
 u16 g_u16TcpMss;
 extern IOT_ADAPTER   	IoTpAd;
+u16 g_u16LocalPort;
+
 #ifndef ZC_OFF_LINETEST
 /*************************************************
 * Function: rand
@@ -48,6 +50,19 @@ u32 rand()
     return apiRand();
 }
 #endif
+
+/*************************************************
+* Function: MT_GetLocalPortNum
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u16 MT_GetLocalPortNum()
+{
+    return g_u16LocalPort;
+}
 
 /*************************************************
 * Function: MT_TimerExpired
@@ -306,12 +321,13 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     	}
 
         if (conn) {
-            conn->lport = ZC_HTONS(ZC_MOUDLE_PORT);
+            conn->lport = (u16)rand();
         }
 
     	pstruConnection->u32Socket = conn->fd;
+    	g_u16LocalPort = ZC_HTONS(conn->lport);
 
-    	ZC_Printf("Connection Sokcet = %d\n",conn->fd);
+    	ZC_Printf("Connection Sokcet = %d, conn->lport = %d\n",conn->fd, g_u16LocalPort);
     }
     else
     {
