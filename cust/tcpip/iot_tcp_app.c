@@ -50,7 +50,7 @@ iot_tcp_appcall(void)
 
 
    
-    if (lport == ZC_MOUDLE_PORT)
+    if (lport == MT_GetLocalPortNum())
     {
         MT_CloudAppCall();
         return;
