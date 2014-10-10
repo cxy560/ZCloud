@@ -187,8 +187,8 @@ void testcloud()
     u16 u16CiperLen = 32;
     u32 u32Retval;
     u8 u8PlainBuf[1000];
-    mpi_init(&X); 
     u8 u8Key[] = {"80138512665003396643737838315916663972728479914654754587175091902061894104953"};
+    mpi_init(&X); 
     
     //mpi_read_binary(&X, Usr_Cfg.CloudKey, ZC_SEC_RSA_KEY_LEN >> 3);
     //s32len = 2048;
