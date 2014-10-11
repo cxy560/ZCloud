@@ -362,10 +362,16 @@ void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController)
 * Parameter: 
 * History:
 *************************************************/
-void PCT_HandleMoudleEvent(u8 *pu8Msg, u16 u16DataLen)
+void PCT_HandleMoudleEvent(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 u16DataLen)
 {
     MSG_Buffer *pstruBuffer;
     ZC_SecHead struHead;
+    u16 u16MsgLen;
+
+    if (MSG_BULID_BUFFER_MAXLEN < (u16DataLen + sizeof(ZC_MessageHead)))
+    {
+        return;
+    }
 
     if (PCT_TIMER_INVAILD != g_struProtocolController.u8SendMoudleTimer)
     {
@@ -376,9 +382,11 @@ void PCT_HandleMoudleEvent(u8 *pu8Msg, u16 u16DataLen)
         g_struProtocolController.u8SendMoudleTimer = PCT_TIMER_INVAILD;
         g_struProtocolController.u8ReSendMoudleNum = 0;
     }
-    
+
+
+    EVENT_BuildMsg(u8MsgCode, u8MsgId, g_u8MsgBuildBuffer, &u16MsgLen, pu8Msg, u16DataLen);
     struHead.u8SecType = ZC_SEC_ALG_AES;
-    struHead.u16TotalMsg = ZC_HTONS(u16DataLen);
+    struHead.u16TotalMsg = ZC_HTONS(u16MsgLen);
     
     (void)PCT_SendMsgToCloud(&struHead, pu8Msg);
     

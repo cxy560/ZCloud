@@ -236,7 +236,7 @@ void testrecvbuffer()
         MT_TimerExpired();
         if (g_struProtocolController.u8ReSendMoudleNum == 2)
         {
-            PCT_HandleMoudleEvent((u8 *)(g_u8DumpCloudMsg), 100);
+            PCT_HandleMoudleEvent(0, 0, (u8 *)(g_u8DumpCloudMsg), 100);
         }
         
     }
@@ -254,13 +254,20 @@ void readcfg()
     g_struProtocolController.pstruMoudleFun->pfunGetVersion(&pu8Test);
 }
 extern IOT_USR_CFG Usr_Cfg;
+void testRecvAt()
+{
+    u8 u8At1[] = "AT#";
+    u8 u8At2[] = "AT#UPDATA";
+    u8 u8At3[] = {0x41,0x54,0x23,0x57,0x50,0x44,0x41,0x54,0x41,0x0A};
+    MT_RecvDataFromMoudle(u8At1, sizeof(u8At1));
+    MT_RecvDataFromMoudle(u8At2, sizeof(u8At2));
+    MT_RecvDataFromMoudle(u8At3, sizeof(u8At3));
+}
 void main()
 {
     u16 padding;
     MT_Init();
     memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
 
-    //TestSec();
-    testcloud();
-    //TestRsaSec();
+    testRecvAt();
 }

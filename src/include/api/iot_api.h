@@ -183,7 +183,7 @@ typedef enum {
  */
 #if (UARTRX_TO_AIR_LEVEL == 2)
 #define  UART2WIFI_TIMER_INTERVAL    300   //ms
-#define  UART2WIFI_LEN_THRESHOLD     10    //bytes
+#define  UART2WIFI_LEN_THRESHOLD     7    //bytes
 
 
 #if (UART_INTERRUPT == 1)

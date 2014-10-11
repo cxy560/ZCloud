@@ -133,7 +133,7 @@ void PCT_DisConnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController);
-void PCT_HandleMoudleEvent(u8 *pu8Msg, u16 u16DataLen);
+void PCT_HandleMoudleEvent(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 u16DataLen);
 void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller);
 void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller);
 void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller);

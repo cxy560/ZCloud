@@ -10,7 +10,7 @@ u8 uip_flags = 0;
 u16 uip_len = 0;
 u8 g_u8Ipaddr[4]={127,0,0,1};
 extern u8 g_u8DumpCloudMsg[102400];
-
+char ATCmdPrefixAT[] = "AT#";
 int iot_send(u8 fd, u8 *buf, u16 len)
 {
     uip_flags = UIP_NEWDATA;
@@ -124,4 +124,12 @@ u32 spi_flash_read(u32 addr, u8 *data, u16 len)
 {
     memcpy(data, g_u8DumpCloudMsg + addr, len);
     return 0;
+}
+u16 IoT_parse_ATcommand(u8 *pcmd_buf, u16 at_cmd_len)
+{
+    u16 ret_code = 0;   
+
+    pcmd_buf[at_cmd_len] = '\0';
+    
+    printf("%s\n", pcmd_buf);
 }

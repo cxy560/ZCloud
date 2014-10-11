@@ -15,6 +15,7 @@
 #include <uip_timer.h>
 #include <zc_timer.h>
 #include <iot_api.h>
+#include <zc_module_interface.h>
 
 extern PTC_ProtocolCon  g_struProtocolController;
 PTC_ModuleAdapter g_struMt7681Adapter;
@@ -35,7 +36,7 @@ struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 u16 g_u16TcpMss;
 extern IOT_ADAPTER   	IoTpAd;
 u16 g_u16LocalPort;
-
+extern char ATCmdPrefixAT[];
 #ifndef ZC_OFF_LINETEST
 /*************************************************
 * Function: rand
@@ -219,8 +220,42 @@ u32 MT_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 *************************************************/
 u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
 {
-    PCT_HandleMoudleEvent(pu8Data, u16DataLen);
-    return ZC_RET_OK;
+    u8 u8AtPrefixLen;
+    u8 u8AtCmdLen;
+    RCTRL_STRU_MSGHEAD *pstruMsgHead;
+    if (0 == u16DataLen)
+    {
+        return ZC_RET_ERROR;
+    }
+    u8AtPrefixLen = 3;
+    u8AtCmdLen = u8AtPrefixLen;
+ 
+    if ((u16DataLen > u8AtPrefixLen)&& (0 == memcmp(pu8Data, ATCmdPrefixAT, u8AtPrefixLen)))
+    {
+        /*Deal AT CMD*/
+        while (u8AtCmdLen < u16DataLen)
+        {
+            if ((pu8Data[u8AtCmdLen] == '\n') || (pu8Data[u8AtCmdLen] == '\r') || (pu8Data[u8AtCmdLen] == '\0'))
+            {
+                IoT_parse_ATcommand(pu8Data + u8AtPrefixLen, u8AtCmdLen - u8AtPrefixLen);
+                return ZC_RET_OK;
+            }
+            else
+            {
+                u8AtCmdLen++;
+            }
+        }
+        
+    }
+    else if (u16DataLen >= sizeof(RCTRL_STRU_MSGHEAD))
+    {
+        /*deal moudle msg*/
+        pstruMsgHead = (RCTRL_STRU_MSGHEAD *)pu8Data;
+        PCT_HandleMoudleEvent(pstruMsgHead->MsgType, pstruMsgHead->MsgId, pu8Data, u16DataLen);
+        return ZC_RET_OK;
+    }
+    
+    return ZC_RET_ERROR;
 }
 /*************************************************
 * Function: MT_GetCloudKey
