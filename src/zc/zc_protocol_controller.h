@@ -32,6 +32,7 @@
 #define    PCT_TIMER_REACCESS               (1)
 #define    PCT_TIMER_SENDMOUDLE             (2)
 #define    PCT_TIMER_SENDHEART              (3)
+#define    PCT_TIMER_REGISTER               (4)
 
 #define    PCT_TIMER_INTERVAL_RECONNECT     (1000)
 #define    PCT_TIMER_INTERVAL_HEART         (1000 * 120)
@@ -39,6 +40,7 @@
 #define    PCT_TIMER_INTERVAL_REGISTER      (1000)
 
 
+#define    PCT_SEND_BC_MAX_NUM              (4)
 
 
 #define    PCT_KEY_UNRECVED     (0)
@@ -113,8 +115,11 @@ typedef struct
     u8   IvRecv[16];
     u8   RandMsg[ZC_HS_MSG_LEN];
 
+    u8   u8SendBcNum;
+    u8   u8Pad[3];
     PTC_ModuleAdapter *pstruMoudleFun;      /*Communication With Cloud*/
     PTC_OtaInfo struOtaInfo;
+    
 }PTC_ProtocolCon;
 
 extern PTC_ProtocolCon  g_struProtocolController;

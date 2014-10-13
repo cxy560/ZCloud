@@ -286,5 +286,11 @@ void main()
     MT_Init();
     memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
 
-    testupdate();
+    //testupdate();
+    while(1)
+    {
+        MT_BroadcastAppCall();
+    }
+    
+    
 }

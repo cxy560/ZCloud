@@ -106,8 +106,8 @@ void TIMER_TimeoutAction(u8 u8TimerIndex)
         case PCT_TIMER_SENDHEART:            
             PCT_SendHeartMsg();
             break;
-        case PCT_TIMER_INTERVAL_REGISTER: 
-            g_struProtocolController.pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
+        case PCT_TIMER_REGISTER: 
+            g_struProtocolController.pstruMoudleFun->pfunSetTimer(PCT_TIMER_REGISTER, 
                 PCT_TIMER_INTERVAL_REGISTER, &g_struProtocolController.u8RegisterTimer);
             PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
             break;

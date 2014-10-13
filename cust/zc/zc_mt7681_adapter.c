@@ -343,6 +343,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     
 	UIP_UDP_CONN *udp_conn=NULL;
     uip_ipaddr_t ip;
+    uip_ipaddr_t broadcastip;
 
     u16 *pu16Test = NULL;
     
@@ -383,17 +384,16 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     }
     else
     {
-        udp_conn = uip_udp_new(&ip, ZC_HTONS((u16_t)pstruConnection->u16Port));
-        if (NULL == udp_conn)
-        {
-            return ZC_RET_ERROR;
-        }
-        if (udp_conn) {
-            uip_udp_bind(udp_conn, ZC_HTONS(ZC_MOUDLE_PORT));
-        }
 
-        pstruConnection->u32Socket = udp_conn->fd;
     }
+    
+    /*add broadcast ip*/
+    uip_ipaddr(broadcastip, 255,255,255,255);
+    udp_conn = uip_udp_new(&broadcastip, ZC_HTONS(ZC_MOUDLE_PORT));
+    if(udp_conn != NULL) {
+        uip_udp_bind(udp_conn, ZC_HTONS(ZC_MOUDLE_BROADCAST_PORT));
+    }
+
     return ZC_RET_OK;
 }
 /*************************************************
@@ -438,7 +438,25 @@ void MT_Rand(u8 *pu8Rand)
         memcpy((pu8Rand + 4 * u32Index), &u32Rand, 4);
     }
 }
-
+/*************************************************
+* Function: MT_BroadcastAppCall
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MT_BroadcastAppCall()
+{
+    ZC_MessageHead struMsg;
+    struMsg.MsgCode = ZC_CODE_BC_INFO;
+    struMsg.Payloadlen = 0;
+    if (g_struProtocolController.u8SendBcNum < PCT_SEND_BC_MAX_NUM)
+    {   
+        uip_send((u8*)&struMsg, sizeof(ZC_MessageHead));
+        g_struProtocolController.u8SendBcNum++;
+    }
+}
 /*************************************************
 * Function: MT_CloudAppCall
 * Description: 

@@ -733,8 +733,10 @@ void PCT_WakeUp()
     if (PCT_STATE_INIT == g_struProtocolController.u8MainState)
     {
         //g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET;
-        g_struProtocolController.pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
+        g_struProtocolController.pstruMoudleFun->pfunSetTimer(PCT_TIMER_REGISTER, 
             PCT_TIMER_INTERVAL_REGISTER, &g_struProtocolController.u8RegisterTimer);
+        /*Intial Bc send Num*/
+        g_struProtocolController.u8SendBcNum = 0;
 
         PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
     }

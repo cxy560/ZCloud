@@ -13,6 +13,7 @@
 #if CFG_SUPPORT_DNS
 #include "resolv.h"
 #endif
+#include "zc_module_config.h"
 
 extern UCHAR gCurrentAddress[];
 extern IOT_ADAPTER   	IoTpAd;
@@ -55,16 +56,8 @@ iot_udp_appcall(void)
 	} else if (rport == DNS_SERVER_PORT) {
 		handle_resolv();
 #endif
-	/* Customer APP start. */
-
-	} else if (lport == 7682) {
-		//udp_server_sample();
-	/* } else if (lport == 6666) {
-		udp_client_sample(); 
-	} else if (lport == 8888) {
-		resolv_usage_sample(); */
-
-	/* Customer APP end. */
+	} else if (lport == ZC_MOUDLE_PORT) {
+        MT_BroadcastAppCall();
 	}
 #ifdef CONFIG_SOFTAP
 	else if (DHCPC_SERVER_PORT == lport)

@@ -85,7 +85,9 @@ typedef enum
     ZC_CODE_ZOTA_FILE_BEGIN,      /*file name, len, version*/
     ZC_CODE_ZOTA_FILE_CHUNK,
     ZC_CODE_ZOTA_FILE_END,
-    ZC_CODE_ZOTA_END
+    ZC_CODE_ZOTA_END,
+
+    ZC_CODE_BC_INFO
 }ZC_MsgCode;
 
 /*Error Msg*/

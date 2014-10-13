@@ -21,6 +21,7 @@
 
 #define     ZC_CLOUD_PORT                                    (8384)
 #define     ZC_MOUDLE_PORT                                   (7689)
+#define     ZC_MOUDLE_BROADCAST_PORT                         (8689)
 #endif
 /******************************* FILE END ***********************************/
 
