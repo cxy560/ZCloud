@@ -256,9 +256,9 @@ void readcfg()
 extern IOT_USR_CFG Usr_Cfg;
 void testRecvAt()
 {
-    u8 u8At1[] = "AT#";
+    u8 u8At1[] = "AT#1";
     u8 u8At2[] = "AT#UPDATA";
-    u8 u8At3[] = {0x41,0x54,0x23,0x57,0x50,0x44,0x41,0x54,0x41,0x0A};
+    u8 u8At3[] = {0x41,0x54,0x23,0x57,0x50,0x44,0x41,0x54,0x41,0x45};
     MT_RecvDataFromMoudle(u8At1, sizeof(u8At1));
     MT_RecvDataFromMoudle(u8At2, sizeof(u8At2));
     MT_RecvDataFromMoudle(u8At3, sizeof(u8At3));

@@ -5,7 +5,7 @@
 #include "iot_api.h"
 #include "bmd.h"
 #include "uart_sw.h"
-
+#include "zc_protocol_interface.h"
 
 /******************************************************************************
 * MODULE NAME:     iot_uart_rb.c
@@ -164,6 +164,7 @@ kal_uint16 UART_GetByte(volatile kal_uint8 *Byte)
 
 char ATCmdPrefixAT[] = AT_CMD_PREFIX;
 char ATCmdPrefixIW[] = AT_CMD_PREFIX2;
+char AtCmdPrefixMsg[4] = {0x00, 0x01, 0x02, 0x04};
 
 /*
  * ISR context
@@ -185,7 +186,9 @@ void UART_Rx_Cb(void)
 
 	static UINT8  ATMatchNum = 0;
 	static UINT8  IWMatchNum = 0;
-    
+	static UINT8  MsgMatchNum = 0;
+	static UINT8  LastCh = 0;
+	u16_t  MsgLen = 0;
 /*
  * MCU only forward uart rx data to air
  * here,copy to rx ring and return
@@ -238,9 +241,19 @@ void UART_Rx_Cb(void)
                 {         
     				IWMatchNum = 0;
                 }
-    
+
+        		if (AtCmdPrefixMsg[MsgMatchNum] == ch)
+                {         
+    				MsgMatchNum++;
+                }
+    			else
+                {         
+    				MsgMatchNum = 0;
+                }
+                
     			if ((ATMatchNum == sizeof(ATCmdPrefixAT)-1) ||   //match case 1: AT#
-    				(IWMatchNum == sizeof(ATCmdPrefixIW)-1))    //match case 2:iwpriv ra0
+    				(IWMatchNum == sizeof(ATCmdPrefixIW)-1) ||
+    				(MsgMatchNum == sizeof(AtCmdPrefixMsg)))    //match case 2:iwpriv ra0
     			{   
 
     			    rx_desc->cur_num = rx_desc->pkt_num;                  
@@ -255,11 +268,69 @@ void UART_Rx_Cb(void)
                     {            
     					rx_desc->cur_type = PKT_IWCMD;			 //match case 2:iwpriv ra0
                     }
+                    else if (MsgMatchNum == sizeof(AtCmdPrefixMsg))
+                    {
+                        rx_desc->cur_type = PKT_MSGCMD;
+                    }
                     
     				ATMatchNum = 0;
     				IWMatchNum = 0;
     				continue;
     			}			
+            }
+            break;
+            case PKT_MSGCMD:
+            {
+                infor = &(rx_desc->infor[rx_desc->cur_num]);
+     
+                Buf_Push(rx_ring,ch);
+                roomleft--;
+                infor->pkt_len++;
+
+                if (infor->pkt_len == 6)
+                {
+                    MsgLen = (LastCh << 8) + ch;
+                }
+                else if (infor->pkt_len == (MsgLen + sizeof(ZC_MessageHead)))
+                {
+                    //if task has consumed some packets
+                    if (rx_desc->cur_num != rx_desc->pkt_num)
+                    {   
+                        temp_info = infor;
+                        infor     = &(rx_desc->infor[rx_desc->pkt_num]);
+                        infor->pkt_len = temp_info->pkt_len;
+                        temp_info->pkt_len = 0;
+                        temp_info->pkt_type = PKT_UNKNOWN;
+                    }
+                    
+                    infor->pkt_type = rx_desc->cur_type;  // PKT_ATCMD / PKT_IWCMD;
+                    rx_desc->pkt_num++;
+                    rx_desc->cur_type = PKT_UNKNOWN;
+                }
+
+                LastCh = ch;
+                /*
+                 * if overflow,we discard the current packet
+                 * example1:packet length > ring size
+                 * example2:rx ring buff can no be freed by task as quickly as rx interrupt coming
+                 */    
+                if ((!roomleft) || (rx_desc->pkt_num >= NUM_DESCS))
+                {   
+                    //rollback
+                    Buff_RollBack(rx_ring,infor->pkt_len);
+         
+                    roomleft += infor->pkt_len;
+                    
+                    infor->pkt_type = PKT_UNKNOWN;
+                    infor->pkt_len = 0;
+                    rx_desc->cur_type = PKT_UNKNOWN;
+
+                    if (rx_desc->pkt_num >= NUM_DESCS)
+                    {
+                        rx_desc->pkt_num--;
+                    }
+                        
+                }
             }
             break;
 

@@ -174,7 +174,8 @@ typedef enum {
 typedef enum {
     PKT_UNKNOWN,
     PKT_ATCMD,
-    PKT_IWCMD 
+    PKT_IWCMD,
+    PKT_MSGCMD 
 } PKT_TYPE;
 
 
