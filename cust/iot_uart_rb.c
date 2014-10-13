@@ -164,7 +164,7 @@ kal_uint16 UART_GetByte(volatile kal_uint8 *Byte)
 
 char ATCmdPrefixAT[] = AT_CMD_PREFIX;
 char ATCmdPrefixIW[] = AT_CMD_PREFIX2;
-char AtCmdPrefixMsg[4] = {0x00, 0x01, 0x02, 0x04};
+char AtCmdPrefixMsg[4] = {0x02,0x03,0x04,0x05};
 
 /*
  * ISR context
@@ -460,8 +460,9 @@ void UART_Rx_Packet_Dispatch(void)
             case PKT_IWCMD:
                 IoT_parse_IWCmd(pCmdBuf, rxpkt_len);
                 break;
-             // <----custom defined packet dispatch
-             
+            case PKT_MSGCMD:
+                MT_RecvDataFromMoudle(pCmdBuf, rxpkt_len);
+                break;
              default:
                 break;
         }    

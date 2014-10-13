@@ -86,6 +86,7 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.u8ReconnectTimer = PCT_TIMER_INVAILD;
     g_struProtocolController.u8SendMoudleTimer = PCT_TIMER_INVAILD;
     g_struProtocolController.u8HeartTimer = PCT_TIMER_INVAILD;
+    g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
 
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
 }
@@ -191,7 +192,6 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
         PCT_TIMER_INTERVAL_RECONNECT * 120, &pstruContoller->u8AccessTimer);
 
-    PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
 }
 
 /*************************************************
@@ -362,16 +362,10 @@ void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController)
 * Parameter: 
 * History:
 *************************************************/
-void PCT_HandleMoudleEvent(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 u16DataLen)
+void PCT_HandleMoudleEvent(u8 *pu8Msg, u16 u16DataLen)
 {
     MSG_Buffer *pstruBuffer;
     ZC_SecHead struHead;
-    u16 u16MsgLen;
-
-    if (MSG_BULID_BUFFER_MAXLEN < (u16DataLen + sizeof(ZC_MessageHead)))
-    {
-        return;
-    }
 
     if (PCT_TIMER_INVAILD != g_struProtocolController.u8SendMoudleTimer)
     {
@@ -384,9 +378,8 @@ void PCT_HandleMoudleEvent(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 u16DataLen)
     }
 
 
-    EVENT_BuildMsg(u8MsgCode, u8MsgId, g_u8MsgBuildBuffer, &u16MsgLen, pu8Msg, u16DataLen);
     struHead.u8SecType = ZC_SEC_ALG_AES;
-    struHead.u16TotalMsg = ZC_HTONS(u16MsgLen);
+    struHead.u16TotalMsg = ZC_HTONS(u16DataLen);
     
     (void)PCT_SendMsgToCloud(&struHead, pu8Msg);
     
@@ -405,7 +398,6 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
     MSG_Buffer *pstruBuffer;
     ZC_MessageHead *pstruMsg;
     ZC_HandShakeMsg2 *pstruMsg2;
-    u32 u32Index;
  
     pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
     if (NULL == pstruBuffer)
@@ -473,6 +465,7 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
         {
             pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD; 
             ZC_Printf("recv msg4 ok\n");
+            PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
         }
         else
         {
@@ -493,7 +486,145 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDHEART, 
         PCT_TIMER_INTERVAL_HEART, &pstruContoller->u8HeartTimer);
 }
+/*************************************************
+* Function: PCT_HandleOtaBeginMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_HandleOtaBeginMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
+{
+    return;
+}
 
+/*************************************************
+* Function: PCT_HandleOtaFileBeginMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_HandleOtaFileBeginMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
+{
+    ZC_MessageHead *pstruMsg;
+    ZC_OtaFileBeginReq *pstruOta;
+    pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
+    pstruOta = (ZC_OtaFileBeginReq *)(pstruMsg + 1);
+    
+    pstruContoller->struOtaInfo.u16RecvOffset = 0;
+    pstruContoller->struOtaInfo.u16TotalLen = pstruOta->u16FileTotalLen;
+    return;
+}
+/*************************************************
+* Function: PCT_HandleOtaFileChunkMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_HandleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
+{
+    ZC_MessageHead *pstruMsg;
+    ZC_OtaFileChunkReq *pstruOta;
+    u16 u16FileLen;
+    u32 u32RetVal;
+    pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
+    pstruOta = (ZC_OtaFileChunkReq *)(pstruMsg + 1);
+    u16FileLen = ZC_HTONS(pstruMsg->Payloadlen) - sizeof(ZC_OtaFileChunkReq);
+    
+    /*check para*/
+    if ((pstruOta->u16Offset != pstruContoller->struOtaInfo.u16RecvOffset)
+      || ((pstruOta->u16Offset + u16FileLen) > pstruContoller->struOtaInfo.u16TotalLen)
+      || (u16FileLen > ZC_OTA_MAX_CHUNK_LEN))
+    {
+        PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
+        return;
+    }
+    
+    u32RetVal = pstruContoller->pstruMoudleFun->pfunUpdate((u8*)(pstruOta + 1), pstruOta->u16Offset, u16FileLen);
+    
+    if (ZC_RET_ERROR == u32RetVal)
+    {
+        PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
+        return;
+    }
+
+    /*update file offset*/
+    pstruContoller->struOtaInfo.u16RecvOffset = pstruContoller->struOtaInfo.u16RecvOffset + u16FileLen;
+    
+}
+/*************************************************
+* Function: PCT_HandleOtaFileEndMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_HandleOtaFileEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
+{
+
+}
+/*************************************************
+* Function: PCT_HandleOtaFileEndMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_HandleOtaEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
+{
+    PCT_SendNotifyMsg(ZC_CODE_ZOTA_END);
+}
+
+/*************************************************
+* Function: PCT_HandleMoudleMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
+{
+    ZC_MessageHead *pstruMsg;
+    pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
+
+    /*Send to Moudle*/
+    if (0 == g_u32LoopFlag)
+    {
+        pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
+    }
+
+    /*start send timer*/
+    pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDMOUDLE, 
+        PCT_TIMER_INTERVAL_SENDMOUDLE, &pstruContoller->u8SendMoudleTimer);
+
+    /*copy buffer, prepare for retx*/
+    memcpy((u8*)g_struRetxBuffer.u8MsgBuffer, pstruBuffer->u8MsgBuffer, 
+        ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
+
+    g_struRetxBuffer.u32Len = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead);
+    g_struRetxBuffer.u8Status = MSG_BUFFER_FULL;
+
+    pstruContoller->pu8SendMoudleBuffer = (u8*)&g_struRetxBuffer;
+    pstruContoller->u8ReSendMoudleNum = 0;
+
+    /*restart heart timer*/
+    if (PCT_TIMER_INVAILD != pstruContoller->u8HeartTimer)
+    {
+        TIMER_StopTimer(pstruContoller->u8HeartTimer);
+    }
+
+    pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDHEART, 
+        PCT_TIMER_INTERVAL_HEART, &pstruContoller->u8HeartTimer);
+
+}
 /*************************************************
 * Function: PCT_HandleEvent
 * Description: 
@@ -522,38 +653,34 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
     ZC_Printf("event %d recv len =%d\n", pstruMsg->MsgId, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
     ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
 
-    /*Send to Moudle*/
-    if (0 == g_u32LoopFlag)
+    switch (pstruMsg->MsgCode)
     {
-        pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
+        case ZC_CODE_ZOTA_BEGIN:
+            PCT_HandleOtaBeginMsg(pstruContoller, pstruBuffer);
+            break;   
+        case ZC_CODE_ZOTA_FILE_BEGIN:
+            PCT_HandleOtaFileBeginMsg(pstruContoller, pstruBuffer);
+            break;
+        case ZC_CODE_ZOTA_FILE_CHUNK:
+            PCT_HandleOtaFileChunkMsg(pstruContoller, pstruBuffer);
+            break;
+        case ZC_CODE_ZOTA_FILE_END:
+            PCT_HandleOtaFileEndMsg(pstruContoller, pstruBuffer);
+            break;  
+        case ZC_CODE_ZOTA_END:
+            PCT_HandleOtaEndMsg(pstruContoller, pstruBuffer);
+            break; 
+        default:
+            PCT_HandleMoudleMsg(pstruContoller, pstruBuffer);
+            break;                                    
     }
 
-    
-    pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDMOUDLE, 
-        PCT_TIMER_INTERVAL_SENDMOUDLE, &pstruContoller->u8SendMoudleTimer);
-    
+    /*send empty msg to cloud*/
     PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
-
-    /*copy buffer*/
-    memcpy((u8*)g_struRetxBuffer.u8MsgBuffer, pstruBuffer->u8MsgBuffer, 
-        ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
-    
-    g_struRetxBuffer.u32Len = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead);
-    g_struRetxBuffer.u8Status = MSG_BUFFER_FULL;
-    
-    pstruContoller->pu8SendMoudleBuffer = (u8*)&g_struRetxBuffer;
-    pstruContoller->u8ReSendMoudleNum = 0;
 
     pstruBuffer->u32Len = 0;
     pstruBuffer->u8Status = MSG_BUFFER_IDLE;
 
-    if (PCT_TIMER_INVAILD != pstruContoller->u8HeartTimer)
-    {
-        TIMER_StopTimer(pstruContoller->u8HeartTimer);
-    }
-   
-    pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDHEART, 
-     PCT_TIMER_INTERVAL_HEART, &pstruContoller->u8HeartTimer);
     
     return;
 } 
@@ -605,7 +732,10 @@ void PCT_WakeUp()
 {
     if (PCT_STATE_INIT == g_struProtocolController.u8MainState)
     {
-        g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET;
+        //g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET;
+        g_struProtocolController.pstruMoudleFun->pfunSetTimer(PCT_TIMER_REACCESS, 
+            PCT_TIMER_INTERVAL_REGISTER, &g_struProtocolController.u8RegisterTimer);
+
         PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
     }
     
@@ -630,6 +760,7 @@ void PCT_Sleep()
     g_struProtocolController.u8SendMoudleTimer = PCT_TIMER_INVAILD;
     g_struProtocolController.u8HeartTimer = PCT_TIMER_INVAILD;
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
+    g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
     PCT_SendNotifyMsg(ZC_CODE_WIFI_DISCONNECT);
 }
 

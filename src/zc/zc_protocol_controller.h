@@ -36,6 +36,10 @@
 #define    PCT_TIMER_INTERVAL_RECONNECT     (1000)
 #define    PCT_TIMER_INTERVAL_HEART         (1000 * 120)
 #define    PCT_TIMER_INTERVAL_SENDMOUDLE    (1000)
+#define    PCT_TIMER_INTERVAL_REGISTER      (1000)
+
+
+
 
 #define    PCT_KEY_UNRECVED     (0)
 #define    PCT_KEY_RECVED       (1)
@@ -52,7 +56,7 @@ typedef struct
 }PTC_Connection;
 
 typedef void (*pFunSendDataToCloud)(PTC_Connection *pstruConnection);
-typedef u32 (*pFunFirmwareUpdate)(u8 *pu8NewVerFile, u16 u16DataLen);
+typedef u32 (*pFunFirmwareUpdate)(u8 *pu8FileData, u16 u16Offset, u16 u16DataLen);
 typedef u32 (*pFunSendDataToMoudle)(u8 *pu8Data, u16 u16DataLen);
 typedef u32 (*pFunRecvDataFromMoudle)(u8 *pu8Data, u16 u16DataLen);
 typedef u32 (*pFunGetCloudKey)(u8 **pu8Key);
@@ -80,7 +84,11 @@ typedef struct
     pFunSetTimer                pfunSetTimer;
 }PTC_ModuleAdapter;
 
-
+typedef struct
+{
+    u16 u16TotalLen;
+    u16 u16RecvOffset;
+}PTC_OtaInfo;
 
 typedef struct
 {
@@ -91,8 +99,10 @@ typedef struct
 
     u8   u8HeartTimer;
     u8   u8SendMoudleTimer;
+    u8   u8RegisterTimer;
+
     u8   u8ReSendMoudleNum;
-    u8   u8Pad;
+
     
     u8   *pu8SendMoudleBuffer;
     
@@ -104,6 +114,7 @@ typedef struct
     u8   RandMsg[ZC_HS_MSG_LEN];
 
     PTC_ModuleAdapter *pstruMoudleFun;      /*Communication With Cloud*/
+    PTC_OtaInfo struOtaInfo;
 }PTC_ProtocolCon;
 
 extern PTC_ProtocolCon  g_struProtocolController;
@@ -133,7 +144,7 @@ void PCT_DisConnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController);
-void PCT_HandleMoudleEvent(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 u16DataLen);
+void PCT_HandleMoudleEvent(u8 *pu8Msg, u16 u16DataLen);
 void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller);
 void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller);
 void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller);

@@ -263,11 +263,28 @@ void testRecvAt()
     MT_RecvDataFromMoudle(u8At2, sizeof(u8At2));
     MT_RecvDataFromMoudle(u8At3, sizeof(u8At3));
 }
+
+void testupdate()
+{
+    u8 u8Buffer[1024];
+    extern u8 u8File[1024];
+    u32 u32Index;
+    for (u32Index = 0; u32Index < 180; u32Index++)
+    {
+        u8Buffer[u32Index] = (u8)u32Index;
+    }
+    MT_FirmwareUpdate(u8Buffer, 0, 60);
+    MT_FirmwareUpdate(u8Buffer + 60, 60, 60);
+    MT_FirmwareUpdate(u8Buffer + 120, 120, 60);
+    
+    ZC_TraceData(u8File, 180);
+    
+}
 void main()
 {
     u16 padding;
     MT_Init();
     memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
 
-    testRecvAt();
+    testupdate();
 }

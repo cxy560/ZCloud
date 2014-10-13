@@ -50,15 +50,15 @@ typedef volatile unsigned int               vu32;
 
 #if ZC_DEBUG
 #ifdef ZC_OFF_LINETEST
-#define ZC_Printf(format, ...) printf("<trace>"format"File:%s, Line:%d, Function:%s\n", ##__VA_ARGS__, __FILE__, __LINE__ , __FUNCTION__)
+#define ZC_Printf(format, ...) printf("\1\2\3\4"format"File:%s, Line:%d, Function:%s\n", ##__VA_ARGS__, __FILE__, __LINE__ , __FUNCTION__)
 #else
-#define ZC_Printf(format, ...) Printf_High("<trace>"format"File:%s, Line:%d, Function:%s\n", ##__VA_ARGS__, __FILE__, __LINE__ , __FUNCTION__)
+#define ZC_Printf(format, ...) Printf_High("\1\2\3\4"format"File:%s, Line:%d, Function:%s\n", ##__VA_ARGS__, __FILE__, __LINE__ , __FUNCTION__)
 #endif 
 #else
 #ifdef ZC_OFF_LINETEST
-#define ZC_Printf(format, ...) printf("<trace>"format"", ##__VA_ARGS__)
+#define ZC_Printf(format, ...) printf("\1\2\3\4"format"", ##__VA_ARGS__)
 #else
-#define ZC_Printf(format, ...) Printf_High("<trace>"format"", ##__VA_ARGS__)
+#define ZC_Printf(format, ...) Printf_High("\1\2\3\4"format"", ##__VA_ARGS__)
 #endif 
 #endif
 

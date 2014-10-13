@@ -132,4 +132,13 @@ u16 IoT_parse_ATcommand(u8 *pcmd_buf, u16 at_cmd_len)
     pcmd_buf[at_cmd_len] = '\0';
     
     printf("%s\n", pcmd_buf);
+    return 1;
+}
+u8 u8File[1024];
+u8 spi_flash_update_fw(u8 type, u32 offset, u8 *pdata, u16 len)
+{
+    printf("offset = %d, len = %d, pdata = %d\n", offset, len, pdata);
+    memcpy(u8File + offset, pdata, len);
+    
+    return 0;
 }

@@ -15,11 +15,15 @@
 #define ZC_HS_DEVICE_ID_LEN                 (12)
 #define ZC_HS_SESSION_KEY_LEN               (16)
 #define ZC_HS_SESSION_IV_LEN                (16)
+#define ZC_MODULE_KEY_LEN                   (112)
 
 
 #define ZC_SEC_ALG_NONE                     (0) 
 #define ZC_SEC_ALG_RSA                      (1) 
 #define ZC_SEC_ALG_AES                      (2) 
+
+
+#define ZC_OTA_MAX_CHUNK_LEN                (128)
 
 
 
@@ -74,7 +78,14 @@ typedef enum
     ZC_CODE_OTA_FILE_BEGIN,      /*file name, len, version*/
     ZC_CODE_OTA_FILE_CHUNK,
     ZC_CODE_OTA_FILE_END,
-    ZC_CODE_OTA_END
+    ZC_CODE_OTA_END,
+    
+    /*OTA Wifi Moudle Code*/
+    ZC_CODE_ZOTA_BEGIN,
+    ZC_CODE_ZOTA_FILE_BEGIN,      /*file name, len, version*/
+    ZC_CODE_ZOTA_FILE_CHUNK,
+    ZC_CODE_ZOTA_FILE_END,
+    ZC_CODE_ZOTA_END
 }ZC_MsgCode;
 
 /*Error Msg*/
@@ -114,6 +125,43 @@ typedef struct
 {
     u8 RandMsg[ZC_HS_MSG_LEN];
 }ZC_HandShakeMsg4;
+
+/*msg code: ZC_CODE_DESCRIBE*/
+typedef struct 
+{
+	u8	u8WifiSwVersion;            
+	u8	u8HwVersion;              
+	u8	u8ArmSwVersion;          
+	u8	u8ZigbeeSwVersion;       
+    u8  u8ModuleKey[ZC_MODULE_KEY_LEN];
+    u8  u8DeviceId[ZC_HS_DEVICE_ID_LEN];
+    
+}ZC_RegisterReq;
+
+/*msg code: ZC_CODE_OTA_BEGIN*/
+typedef struct
+{
+    u8 u8FileNum;
+    u8 u8Pad[3];
+    u8 u8FileType[0];
+}ZC_OtaBeginReq;
+
+/*msg code: ZC_CODE_OTA_FILE_BEGIN*/
+typedef struct
+{
+    u8 u8FileType;
+    u8 u8FileVersion;
+    u16 u16FileTotalLen;
+}ZC_OtaFileBeginReq;
+
+/*msg code: ZC_CODE_OTA_FILE_CHUNK, max data len is ZC_OTA_MAX_CHUNK_LEN*/
+typedef struct
+{
+    u16 u16Offset;
+    u16 u16Pad;
+}ZC_OtaFileChunkReq;
+
+
 #endif
 /******************************* FILE END ***********************************/
 

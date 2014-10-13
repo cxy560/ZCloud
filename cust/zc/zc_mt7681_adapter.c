@@ -193,8 +193,32 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_FirmwareUpdate(u8 *pu8NewVerFile, u16 u16DataLen)
+u32 MT_FirmwareUpdate(u8 *pu8FileData, u16 u16Offset, u16 u16DataLen)
 {
+    u8 u8RetVal;
+    u16 u16HeadLen = 128;
+    if ((u16Offset + u16DataLen) <= u16HeadLen)
+    {
+        return ZC_RET_OK;
+    }
+    else if (((u16Offset + u16DataLen) > u16HeadLen) && (u16Offset < u16HeadLen))
+    {
+        
+        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_STA_FW, 0, pu8FileData + (u16HeadLen - u16Offset), u16DataLen - (u16HeadLen - u16Offset));
+        if (0 != u8RetVal)
+        {
+            return ZC_RET_ERROR;
+        }
+    }
+    else
+    {
+        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_STA_FW, (u16Offset - u16HeadLen), pu8FileData, u16DataLen);
+        if (0 != u8RetVal)
+        {
+            return ZC_RET_ERROR;
+        }
+    }
+    
     return ZC_RET_OK;
 }
 /*************************************************
@@ -207,6 +231,8 @@ u32 MT_FirmwareUpdate(u8 *pu8NewVerFile, u16 u16DataLen)
 *************************************************/
 u32 MT_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 {
+    u8 u8MagicFlag[4] = {0x02,0x03,0x04,0x05};
+    IoT_uart_output(u8MagicFlag, 4);
     IoT_uart_output(pu8Data, u16DataLen);
     return ZC_RET_OK;
 }
@@ -220,42 +246,33 @@ u32 MT_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 *************************************************/
 u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
 {
-    u8 u8AtPrefixLen;
-    u8 u8AtCmdLen;
-    RCTRL_STRU_MSGHEAD *pstruMsgHead;
+    ZC_MessageHead *pstrMsg;
+    ZC_RegisterReq *pstruRegister;
+
     if (0 == u16DataLen)
     {
         return ZC_RET_ERROR;
     }
-    u8AtPrefixLen = 3;
-    u8AtCmdLen = u8AtPrefixLen;
- 
-    if ((u16DataLen > u8AtPrefixLen)&& (0 == memcmp(pu8Data, ATCmdPrefixAT, u8AtPrefixLen)))
+    
+    pstrMsg = (ZC_MessageHead *)pu8Data;
+
+    if (ZC_CODE_DESCRIBE == pstrMsg->MsgCode)
     {
-        /*Deal AT CMD*/
-        while (u8AtCmdLen < u16DataLen)
+        pstruRegister = (ZC_RegisterReq *)(pstrMsg + 1);
+        memcpy(IoTpAd.UsrCfg.ProductName, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+        memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
+        g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET; 
+        if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
         {
-            if ((pu8Data[u8AtCmdLen] == '\n') || (pu8Data[u8AtCmdLen] == '\r') || (pu8Data[u8AtCmdLen] == '\0'))
-            {
-                IoT_parse_ATcommand(pu8Data + u8AtPrefixLen, u8AtCmdLen - u8AtPrefixLen);
-                return ZC_RET_OK;
-            }
-            else
-            {
-                u8AtCmdLen++;
-            }
+            TIMER_StopTimer(g_struProtocolController.u8RegisterTimer);
+            g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
         }
-        
-    }
-    else if (u16DataLen >= sizeof(RCTRL_STRU_MSGHEAD))
-    {
-        /*deal moudle msg*/
-        pstruMsgHead = (RCTRL_STRU_MSGHEAD *)pu8Data;
-        PCT_HandleMoudleEvent(pstruMsgHead->MsgType, pstruMsgHead->MsgId, pu8Data, u16DataLen);
+
         return ZC_RET_OK;
     }
     
-    return ZC_RET_ERROR;
+    PCT_HandleMoudleEvent(pu8Data, u16DataLen);
+    return ZC_RET_OK;
 }
 /*************************************************
 * Function: MT_GetCloudKey
