@@ -163,7 +163,12 @@ typedef struct
     u16 u16Pad;
 }ZC_OtaFileChunkReq;
 
-
+/*BC info£¬ send after connect with cloud£¬ in PCT_SEND_BC_MAX_NUM*/
+typedef struct
+{
+    u8 RandMsg[ZC_HS_MSG_LEN];
+    u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
+}ZC_BroadCastInfo;
 #endif
 /******************************* FILE END ***********************************/
 

@@ -736,7 +736,7 @@ void PCT_WakeUp()
         g_struProtocolController.pstruMoudleFun->pfunSetTimer(PCT_TIMER_REGISTER, 
             PCT_TIMER_INTERVAL_REGISTER, &g_struProtocolController.u8RegisterTimer);
         /*Intial Bc send Num*/
-        g_struProtocolController.u8SendBcNum = 0;
+        g_struProtocolController.u16SendBcNum = 0;
 
         PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
     }

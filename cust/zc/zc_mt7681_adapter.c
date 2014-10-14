@@ -249,6 +249,8 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
     ZC_MessageHead *pstrMsg;
     ZC_RegisterReq *pstruRegister;
 
+    ZC_TraceData(pu8Data, u16DataLen);
+
     if (0 == u16DataLen)
     {
         return ZC_RET_ERROR;
@@ -389,9 +391,10 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     
     /*add broadcast ip*/
     uip_ipaddr(broadcastip, 255,255,255,255);
-    udp_conn = uip_udp_new(&broadcastip, ZC_HTONS(ZC_MOUDLE_PORT));
+    udp_conn = uip_udp_new(&broadcastip, ZC_HTONS(ZC_MOUDLE_BROADCAST_PORT));
     if(udp_conn != NULL) {
-        uip_udp_bind(udp_conn, ZC_HTONS(ZC_MOUDLE_BROADCAST_PORT));
+        ZC_Printf("setup Bc channel\n");
+        uip_udp_bind(udp_conn, ZC_HTONS(ZC_MOUDLE_PORT));
     }
 
     return ZC_RET_OK;
@@ -448,13 +451,17 @@ void MT_Rand(u8 *pu8Rand)
 *************************************************/
 void MT_BroadcastAppCall()
 {
-    ZC_MessageHead struMsg;
-    struMsg.MsgCode = ZC_CODE_BC_INFO;
-    struMsg.Payloadlen = 0;
-    if (g_struProtocolController.u8SendBcNum < PCT_SEND_BC_MAX_NUM)
+    u16 u16Len;
+    if (PCT_STATE_CONNECT_CLOUD  != g_struProtocolController.u8MainState)
+    {
+        return;
+    }
+    EVENT_BuildBcMsg(g_u8MsgBuildBuffer, &u16Len);
+
+    if (g_struProtocolController.u16SendBcNum < PCT_SEND_BC_MAX_NUM)
     {   
-        uip_send((u8*)&struMsg, sizeof(ZC_MessageHead));
-        g_struProtocolController.u8SendBcNum++;
+        uip_send(g_u8MsgBuildBuffer, u16Len);
+        g_struProtocolController.u16SendBcNum++;
     }
 }
 /*************************************************

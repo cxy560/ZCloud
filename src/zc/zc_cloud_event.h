@@ -24,6 +24,8 @@ u32  EVENT_BuildMsg(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len,
     u8 *pu8Payload, u16 u16PayloadLen);
 u32  EVENT_BuildEmptyMsg(u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len);
 u32  EVENT_BuildHeartMsg(u8 *pu8Msg, u16 *pu16Len);
+u32  EVENT_BuildBcMsg(u8 *pu8Msg, u16 *pu16Len);
+
 #ifdef __cplusplus
 }
 #endif

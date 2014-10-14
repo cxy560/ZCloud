@@ -15,6 +15,7 @@
 #include <zc_protocol_interface.h>
 #include <zc_message_queue.h>
 #include <zc_sec_engine.h>
+#include <zc_cloud_event.h>
 
 /*PCT Main State Machine*/
 #define    PCT_STATE_SLEEP                  (0)
@@ -40,7 +41,7 @@
 #define    PCT_TIMER_INTERVAL_REGISTER      (1000)
 
 
-#define    PCT_SEND_BC_MAX_NUM              (4)
+#define    PCT_SEND_BC_MAX_NUM              (300)       /*5 minutes*/
 
 
 #define    PCT_KEY_UNRECVED     (0)
@@ -115,8 +116,8 @@ typedef struct
     u8   IvRecv[16];
     u8   RandMsg[ZC_HS_MSG_LEN];
 
-    u8   u8SendBcNum;
-    u8   u8Pad[3];
+    u16   u16SendBcNum;
+    u8   u8Pad[2];
     PTC_ModuleAdapter *pstruMoudleFun;      /*Communication With Cloud*/
     PTC_OtaInfo struOtaInfo;
     
