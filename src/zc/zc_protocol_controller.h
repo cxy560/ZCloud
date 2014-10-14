@@ -91,6 +91,7 @@ typedef struct
 {
     u16 u16TotalLen;
     u16 u16RecvOffset;
+    u8 u8Crc[2];
 }PTC_OtaInfo;
 
 typedef struct

@@ -154,6 +154,8 @@ typedef struct
     u8 u8FileType;
     u8 u8FileVersion;
     u16 u16FileTotalLen;
+    u8  u8TotalFileCrc[2];
+    u8 u8Pad[2];
 }ZC_OtaFileBeginReq;
 
 /*msg code: ZC_CODE_OTA_FILE_CHUNK, max data len is ZC_OTA_MAX_CHUNK_LEN*/

@@ -488,6 +488,24 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
 }
 /*************************************************
 * Function: PCT_HandleOtaBeginMsg
+* Description:
+* Author: cxy
+* Returns:
+* Parameter:
+* History:
+*************************************************/
+void PCT_SendAckToCloud(u8 u8MsgId)
+{
+    u16 u16Len;
+    ZC_SecHead struSechead;
+
+    EVENT_BuildMsg(ZC_CODE_ACK, u8MsgId, g_u8MsgBuildBuffer, &u16Len, NULL, 0);
+    struSechead.u8SecType = ZC_SEC_ALG_AES;
+    struSechead.u16TotalMsg = ZC_HTONS(u16Len);
+    (void)PCT_SendMsgToCloud(&struSechead, g_u8MsgBuildBuffer);
+}
+/*************************************************
+* Function: PCT_HandleOtaBeginMsg
 * Description: 
 * Author: cxy 
 * Returns: 
@@ -496,6 +514,12 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
 *************************************************/
 void PCT_HandleOtaBeginMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
 {
+    ZC_MessageHead *pstruMsg;
+
+    pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
+    PCT_SendAckToCloud(pstruMsg->MsgId);    
+    
+    PCT_SendNotifyMsg(ZC_CODE_ZOTA_BEGIN);
     return;
 }
 
@@ -516,6 +540,10 @@ void PCT_HandleOtaFileBeginMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
     
     pstruContoller->struOtaInfo.u16RecvOffset = 0;
     pstruContoller->struOtaInfo.u16TotalLen = pstruOta->u16FileTotalLen;
+    pstruContoller->struOtaInfo.u8Crc[0] = pstruOta->u8TotalFileCrc[0];
+    pstruContoller->struOtaInfo.u8Crc[1] = pstruOta->u8TotalFileCrc[1];    
+    PCT_SendAckToCloud(pstruMsg->MsgId);
+
     return;
 }
 /*************************************************
@@ -555,7 +583,7 @@ void PCT_HandleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
 
     /*update file offset*/
     pstruContoller->struOtaInfo.u16RecvOffset = pstruContoller->struOtaInfo.u16RecvOffset + u16FileLen;
-    
+    PCT_SendAckToCloud(pstruMsg->MsgId);
 }
 /*************************************************
 * Function: PCT_HandleOtaFileEndMsg
@@ -567,7 +595,10 @@ void PCT_HandleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
 *************************************************/
 void PCT_HandleOtaFileEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
 {
+    ZC_MessageHead *pstruMsg;
 
+    pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
+    PCT_SendAckToCloud(pstruMsg->MsgId);
 }
 /*************************************************
 * Function: PCT_HandleOtaFileEndMsg
@@ -579,6 +610,11 @@ void PCT_HandleOtaFileEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruB
 *************************************************/
 void PCT_HandleOtaEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
 {
+    ZC_MessageHead *pstruMsg;
+
+    pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
+    PCT_SendAckToCloud(pstruMsg->MsgId);
+
     PCT_SendNotifyMsg(ZC_CODE_ZOTA_END);
 }
 

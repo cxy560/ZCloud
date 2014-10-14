@@ -58,7 +58,6 @@ void TestRsaSec()
     u16 u16PlainLen;
     u16 u16InputLen;
     u32 u32Retval;
-    ZC_MessageHead *pstruMsg;
     
     u16InputLen = 64;
     
@@ -95,7 +94,6 @@ void TestAesSec(u16 Len)
     u16 u16PlainLen;
     u16 u16InputLen;
     u16 u16Padding;
-    u32 u32Retval;
    
     u16InputLen = Len;
     for (u32Index = 0; u32Index < u16InputLen; u32Index++)
