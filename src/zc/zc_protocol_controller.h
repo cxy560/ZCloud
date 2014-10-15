@@ -89,9 +89,10 @@ typedef struct
 
 typedef struct
 {
-    u16 u16TotalLen;
-    u16 u16RecvOffset;
+    u32 u32TotalLen;
+    u32 u32RecvOffset;
     u8 u8Crc[2];
+    u8 u8Pad[2];
 }PTC_OtaInfo;
 
 typedef struct

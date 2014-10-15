@@ -93,7 +93,7 @@ void MT_TimerExpired()
     if ((g_struProtocolController.u8MainState >= PCT_STATE_WAIT_ACCESSRSP)
     && (PCT_INVAILD_SOCKET != g_struProtocolController.struCloudConnection.u32Socket))
     {
-        uip_poll_conn(g_struProtocolController.struCloudConnection.u32Socket);
+        uip_poll_conn(&uip_conns[g_struProtocolController.struCloudConnection.u32Socket]);
         if (uip_len > 0) 
         {
             ZC_Printf("pull have data %d\n", uip_len);
@@ -359,7 +359,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, /*192, 168, 1, 114*/101,251,106,4);
+        uip_ipaddr(ip, 192, 168, 1, 111/*101,251,106,4*/);
     }
     else 
     {
@@ -452,16 +452,21 @@ void MT_Rand(u8 *pu8Rand)
 void MT_BroadcastAppCall()
 {
     u16 u16Len;
-    if (PCT_STATE_CONNECT_CLOUD  != g_struProtocolController.u8MainState)
+    if (uip_poll())
     {
-        return;
-    }
-    EVENT_BuildBcMsg(g_u8MsgBuildBuffer, &u16Len);
+    
+        if (PCT_STATE_CONNECT_CLOUD  != g_struProtocolController.u8MainState)
+        {
+            return;
+        }
 
-    if (g_struProtocolController.u16SendBcNum < PCT_SEND_BC_MAX_NUM)
-    {   
-        uip_send(g_u8MsgBuildBuffer, u16Len);
-        g_struProtocolController.u16SendBcNum++;
+        EVENT_BuildBcMsg(g_u8MsgBuildBuffer, &u16Len);
+
+        if (g_struProtocolController.u16SendBcNum < PCT_SEND_BC_MAX_NUM)
+        {   
+            uip_send(g_u8MsgBuildBuffer, u16Len);
+            g_struProtocolController.u16SendBcNum++;
+        }
     }
 }
 /*************************************************
@@ -512,7 +517,6 @@ void MT_CloudAppCall()
         }
         else
         {
-            ZC_Printf("poll \n");
             MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
         }
     }

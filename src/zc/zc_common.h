@@ -44,9 +44,17 @@ typedef volatile unsigned int               vu32;
 
 #ifdef ZC_BIG_ENDIAN
 #define ZC_HTONS(n) (n)
+#define ZC_HTONL(n) (n)
 #else 
 #define ZC_HTONS(n) (u16)((((u16) (n)) << 8) | (((u16) (n)) >> 8))
+#define ZC_HTONL(n)  ((((u32)(n) & 0xff000000) >> 24) | \
+    (((u32)(n)& 0x00ff0000) >> 8) | \
+    (((u32)(n)& 0x0000ff00) << 8) | \
+    (((u32)(n)& 0x000000ff) << 24))
+
 #endif 
+
+
 
 #if ZC_DEBUG
 #ifdef ZC_OFF_LINETEST
@@ -58,7 +66,7 @@ typedef volatile unsigned int               vu32;
 #ifdef ZC_OFF_LINETEST
 #define ZC_Printf(format, ...) printf("\1\2\3\4"format"", ##__VA_ARGS__)
 #else
-#define ZC_Printf(format, ...) Printf_High("\1\2\3\4"format"", ##__VA_ARGS__)
+#define ZC_Printf(format, ...) Printf_High(""format"", ##__VA_ARGS__)
 #endif 
 #endif
 

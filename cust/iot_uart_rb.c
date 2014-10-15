@@ -188,7 +188,7 @@ void UART_Rx_Cb(void)
 	static UINT8  IWMatchNum = 0;
 	static UINT8  MsgMatchNum = 0;
 	static UINT8  LastCh = 0;
-	u16_t  MsgLen = 0;
+	static u16_t  MsgLen = 0;
 /*
  * MCU only forward uart rx data to air
  * here,copy to rx ring and return
@@ -275,6 +275,7 @@ void UART_Rx_Cb(void)
                     
     				ATMatchNum = 0;
     				IWMatchNum = 0;
+                    MsgMatchNum = 0;    				
     				continue;
     			}			
             }
@@ -306,6 +307,7 @@ void UART_Rx_Cb(void)
                     infor->pkt_type = rx_desc->cur_type;  // PKT_ATCMD / PKT_IWCMD;
                     rx_desc->pkt_num++;
                     rx_desc->cur_type = PKT_UNKNOWN;
+                    MsgLen = 0;
                 }
 
                 LastCh = ch;

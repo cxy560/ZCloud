@@ -15,7 +15,7 @@ extern 	char *optarg;
 
 u32 g_u32TraceSwitch = 1;
 u32  g_u32LoopFlag = 0;
-u32  g_u32SecSwitch = 1;
+u32  g_u32SecSwitch = 0;
 
 /*************************************************
 * Function: ZC_TraceData

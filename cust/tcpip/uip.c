@@ -712,6 +712,7 @@ particular connection. */
 		if((uip_connr->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED &&
 		!uip_outstanding(uip_connr)) {
 			uip_flags = UIP_POLL;
+			uip_slen = 0;
 			UIP_APPCALL();
 			goto appsend;
 		}
