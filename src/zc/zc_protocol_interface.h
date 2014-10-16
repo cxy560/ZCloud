@@ -23,7 +23,7 @@
 #define ZC_SEC_ALG_AES                      (2) 
 
 
-#define ZC_OTA_MAX_CHUNK_LEN                (128)
+#define ZC_OTA_MAX_CHUNK_LEN                (384)
 
 
 

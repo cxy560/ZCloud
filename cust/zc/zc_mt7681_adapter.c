@@ -215,6 +215,9 @@ u32 MT_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
 {
     u8 u8RetVal;
     u32 u32HeadLen = 128;
+    u32 u32WritLen = 0;
+    u32 u32DataStartOffset = 0;
+    u32 u32FlashStartOffset = 0;
     /*use ap flash as backup*/
     if ((u32Offset + u32DataLen) <= u32HeadLen)
     {
@@ -224,19 +227,39 @@ u32 MT_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
     else if (((u32Offset + u32DataLen) > u32HeadLen) && (u32Offset < u32HeadLen))
     {
         ZC_Printf("1 %d,%d,%d\n",u32Offset,u32DataLen,u32HeadLen);
-        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_AP_FW, 0, pu8FileData + (u32HeadLen - u32Offset), u32DataLen - (u32HeadLen - u32Offset));
-        ZC_Printf("ret = %d\n", u8RetVal);
-        if (0 != u8RetVal)
-        {
-            return ZC_RET_ERROR;
-        }
+        u32WritLen =  u32DataLen - (u32HeadLen - u32Offset);  
+        u32DataStartOffset = u32HeadLen - u32Offset;
+        u32FlashStartOffset = 0;
     }
     else
     {
     
         ZC_Printf("2 %d,%d,%d\n",u32Offset,u32DataLen,u32HeadLen);
-        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_AP_FW, (u32Offset - u32HeadLen), pu8FileData, (u16)u32DataLen);
-        ZC_Printf("ret = %d\n", u8RetVal);
+        u32WritLen = u32DataLen;  
+        u32DataStartOffset = 0;
+        u32FlashStartOffset = (u32Offset - u32HeadLen);
+    }
+
+    u32HeadLen = 128;
+    while(u32WritLen >= u32HeadLen)
+    {
+        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_AP_FW, u32FlashStartOffset, pu8FileData + u32DataStartOffset, u32HeadLen);
+
+        ZC_Printf("1 ret = %d, %d, %d,\n", u8RetVal,u32FlashStartOffset,u32DataStartOffset);
+        if (0 != u8RetVal)
+        {
+            return ZC_RET_ERROR;
+        }
+        
+        u32WritLen -= u32HeadLen;
+        u32DataStartOffset += u32HeadLen;
+        u32FlashStartOffset += u32HeadLen;
+    }
+
+    if (u32WritLen > 0)
+    {
+        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_AP_FW, u32FlashStartOffset, pu8FileData + u32DataStartOffset, u32WritLen);
+        ZC_Printf("2 ret = %d, %d, %d,\n", u8RetVal,u32FlashStartOffset,u32DataStartOffset);
         if (0 != u8RetVal)
         {
             return ZC_RET_ERROR;
