@@ -185,6 +185,24 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
     
     return;
 }
+
+/*************************************************
+* Function: MT_FirmwareUpdateFinish
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 MT_FirmwareUpdateFinish()
+{
+    if (PCT_OTA_REST_ON == g_struProtocolController.struOtaInfo.u8NeedReset)
+    {
+        spi_flash_CopyApToSta(g_struProtocolController.struOtaInfo.u32TotalLen);        
+    }
+
+    /*to do send notify*/
+}
 /*************************************************
 * Function: MT_FirmwareUpdate
 * Description: 
@@ -193,18 +211,21 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_FirmwareUpdate(u8 *pu8FileData, u16 u16Offset, u16 u16DataLen)
+u32 MT_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
 {
     u8 u8RetVal;
-    u16 u16HeadLen = 128;
-    if ((u16Offset + u16DataLen) <= u16HeadLen)
+    u32 u32HeadLen = 128;
+    /*use ap flash as backup*/
+    if ((u32Offset + u32DataLen) <= u32HeadLen)
     {
+        ZC_Printf("%d,%d,%d\n",u32Offset,u32DataLen,u32HeadLen);
         return ZC_RET_OK;
     }
-    else if (((u16Offset + u16DataLen) > u16HeadLen) && (u16Offset < u16HeadLen))
+    else if (((u32Offset + u32DataLen) > u32HeadLen) && (u32Offset < u32HeadLen))
     {
-        
-        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_STA_FW, 0, pu8FileData + (u16HeadLen - u16Offset), u16DataLen - (u16HeadLen - u16Offset));
+        ZC_Printf("1 %d,%d,%d\n",u32Offset,u32DataLen,u32HeadLen);
+        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_AP_FW, 0, pu8FileData + (u32HeadLen - u32Offset), u32DataLen - (u32HeadLen - u32Offset));
+        ZC_Printf("ret = %d\n", u8RetVal);
         if (0 != u8RetVal)
         {
             return ZC_RET_ERROR;
@@ -212,7 +233,10 @@ u32 MT_FirmwareUpdate(u8 *pu8FileData, u16 u16Offset, u16 u16DataLen)
     }
     else
     {
-        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_STA_FW, (u16Offset - u16HeadLen), pu8FileData, u16DataLen);
+    
+        ZC_Printf("2 %d,%d,%d\n",u32Offset,u32DataLen,u32HeadLen);
+        u8RetVal = spi_flash_update_fw(UART_FlASH_UPG_ID_AP_FW, (u32Offset - u32HeadLen), pu8FileData, (u16)u32DataLen);
+        ZC_Printf("ret = %d\n", u8RetVal);
         if (0 != u8RetVal)
         {
             return ZC_RET_ERROR;
@@ -257,23 +281,29 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
     }
     
     pstrMsg = (ZC_MessageHead *)pu8Data;
-
-    if (ZC_CODE_DESCRIBE == pstrMsg->MsgCode)
+    switch(pstrMsg->MsgCode)
     {
-        pstruRegister = (ZC_RegisterReq *)(pstrMsg + 1);
-        memcpy(IoTpAd.UsrCfg.ProductName, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
-        memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
-        g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET; 
-        if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
+        case ZC_CODE_DESCRIBE:
         {
-            TIMER_StopTimer(g_struProtocolController.u8RegisterTimer);
-            g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
+            pstruRegister = (ZC_RegisterReq *)(pstrMsg + 1);
+            memcpy(IoTpAd.UsrCfg.ProductName, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+            memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
+            g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET; 
+            if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
+            {
+                TIMER_StopTimer(g_struProtocolController.u8RegisterTimer);
+                g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
+            }
+            break;
         }
-
-        return ZC_RET_OK;
+        case ZC_CODE_ZOTA_END:
+            MT_FirmwareUpdateFinish();
+            break;
+        default:
+            PCT_HandleMoudleEvent(pu8Data, u16DataLen);
+            break;
     }
     
-    PCT_HandleMoudleEvent(pu8Data, u16DataLen);
     return ZC_RET_OK;
 }
 /*************************************************

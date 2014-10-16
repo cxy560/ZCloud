@@ -66,7 +66,7 @@ typedef volatile unsigned int               vu32;
 #ifdef ZC_OFF_LINETEST
 #define ZC_Printf(format, ...) printf("\1\2\3\4"format"", ##__VA_ARGS__)
 #else
-#define ZC_Printf(format, ...) Printf_High(""format"", ##__VA_ARGS__)
+#define ZC_Printf(format, ...) Printf_High("\1\2\3\4"format"", ##__VA_ARGS__)
 #endif 
 #endif
 

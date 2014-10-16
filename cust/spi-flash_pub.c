@@ -492,97 +492,108 @@ int32 spi_flash_write(uint32 addr, uint8 *data, uint16 len)
 uint8 dump_spi_flash_fw(UINT8 TYPE)
 {
 	uint32 rid, i;
-	uint32 offset = FLASH_OFFSET_STA_FW_START;
+	uint32 Staoffset = FLASH_OFFSET_STA_FW_START;
+	uint32 Apoffset = FLASH_OFFSET_STA_FW_START;
 	uint16 maxRamBlock = 0; 
-	UINT8  pRw_buf[RAM_RW_BUF_SIZE]={0xff};
+	//UINT8  pRw_buf[RAM_RW_BUF_SIZE]={0xff};
+	
 
 	/*  move data from UpgradeFW region  to STAFW region*/
 	/*  will move many times, because Ram RW buf's limitation */
-	
-	if (TYPE == 1)
-	{
-		offset = FLASH_OFFSET_STA_FW_START;
-		maxRamBlock = FLASH_STA_FW_SIZE/sizeof(pRw_buf);
-	}
-	else if (TYPE == 2)
-	{	
-		offset = FLASH_OFFSET_UPG_FW_START;
-		maxRamBlock = FLASH_UPG_FW_SIZE/sizeof(pRw_buf);
-	}
-	else 
-		return 1;
-	
-	for (rid=0; rid < maxRamBlock; rid++)
-	{
-		spi_flash_read(offset, pRw_buf, sizeof(pRw_buf));
 
-		for(i=0; i<sizeof(pRw_buf); i++)
+    Apoffset = FLASH_OFFSET_AP_FW_START;	
+	Staoffset = FLASH_OFFSET_STA_FW_START;    
+    maxRamBlock = FLASH_AP_FW_SIZE/sizeof(IoTpAd.flash_rw_buf);
+	
+	for (rid=0; rid < 3; rid++)
+	{
+		spi_flash_read(Apoffset, IoTpAd.flash_rw_buf, sizeof(IoTpAd.flash_rw_buf));
+
+		for(i=0; i<sizeof(IoTpAd.flash_rw_buf); i++)
 		{   
 			if(i%16 ==0)
-				Printf_High("\n Offset[0x%08x] : ",offset+i);
+				Printf_High("\n Offset[0x%08x] : ",Apoffset+i);
 			
-			Printf_High("0x%02x ", pRw_buf[i]);
+			Printf_High("0x%02x ", IoTpAd.flash_rw_buf[i]);
 		}
 		Printf_High("\n");
 
-		offset += sizeof(pRw_buf);
+		Apoffset += sizeof(IoTpAd.flash_rw_buf);
 	}
-	
+	Printf_High("++++++++++++++++++++++++++++++++++\n");
+	for (rid=0; rid < 3; rid++)
+	{
+		spi_flash_read(Staoffset, IoTpAd.flash_rw_buf, sizeof(IoTpAd.flash_rw_buf));
+
+		for(i=0; i<sizeof(IoTpAd.flash_rw_buf); i++)
+		{   
+			if(i%16 ==0)
+				Printf_High("\n Offset[0x%08x] : ",Staoffset+i);
+			
+			Printf_High("0x%02x ", IoTpAd.flash_rw_buf[i]);
+		}
+		Printf_High("\n");
+
+		Staoffset += sizeof(IoTpAd.flash_rw_buf);
+	}
+
+
 	return 0;
 }
 
 
 
 /**********************************************
-*dump_spi_flash
+*spi_flash_CopyApToSta u32Len 
 **********************************************/
-uint8 dump_spi_flash(UINT32 start, UINT32 end)
+uint8 spi_flash_CopyApToSta(uint32 u32Len)
 {
-	uint32 rid, i, rest;
-	uint32 offset = start;
-	uint16 maxRamBlock = 0; 
-	UINT8  pRw_buf[RAM_RW_BUF_SIZE]={0xff};
+	uint32 Staoffset = FLASH_OFFSET_STA_FW_START;
+	uint32 Apoffset = FLASH_OFFSET_STA_FW_START;
+	int32  RetVal;
+	uint32 u32CopyLen;
 
-	if(end < start)
-		return;
-	
-	/*  move data from UpgradeFW region  to STAFW region*/
-	/*  will move many times, because Ram RW buf's limitation */
+    Apoffset = FLASH_OFFSET_AP_FW_START;	
+	Staoffset = FLASH_OFFSET_STA_FW_START;    
 
-	maxRamBlock = (end - start)/sizeof(pRw_buf);
-	rest = ((end - start)%sizeof(pRw_buf));
-	
-	for (rid=0; rid < maxRamBlock; rid++)
+    Printf_High("\1\2\3\4copy begin\n");
+    IoT_Xmodem_Update_FW_Start(); /*Disable Uart Rx Interrupt*/
+
+    if ((u32Len <= 128) || (u32Len > FLASH_STA_FW_SIZE))
+    {
+        return 1;
+    }
+
+    u32CopyLen = u32Len - 128;
+
+    while(u32CopyLen >= sizeof(IoTpAd.flash_rw_buf))
 	{
-		spi_flash_read(offset, pRw_buf, sizeof(pRw_buf));
-
-		for(i=0; i<sizeof(pRw_buf); i++)
-		{   
-			if(i%16 ==0)
-				Printf_High("\n Offset[0x%08x] : ",offset+i);
-			
-			Printf_High("0x%02x ", pRw_buf[i]);
-		}
-		Printf_High("\n");
-
-		offset += sizeof(pRw_buf);
+		spi_flash_read(Apoffset, IoTpAd.flash_rw_buf, sizeof(IoTpAd.flash_rw_buf));
+        usecDelay(300);    //jinchuan.bao , if not delay 300us, spi_flash_read()  will fail !
+        RetVal = spi_flash_write(Staoffset, IoTpAd.flash_rw_buf, sizeof(IoTpAd.flash_rw_buf));
+        Printf_High("\1\2\3\4flash write %d\n", RetVal);        
+        //msecDelay(100);    
+        usecDelay(300); 
+		Apoffset += sizeof(IoTpAd.flash_rw_buf);
+		Staoffset += sizeof(IoTpAd.flash_rw_buf);
+		u32CopyLen -= sizeof(IoTpAd.flash_rw_buf);
 	}
 
-	
-	if (rest > 0);
-	{
-		spi_flash_read(offset, pRw_buf, rest);
-	
-		for(i=0; i<rest; i++)
-		{	
-			if(i%16 ==0)
-				Printf_High("\n Offset[0x%08x] : ",offset+i);
-			
-			Printf_High("0x%02x ", pRw_buf[i]);
-		}
-		Printf_High("\n");
-	}
-	
+    if (u32CopyLen > 0)
+    {
+		spi_flash_read(Apoffset, IoTpAd.flash_rw_buf, u32CopyLen);
+        usecDelay(300);    //jinchuan.bao , if not delay 300us, spi_flash_read()  will fail !
+        RetVal = spi_flash_write(Staoffset, IoTpAd.flash_rw_buf, u32CopyLen);
+        Printf_High("\1\2\3\4flash write %d\n", RetVal);
+        //msecDelay(100);    
+        usecDelay(300);  
+		Apoffset += sizeof(IoTpAd.flash_rw_buf);
+		Staoffset += sizeof(IoTpAd.flash_rw_buf);    
+    }
+    
+    IoT_Xmodem_Update_FW_Stop();  /*Restore Uart Rx Interrupt*/
+    Printf_High("\1\2\3\4copy End\n");
+
 	return 0;
 }
 

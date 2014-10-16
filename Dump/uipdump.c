@@ -142,3 +142,15 @@ u8 spi_flash_update_fw(u8 type, u32 offset, u8 *pdata, u16 len)
     
     return 0;
 }
+void IoT_Xmodem_Update_FW_Start()
+{
+
+}
+void IoT_Xmodem_Update_FW_Stop()
+{
+
+}
+u32 spi_flash_CopyApToSta(u32 len)
+{
+        return 0;
+}

@@ -22,7 +22,7 @@
 #define  MSG_BUFFER_SEGMENT_HEAD        (3)
 
 #define  MSG_BUFFER_SEND_MAX_NUM        (MSG_QUEUE_MAXLEN)
-#define  MSG_BULID_BUFFER_MAXLEN        (700)
+#define  MSG_BULID_BUFFER_MAXLEN        (200)
 #define  MSG_CIPER_BUFFER_MAXLEN        (600) 
 
 typedef struct struMSG_QueNode{

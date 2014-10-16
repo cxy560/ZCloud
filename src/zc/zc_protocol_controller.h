@@ -49,6 +49,11 @@
 
 #define    PCT_TIMER_INVAILD        (0xFF)
 #define    PCT_SENDMOUDLE_NUM       (4)
+
+#define    PCT_OTA_REST_ON       (1)
+#define    PCT_OTA_REST_OFF       (0)
+
+
 typedef struct
 {
     u32 u32Socket;
@@ -59,7 +64,7 @@ typedef struct
 }PTC_Connection;
 
 typedef void (*pFunSendDataToCloud)(PTC_Connection *pstruConnection);
-typedef u32 (*pFunFirmwareUpdate)(u8 *pu8FileData, u16 u16Offset, u16 u16DataLen);
+typedef u32 (*pFunFirmwareUpdate)(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen);
 typedef u32 (*pFunSendDataToMoudle)(u8 *pu8Data, u16 u16DataLen);
 typedef u32 (*pFunRecvDataFromMoudle)(u8 *pu8Data, u16 u16DataLen);
 typedef u32 (*pFunGetCloudKey)(u8 **pu8Key);
@@ -92,7 +97,7 @@ typedef struct
     u32 u32TotalLen;
     u32 u32RecvOffset;
     u8 u8Crc[2];
-    u8 u8Pad[2];
+    u8 u8NeedReset;
 }PTC_OtaInfo;
 
 typedef struct

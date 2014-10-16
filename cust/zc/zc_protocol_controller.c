@@ -89,6 +89,8 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
 
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
+    
+    g_struProtocolController.struOtaInfo.u8NeedReset = PCT_OTA_REST_OFF;    
 }
 /*************************************************
 * Function: PCT_SendEmptyMsg
@@ -516,7 +518,6 @@ void PCT_HandleOtaBeginMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuf
 {
     ZC_MessageHead *pstruMsg;
     ZC_Printf("Ota Begin\n");
-    ZC_TraceData(pstruBuffer->u8MsgBuffer,pstruBuffer->u32Len);
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     PCT_SendAckToCloud(pstruMsg->MsgId);    
     
@@ -537,7 +538,7 @@ void PCT_HandleOtaFileBeginMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
     ZC_MessageHead *pstruMsg;
     ZC_OtaFileBeginReq *pstruOta;
     ZC_Printf("Ota File Begin\n");
-    ZC_TraceData(pstruBuffer->u8MsgBuffer,pstruBuffer->u32Len);
+    
 
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     pstruOta = (ZC_OtaFileBeginReq *)(pstruMsg + 1);
@@ -547,6 +548,7 @@ void PCT_HandleOtaFileBeginMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
     pstruContoller->struOtaInfo.u8Crc[0] = pstruOta->u8TotalFileCrc[0];
     pstruContoller->struOtaInfo.u8Crc[1] = pstruOta->u8TotalFileCrc[1];    
     PCT_SendAckToCloud(pstruMsg->MsgId);
+
 
     return;
 }
@@ -567,7 +569,6 @@ void PCT_HandleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
     u32 u32RecvOffset;
 
     ZC_Printf("Ota File Chunk\n");
-    ZC_TraceData(pstruBuffer->u8MsgBuffer,pstruBuffer->u32Len);
 
     
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
@@ -588,9 +589,9 @@ void PCT_HandleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
         return;
     }
     
-    u32RetVal = pstruContoller->pstruMoudleFun->pfunUpdate((u8*)(pstruOta + 1), pstruOta->u32Offset, (u16)u32FileLen);
+    u32RetVal = pstruContoller->pstruMoudleFun->pfunUpdate((u8*)(pstruOta + 1), u32RecvOffset, u32FileLen);
     //u32RetVal = ZC_RET_OK;
-    ZC_Printf("offset = %d, len = %d\n", u32RecvOffset, (u16)u32FileLen);
+    ZC_Printf("offset = %d, len = %d\n", u32RecvOffset, u32FileLen);
 
     if (ZC_RET_ERROR == u32RetVal)
     {
@@ -615,10 +616,10 @@ void PCT_HandleOtaFileEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruB
 {
     ZC_MessageHead *pstruMsg;
     ZC_Printf("Ota File End\n");
-    ZC_TraceData(pstruBuffer->u8MsgBuffer,pstruBuffer->u32Len);
 
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     PCT_SendAckToCloud(pstruMsg->MsgId);
+
 }
 /*************************************************
 * Function: PCT_HandleOtaFileEndMsg
@@ -632,10 +633,10 @@ void PCT_HandleOtaEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
 {
     ZC_MessageHead *pstruMsg;
     ZC_Printf("Ota End\n");
-    ZC_TraceData(pstruBuffer->u8MsgBuffer,pstruBuffer->u32Len);
 
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     PCT_SendAckToCloud(pstruMsg->MsgId);
+    pstruContoller->struOtaInfo.u8NeedReset = PCT_OTA_REST_ON;    
 
     PCT_SendNotifyMsg(ZC_CODE_ZOTA_END);
 }
