@@ -86,8 +86,10 @@ typedef enum
     ZC_CODE_ZOTA_FILE_CHUNK,
     ZC_CODE_ZOTA_FILE_END,
     ZC_CODE_ZOTA_END,
-
-    ZC_CODE_BC_INFO
+    ZC_CODE_BC_INFO,
+    ZC_CODE_CLIENT_ACCESS_INFO,
+    ZC_CODE_VAILID_CLIENT_INFO,
+    ZC_CODE_TRANSPORT_MSG
 }ZC_MsgCode;
 
 /*Error Msg*/
@@ -170,6 +172,21 @@ typedef struct
     u8 RandMsg[ZC_HS_MSG_LEN];
     u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
 }ZC_BroadCastInfo;
+
+typedef struct
+{
+    u8 u8ClientNum;
+    u8 u8Pad[3];
+    u8 DeviceId[0];
+}ZC_ClientAccessInfo;
+
+typedef struct
+{
+    u8 u8ClientNum;
+    u8 u8Pad[3];
+    u8 DeviceId[0];
+}ZC_VaildClientInfo;
+
 #endif
 /******************************* FILE END ***********************************/
 
