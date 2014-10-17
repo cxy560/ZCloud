@@ -24,6 +24,7 @@ u32  EVENT_BuildEmptyMsg(u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len)
     pstruMsg = (ZC_MessageHead *)pu8Msg;
     pstruMsg->MsgCode = ZC_CODE_EMPTY;
     pstruMsg->MsgId = u8MsgId;  
+    pstruMsg->OptNum = 0;  
     pstruMsg->Payloadlen = 0;
     pstruMsg->Version = ZC_VERSION;
 
@@ -48,6 +49,7 @@ u32  EVENT_BuildHeartMsg(u8 *pu8Msg, u16 *pu16Len)
     pstruMsg->MsgId = 0;  
     pstruMsg->Payloadlen = 0;
     pstruMsg->Version = ZC_VERSION;
+    pstruMsg->OptNum = 0;      
 
     *pu16Len = sizeof(ZC_MessageHead);
     return ZC_RET_OK;
@@ -69,6 +71,7 @@ u32  EVENT_BuildMsg(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len, u8 *pu8P
     pstruMsg->MsgId = u8MsgId;  
     pstruMsg->Payloadlen = ZC_HTONS(u16PayloadLen);
     pstruMsg->Version = ZC_VERSION;
+    pstruMsg->OptNum = 0;      
     
     memcpy((pu8Msg + sizeof(ZC_MessageHead)), pu8Payload, u16PayloadLen);
 
@@ -96,6 +99,7 @@ u32  EVENT_BuildBcMsg(u8 *pu8Msg, u16 *pu16Len)
     pstruMsg->MsgId = 0;
     pstruMsg->Payloadlen = ZC_HTONS(sizeof(ZC_BroadCastInfo));
     pstruMsg->Version = ZC_VERSION;
+    pstruMsg->OptNum = 0;      
 
     g_struProtocolController.pstruMoudleFun->pfunGetDeviceId(&pu8DeviceId);
 

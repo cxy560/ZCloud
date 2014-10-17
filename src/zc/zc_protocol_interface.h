@@ -41,12 +41,21 @@ typedef struct
     u8  Version;
     u8  MsgId;
     u8  MsgCode;		
-    u8  Resver;
+    u8  OptNum;        
     
     u16 Payloadlen; 
     u8  TotalMsgCrc[2];
     
 }ZC_MessageHead;
+
+
+typedef struct
+{
+    u8  OptCode;
+    u8  Rersev;
+    u16 OptLen;
+}ZC_MessageOptHead;
+
 
 /*ZCloud Message code*/
 typedef enum 
