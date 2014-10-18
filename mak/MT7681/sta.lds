@@ -434,6 +434,11 @@ SECTIONS
 	.xipsec1 :       
 	{                    
 		/*KEEP(*(.xipsec1))*/  
+		obj/sta/iot_at_cmd.o(.xipsec0)
+		obj/sta/iot_custom.o(.xipsec0)
+		obj/sta/iot_uart_rb.o(.xipsec0)
+		obj/sta/mt7681_ChSw_pub.o(.xipsec0)
+		obj/sta/wifi_task_pub.o(.xipsec0)
 	} > FLASH_XIP_STA     
 	
 	.xipsec2 : 
