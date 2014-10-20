@@ -25,9 +25,12 @@
 
 #define ZC_OTA_MAX_CHUNK_LEN                (384)
 
+/****************************************************************************************
+*message format: 
+*|ZC_SecHead||ZC_MessageHead||ZC_MessagePayload||ZC_MessageOptHead||ZC_MessageOption|.......
+*****************************************************************************************/
 
-
-
+/*Security Head*/
 typedef struct
 {
     u16 u16TotalMsg;
@@ -43,19 +46,19 @@ typedef struct
     u8  MsgCode;		
     u8  OptNum;        
     
-    u16 Payloadlen; 
+    u16 Payloadlen;     //msg payload len, not include opt len
     u8  TotalMsgCrc[2];
     
 }ZC_MessageHead;
 
-
+/*ZCloud Option Head*/
 typedef struct
 {
-    u8  OptCode;
-    u8  Rersev;
+    u16 OptCode;
     u16 OptLen;
 }ZC_MessageOptHead;
 
+/*******************************Message and Option opcode***********************************/
 
 /*ZCloud Message code*/
 typedef enum 
@@ -96,10 +99,16 @@ typedef enum
     ZC_CODE_ZOTA_FILE_END,
     ZC_CODE_ZOTA_END,
     ZC_CODE_BC_INFO,
-    ZC_CODE_CLIENT_ACCESS_INFO,
-    ZC_CODE_VAILID_CLIENT_INFO,
-    ZC_CODE_TRANSPORT_MSG
+    ZC_CODE_CLIENT_ACCESS_REQ,
+    ZC_CODE_CLIENT_ACCESS_RSP,
 }ZC_MsgCode;
+
+typedef enum 
+{
+    ZC_OPT_TRANSPORT = 0,
+}ZC_OptCode;
+
+/*******************************Message definition***********************************/
 
 /*Error Msg*/
 typedef struct{
@@ -182,6 +191,7 @@ typedef struct
     u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
 }ZC_BroadCastInfo;
 
+/*ZC_CODE_CLIENT_ACCESS_REQ*/
 typedef struct
 {
     u8 u8ClientNum;
@@ -189,12 +199,22 @@ typedef struct
     u8 DeviceId[0];
 }ZC_ClientAccessInfo;
 
+/*ZC_CODE_CLIENT_ACCESS_RSP*/
 typedef struct
 {
-    u8 u8ClientNum;
-    u8 u8Pad[3];
+    u8 u8BlackClientNum;
+    u8 u8WhiteClientNum;    
+    u8 u8Pad[2];
     u8 DeviceId[0];
-}ZC_VaildClientInfo;
+}ZC_BlackWhiteClientList;
+
+/******************************* Option definition***********************************/
+
+/*ZC_OPT_TRANSPORT*/
+typedef struct
+{
+    u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
+}ZC_TransportInfo;
 
 #endif
 /******************************* FILE END ***********************************/

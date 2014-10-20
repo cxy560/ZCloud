@@ -348,8 +348,8 @@ void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController)
     }
     else
     {
-        pstruProtocolController->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, 
-            ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
+        pstruProtocolController->pstruMoudleFun->pfunSendToMoudle(pstruBuffer->u8MsgBuffer, 
+            pstruBuffer->u32Len);
 
         pstruProtocolController->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDMOUDLE, 
             PCT_TIMER_INTERVAL_SENDMOUDLE, &pstruProtocolController->u8SendMoudleTimer);
@@ -657,7 +657,7 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
     /*Send to Moudle*/
     if (0 == g_u32LoopFlag)
     {
-        pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
+        pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, pstruBuffer->u32Len);
     }
 
     /*start send timer*/
@@ -666,9 +666,9 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
 
     /*copy buffer, prepare for retx*/
     memcpy((u8*)g_struRetxBuffer.u8MsgBuffer, pstruBuffer->u8MsgBuffer, 
-        ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
+        pstruBuffer->u32Len);
 
-    g_struRetxBuffer.u32Len = ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead);
+    g_struRetxBuffer.u32Len = pstruBuffer->u32Len;
     g_struRetxBuffer.u8Status = MSG_BUFFER_FULL;
 
     pstruContoller->pu8SendMoudleBuffer = (u8*)&g_struRetxBuffer;
