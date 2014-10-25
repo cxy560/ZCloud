@@ -12,7 +12,7 @@
 #include <zc_common.h>
 
 #define ZC_HS_MSG_LEN                       (40)
-#define ZC_HS_DEVICE_ID_LEN                 (12)
+#define ZC_HS_DEVICE_ID_LEN                 (8)
 #define ZC_HS_SESSION_KEY_LEN               (16)
 #define ZC_HS_SESSION_IV_LEN                (16)
 #define ZC_MODULE_KEY_LEN                   (112)
@@ -27,7 +27,7 @@
 
 /****************************************************************************************
 *message format: 
-*|ZC_SecHead||ZC_MessageHead||ZC_MessagePayload||ZC_MessageOptHead||ZC_MessageOption|.......
+*|ZC_SecHead||ZC_MessageHead||ZC_MessageOptHead||ZC_MessageOption|.......|ZC_MessagePayload|
 *****************************************************************************************/
 
 /*Security Head*/
@@ -46,7 +46,7 @@ typedef struct
     u8  MsgCode;		
     u8  OptNum;        
     
-    u16 Payloadlen;     //msg payload len, not include opt len
+    u16 Payloadlen;     //msg payload len + opt len + opt head len
     u8  TotalMsgCrc[2];
     
 }ZC_MessageHead;
@@ -63,8 +63,8 @@ typedef struct
 /*ZCloud Message code*/
 typedef enum 
 {
-    ZC_CODE_SMARTCONFIG_BEGIN = 0,
-    ZC_CODE_SMARTCONFIG_DONE,
+    ZC_CODE_EQ_BEGIN = 0,
+    ZC_CODE_EQ_DONE,
     ZC_CODE_WIFI_CONNECT,
     ZC_CODE_WIFI_DISCONNECT,
     ZC_CODE_CLOUD_CONNECT,

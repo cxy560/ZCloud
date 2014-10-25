@@ -279,9 +279,12 @@ u32 MT_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
 u32 MT_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 {
     u8 u8MagicFlag[4] = {0x02,0x03,0x04,0x05};
-    IoT_uart_output(u8MagicFlag, 4);
-    IoT_uart_output(pu8Data, u16DataLen);
-    return ZC_RET_OK;
+    if (PCT_EQ_STATUS_ON == g_struProtocolController.u8EqStart)
+    {
+        IoT_uart_output(u8MagicFlag, 4);
+        IoT_uart_output(pu8Data, u16DataLen);
+        return ZC_RET_OK;
+    }
 }
 /*************************************************
 * Function: MT_RecvDataFromMoudle
@@ -319,6 +322,12 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
             }
             break;
         }
+        case ZC_CODE_EQ_BEGIN:
+        {
+            g_struProtocolController.u8EqStart = PCT_EQ_STATUS_ON;
+            PCT_SendNotifyMsg(ZC_CODE_EQ_DONE);
+            break;
+        }    
         case ZC_CODE_ZOTA_END:
             MT_FirmwareUpdateFinish();
             break;
