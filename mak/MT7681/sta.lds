@@ -102,8 +102,8 @@ SECTIONS
 		KEEP(*(.Xcpt))
 		KEEP(*(.ctxsw))
 		KEEP(*(.startup))
-		*(EXCLUDE_FILE (*obj/sta/tropicssl/*.o *obj/sta/zc/*.o).text)
-		*(EXCLUDE_FILE (*obj/sta/tropicssl/*.o *obj/sta/zc/*.o).text.*)
+		*(EXCLUDE_FILE (*obj/sta/tropicssl/*.o *obj/sta/zc/*.o obj/sta/tcpip/resolv.o).text)
+		*(EXCLUDE_FILE (*obj/sta/tropicssl/*.o *obj/sta/zc/*.o obj/sta/tcpip/resolv.o).text.*)
 	} > SRAM = 0
 
 	
@@ -439,6 +439,7 @@ SECTIONS
 		obj/sta/iot_uart_rb.o(.xipsec0)
 		obj/sta/mt7681_ChSw_pub.o(.xipsec0)
 		obj/sta/wifi_task_pub.o(.xipsec0)
+		obj/sta/tcpip/resolv.o
 	} > FLASH_XIP_STA     
 	
 	.xipsec2 : 

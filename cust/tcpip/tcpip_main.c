@@ -204,7 +204,7 @@ void tcpip_periodic_timer()
 			uip_arp_timer();
 		}
     }
-
+#if 0
 	if(timer_expired(&cli_timer)) {
 		clk = (clk > (CLOCK_SECOND*60))?clk:(clk*2);
 		timer_set(&cli_timer, clk);
@@ -225,6 +225,7 @@ void tcpip_periodic_timer()
 			}	
 		}
 	}
+#endif	
 }
 /*---------------------------------------------------------------------------*/
 void

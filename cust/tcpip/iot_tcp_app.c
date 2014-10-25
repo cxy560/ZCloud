@@ -20,12 +20,13 @@ extern u16_t http_clientPort;
 void
 iot_tcp_app_init(void)
 {
+#if 0
   /* We start to listen for connections on TCP port 7681. */
   uip_listen(HTONS(IoTpAd.ComCfg.Local_TCP_Srv_Port));
 #if CFG_SUPPORT_TCPIP_ROBUST_TEST
   uip_listen(HTONS(7684));
 #endif
-
+#endif
 
 }
 
@@ -55,7 +56,7 @@ iot_tcp_appcall(void)
         MT_CloudAppCall();
         return;
     }
-
+#if 0
 	if (uip_aborted() || uip_timedout() || uip_closed()) {
 		switch (lport) {
 		case 7682: //IoT as clent.
@@ -138,6 +139,7 @@ iot_tcp_appcall(void)
 		}
 #endif
 	}
+#endif
 }
 
 

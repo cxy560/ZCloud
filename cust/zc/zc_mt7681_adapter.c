@@ -328,9 +328,9 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
             PCT_SendNotifyMsg(ZC_CODE_EQ_DONE);
             break;
         }    
-        case ZC_CODE_ZOTA_END:
-            MT_FirmwareUpdateFinish();
-            break;
+//        case ZC_CODE_ZOTA_END:
+//            MT_FirmwareUpdateFinish();
+//            break;
         default:
             PCT_HandleMoudleEvent(pu8Data, u16DataLen);
             break;
