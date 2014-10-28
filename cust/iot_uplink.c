@@ -245,7 +245,7 @@ INT32 IoT_send_udp_directly(uip_ipaddr_t *DstAddr,
 	pBufDesc = apiQU_Dequeue(&gFreeQueue1);
 	if(pBufDesc ==NULL)
 	{
-		Printf_High("=>%s DeQ fail\n",__FUNCTION__);
+		//Printf_High("=>%s DeQ fail\n",__FUNCTION__);
 		return 2;
 	}	
 	mpool = pBufDesc->pBuf;

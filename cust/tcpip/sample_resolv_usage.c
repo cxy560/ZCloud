@@ -20,7 +20,7 @@ void resolv_found(char *name, u16_t *ipaddr)
 		return;
 	}
 	ss.state = SAMPLE_STATE_DONE;
-	Printf_High("DNS %s, %d.%d.%d.%d\n", name,
+	printf("DNS %s, %d.%d.%d.%d\n", name,
 					htons(ipaddr[0]) >>8,  
 					htons(ipaddr[0]) & 0xff,  
 					htons(ipaddr[1]) >>8,  

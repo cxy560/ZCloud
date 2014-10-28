@@ -158,7 +158,7 @@ wifiTASK_LowPrioTask (VOID)
 
 		/*Set Flag to make loader startup STA/AP FW*/
 		SetRec2LoaderFlag();
-		Printf_High("<== RecoveryMode\n");
+		//Printf_High("<== RecoveryMode\n");
 
 		/*if no AT#UpdateFW to trigger Xmodem , System Reboot to restart loader*/
 		Sys_reboot();
@@ -221,7 +221,7 @@ wifiTASK_LowPrioTask (VOID)
 		else
 			Printf_High("[RTask]%u \n", PreTime);
 #else	
-		Printf_High("[WTask]%u \n", PreTime);
+		//Printf_High("[WTask]%u \n", PreTime);
 #endif
 
 	}

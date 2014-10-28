@@ -80,7 +80,7 @@ _tcpip_init(void)
   mt76xx_dev_init();
   uip_init();
 
-  Printf_High("Tcp INIT \n");
+  //Printf_High("Tcp INIT \n");
 #ifdef CONFIG_SOFTAP
 	uip_ipaddr(ipaddr, 192,168,81,1);
 	uip_sethostaddr(ipaddr);

@@ -341,7 +341,7 @@ _handle_dhcp(void)
 		if(uip_newdata() && parse_msg() == DHCPACK) {
 			printf("dhcp RX ACK\n");
 			s.state = STATE_CONFIG_RECEIVED;
-			Printf_High("Got IP:%d.%d.%d.%d\n",
+			printf("Got IP:%d.%d.%d.%d\n",
 				uip_ipaddr1(s.ipaddr), uip_ipaddr2(s.ipaddr),
 				uip_ipaddr3(s.ipaddr), uip_ipaddr4(s.ipaddr));
 			printf("Got netmask %d.%d.%d.%d\n",

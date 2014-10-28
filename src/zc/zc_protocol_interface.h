@@ -156,7 +156,7 @@ typedef struct
 	u8	u8ArmSwVersion;          
 	u8	u8ZigbeeSwVersion;       
     u8  u8ModuleKey[ZC_MODULE_KEY_LEN];
-    u8  u8DeviceId[ZC_HS_DEVICE_ID_LEN];
+    //u8  u8DeviceId[ZC_HS_DEVICE_ID_LEN];
     
 }ZC_RegisterReq;
 
