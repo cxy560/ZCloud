@@ -89,7 +89,6 @@ u32  EVENT_BuildMsg(u8 u8MsgCode, u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len, u8 *pu8P
 *************************************************/
 u32  EVENT_BuildBcMsg(u8 *pu8Msg, u16 *pu16Len)
 {
-    u16 u16Len;
     ZC_BroadCastInfo struBc;
     u8 *pu8DeviceId;
     
@@ -104,7 +103,7 @@ u32  EVENT_BuildBcMsg(u8 *pu8Msg, u16 *pu16Len)
     g_struProtocolController.pstruMoudleFun->pfunGetDeviceId(&pu8DeviceId);
 
     memcpy(struBc.RandMsg, g_struProtocolController.RandMsg, ZC_HS_MSG_LEN);
-    memcpy(struBc.DeviceId, /*pu8DeviceId*/"zzzzzzzzzzzz", ZC_HS_DEVICE_ID_LEN);
+    memcpy(struBc.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
     memcpy((pu8Msg + sizeof(ZC_MessageHead)), &struBc, sizeof(ZC_BroadCastInfo));
 
     *pu16Len = (u16)sizeof(ZC_MessageHead)+sizeof(ZC_BroadCastInfo);

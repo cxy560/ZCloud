@@ -32,7 +32,26 @@ u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 
 void SEC_InitRsaContextWithPublicKey(rsa_context *pstruRsa, const u8 *pu8Pubkey);
 void SEC_InitRsaContextWithPrivateKey(rsa_context *pstrRsa, const u8 *pu8PrivateKey);
 u32 SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen);
+void AES_CBC_Decrypt(
+    unsigned char *CipherText,
+    unsigned int CipherTextLength,
+    unsigned char *Key,
+    unsigned int KeyLength,
+    unsigned char *IV,
+    unsigned int IVLength,
+    unsigned char *PlainText,
+    unsigned int *PlainTextLength);
 
+void AES_CBC_Encrypt(
+    unsigned char *PlainText,
+    unsigned int PlainTextLength,
+    unsigned char *Key,
+    unsigned int KeyLength,
+    unsigned char *IV,
+    unsigned int IVLength,
+    unsigned char *CipherText,
+    unsigned int *CipherTextLength);
+    
 #ifdef __cplusplus
 }
 #endif

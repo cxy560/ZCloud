@@ -94,7 +94,6 @@ void mpi_free(mpi * X)
 	X->n = 0;
 	//X->p = NULL;
 }
-
 /*
  * Enlarge to the specified number of limbs
  */
@@ -241,7 +240,6 @@ static int mpi_get_digit(t_int * d, int radix, char c)
 
 	return (0);
 }
-
 /*
  * Import from an ASCII string
  */
@@ -420,7 +418,6 @@ int mpi_write_binary(const mpi * X, unsigned char *buf, int buflen)
 
 	return (0);
 }
-
 /*
  * Left-shift: X <<= count
  */
@@ -597,7 +594,8 @@ int mpi_cmp_int(const mpi * X, int z)
 int mpi_add_abs(mpi * X, const mpi * A, const mpi * B)
 {
 	int ret, i, j;
-	t_int *o, *p, c;
+	const t_int *o; 
+	t_int *p, c;
 
 	if (X == B) {
 		const mpi *T = A;
@@ -692,7 +690,7 @@ int mpi_sub_abs(mpi * X, const mpi * A, const mpi * B)
 		if (B->p[n] != 0)
 			break;
 
-	mpi_sub_hlp(n + 1, B->p, X->p);
+	mpi_sub_hlp(n + 1, (t_int *)B->p, (t_int *)X->p);
 
 cleanup:
 
@@ -856,7 +854,7 @@ int mpi_mul_mpi(mpi * X, const mpi * A, const mpi * B)
 	MPI_CHK(mpi_lset(X, 0));
 
 	for (i++; j >= 0; j--)
-		mpi_mul_hlp(i, A->p, X->p + j, B->p[j]);
+		mpi_mul_hlp(i, (t_int *)A->p, X->p + j, B->p[j]);
 
 	X->s = A->s * B->s;
 
@@ -1166,8 +1164,8 @@ static void mpi_montmul(mpi * A, const mpi * B, const mpi * N, t_int mm, mpi * T
 		u0 = A->p[i];
 		u1 = (d[0] + u0 * B->p[0]) * mm;
 
-		mpi_mul_hlp(m, B->p, d, u0);
-		mpi_mul_hlp(n, N->p, d, u1);
+		mpi_mul_hlp(m, (t_int *)B->p, d, u0);
+		mpi_mul_hlp(n, (t_int *)N->p, d, u1);
 
 		*d++ = u0;
 		d[n + 1] = 0;
@@ -1176,7 +1174,7 @@ static void mpi_montmul(mpi * A, const mpi * B, const mpi * N, t_int mm, mpi * T
 	memcpy(A->p, d, (n + 1) * ciL);
 
 	if (mpi_cmp_abs(A, N) >= 0)
-		mpi_sub_hlp(n, N->p, A->p);
+		mpi_sub_hlp(n, (t_int *)N->p, A->p);
 	else
 		/* prevent timing attacks */
 		mpi_sub_hlp(n, A->p, T->p);
@@ -1709,165 +1707,4 @@ cleanup:
 }
 
 #endif
-
-#if defined(TROPICSSL_SELF_TEST)
-
-#define GCD_PAIR_COUNT	3
-
-static const int gcd_pairs[GCD_PAIR_COUNT][3] = {
-	{693, 609, 21},
-	{1764, 868, 28},
-	{768454923, 542167814, 1}
-};
-
-/*
- * Checkup routine
- */
-int mpi_self_test(int verbose)
-{
-	int ret, i;
-	mpi A, E, N, X, Y, U, V;
-
-	mpi_init(&A); mpi_init(&E); mpi_init(&N); mpi_init(&X);
-	mpi_init(&Y); mpi_init(&U); mpi_init(&V);
-
-	MPI_CHK(mpi_read_string(&A, 16,
-				"EFE021C2645FD1DC586E69184AF4A31E"
-				"D5F53E93B5F123FA41680867BA110131"
-				"944FE7952E2517337780CB0DB80E61AA"
-				"E7C8DDC6C5C6AADEB34EB38A2F40D5E6"));
-
-	MPI_CHK(mpi_read_string(&E, 16,
-				"B2E7EFD37075B9F03FF989C7C5051C20"
-				"34D2A323810251127E7BF8625A4F49A5"
-				"F3E27F4DA8BD59C47D6DAABA4C8127BD"
-				"5B5C25763222FEFCCFC38B832366C29E"));
-
-	MPI_CHK(mpi_read_string(&N, 16,
-				"0066A198186C18C10B2F5ED9B522752A"
-				"9830B69916E535C8F047518A889A43A5"
-				"94B6BED27A168D31D4A52F88925AA8F5"));
-
-	MPI_CHK(mpi_mul_mpi(&X, &A, &N));
-
-	MPI_CHK(mpi_read_string(&U, 16,
-				"602AB7ECA597A3D6B56FF9829A5E8B85"
-				"9E857EA95A03512E2BAE7391688D264A"
-				"A5663B0341DB9CCFD2C4C5F421FEC814"
-				"8001B72E848A38CAE1C65F78E56ABDEF"
-				"E12D3C039B8A02D6BE593F0BBBDA56F1"
-				"ECF677152EF804370C1A305CAF3B5BF1"
-				"30879B56C61DE584A0F53A2447A51E"));
-
-	if (verbose != 0)
-		printf("  MPI test #1 (mul_mpi): ");
-
-	if (mpi_cmp_mpi(&X, &U) != 0) {
-		if (verbose != 0)
-			printf("failed\n");
-
-		return (1);
-	}
-
-	if (verbose != 0)
-		printf("passed\n");
-
-	MPI_CHK(mpi_div_mpi(&X, &Y, &A, &N));
-
-	MPI_CHK(mpi_read_string(&U, 16, "256567336059E52CAE22925474705F39A94"));
-
-	MPI_CHK(mpi_read_string(&V, 16,
-				"6613F26162223DF488E9CD48CC132C7A"
-				"0AC93C701B001B092E4E5B9F73BCD27B"
-				"9EE50D0657C77F374E903CDFA4C642"));
-
-	if (verbose != 0)
-		printf("  MPI test #2 (div_mpi): ");
-
-	if (mpi_cmp_mpi(&X, &U) != 0 || mpi_cmp_mpi(&Y, &V) != 0) {
-		if (verbose != 0)
-			printf("failed\n");
-
-		return (1);
-	}
-
-	if (verbose != 0)
-		printf("passed\n");
-
-	MPI_CHK(mpi_exp_mod(&X, &A, &E, &N, NULL));
-
-	MPI_CHK(mpi_read_string(&U, 16,
-				"36E139AEA55215609D2816998ED020BB"
-				"BD96C37890F65171D948E9BC7CBAA4D9"
-				"325D24D6A3C12710F10A09FA08AB87"));
-
-	if (verbose != 0)
-		printf("  MPI test #3 (exp_mod): ");
-
-	if (mpi_cmp_mpi(&X, &U) != 0) {
-		if (verbose != 0)
-			printf("failed\n");
-
-		return (1);
-	}
-
-	if (verbose != 0)
-		printf("passed\n");
-
-	MPI_CHK(mpi_inv_mod(&X, &A, &N));
-
-	MPI_CHK(mpi_read_string(&U, 16,
-				"003A0AAEDD7E784FC07D8F9EC6E3BFD5"
-				"C3DBA76456363A10869622EAC2DD84EC"
-				"C5B8A74DAC4D09E03B5E0BE779F2DF61"));
-
-	if (verbose != 0)
-		printf("  MPI test #4 (inv_mod): ");
-
-	if (mpi_cmp_mpi(&X, &U) != 0) {
-		if (verbose != 0)
-			printf("failed\n");
-
-		return (1);
-	}
-
-	if (verbose != 0)
-		printf("passed\n");
-
-	if (verbose != 0)
-		printf("  MPI test #5 (simple gcd): ");
-
-	for (i = 0; i < GCD_PAIR_COUNT; i++) {
-		MPI_CHK(mpi_lset(&X, gcd_pairs[i][0]));
-		MPI_CHK(mpi_lset(&Y, gcd_pairs[i][1]));
-
-		MPI_CHK(mpi_gcd(&A, &X, &Y));
-
-		if (mpi_cmp_int(&A, gcd_pairs[i][2]) != 0) {
-			if (verbose != 0)
-				printf("failed at %d\n", i);
-
-			return (1);
-		}
-	}
-
-	if (verbose != 0)
-		printf("passed\n");
-
-cleanup:
-
-	if (ret != 0 && verbose != 0)
-		printf("Unexpected error, return code = %08X\n", ret);
-
-	mpi_free(&V); mpi_free(&U); mpi_free(&Y); mpi_free(&X);
-	mpi_free(&N); mpi_free(&E); mpi_free(&A);
-
-	if (verbose != 0)
-		printf("\n");
-
-	return (ret);
-}
-
-#endif
-
 #endif

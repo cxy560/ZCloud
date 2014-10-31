@@ -29,7 +29,7 @@ typedef struct
 #ifdef __cplusplus
 extern "C" {
 #endif
-void TIMER_Init();
+void TIMER_Init(void);
 u32 TIMER_FindIdleTimer(u8 *pu8TimerIndex);
 void TIMER_AllocateTimer(u8 u8Type, u8 u8TimerIndex, u8 *pu8Timer);
 void TIMER_GetTimerStatus(u8 u8TimerIndex, u8 *pu8Status);

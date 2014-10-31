@@ -105,8 +105,6 @@ void PCT_SendEmptyMsg(u8 u8MsgId, u8 u8SecType)
 {
     ZC_MessageHead struMsg;
     ZC_SecHead struSecHead;
-    u32 u32RetVal;
-    
     u16 u16Len = 0;
     /*build msg*/
     EVENT_BuildEmptyMsg(u8MsgId, (u8*)&struMsg, &u16Len);
@@ -116,7 +114,7 @@ void PCT_SendEmptyMsg(u8 u8MsgId, u8 u8SecType)
     struSecHead.u16TotalMsg = ZC_HTONS(u16Len);
 
     
-    u32RetVal = PCT_SendMsgToCloud(&struSecHead, (u8*)&struMsg);
+    (void)PCT_SendMsgToCloud(&struSecHead, (u8*)&struMsg);
 }
 /*************************************************
 * Function: PCT_SendErrorMsg
