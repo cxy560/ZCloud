@@ -168,7 +168,8 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     pstruContoller->pstruMoudleFun->pfunGetDeviceId(&pu8DeviceId);
     
     memcpy(struMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
-    memcpy(struMsg1.DeviceId, /*pu8DeviceId*/"zzzzzzzzzzzz", ZC_HS_DEVICE_ID_LEN);
+    memcpy(struMsg1.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
+    memcpy(struMsg1.u8Domain, pu8DeviceId + ZC_HS_DEVICE_ID_LEN, ZC_DOMAIN_LEN);
 
    
     EVENT_BuildMsg(ZC_CODE_HANDSHAKE_1, 1, g_u8MsgBuildBuffer, &u16Len, 

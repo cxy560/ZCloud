@@ -16,6 +16,7 @@
 #define ZC_HS_SESSION_KEY_LEN               (16)
 #define ZC_HS_SESSION_IV_LEN                (16)
 #define ZC_MODULE_KEY_LEN                   (112)
+#define ZC_DOMAIN_LEN                       (8)
 
 
 #define ZC_SEC_ALG_NONE                     (0) 
@@ -123,6 +124,7 @@ typedef struct
 {
     u8 RandMsg[ZC_HS_MSG_LEN];
     u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
+    u8 u8Domain[ZC_DOMAIN_LEN];
 }ZC_HandShakeMsg1;
 
 /*Second handshake msg, send by cloud to moudle, 
@@ -156,8 +158,7 @@ typedef struct
 	u8	u8ArmSwVersion;          
 	u8	u8ZigbeeSwVersion;       
     u8  u8ModuleKey[ZC_MODULE_KEY_LEN];
-    //u8  u8DeviceId[ZC_HS_DEVICE_ID_LEN];
-    
+    u8  u8Domain[ZC_DOMAIN_LEN];
 }ZC_RegisterReq;
 
 /*msg code: ZC_CODE_OTA_BEGIN*/

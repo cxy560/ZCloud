@@ -23,45 +23,45 @@ extern IOT_ADAPTER   	IoTpAd;
 #define DEFAULT_CLOUD_ADDR          "www.baidu.com"
 
 #define DEFAULT_IOT_CLOUD_KEY {\
-    0x8d, 0xc2, 0xf2, 0xae,\
-    0xbc, 0x7b, 0xdc, 0x93,\
-    0x80, 0xde, 0xb9, 0x6c,\
-    0xa0, 0xe3, 0x93, 0x5d,\
-    0x89, 0x30, 0x7f, 0x1e,\
-    0xec, 0x7f, 0xd3, 0x75,\
-    0x3c, 0x3d, 0x4b, 0xd6,\
-    0x59, 0x8a, 0xb3, 0x2b,\
+    0xb0, 0x7e, 0xab, 0x09, \
+    0x73, 0x4e, 0x78, 0x12, \
+    0x7e, 0x8c, 0x54, 0xcd, \
+    0xbb, 0x93, 0x3c, 0x16, \
+    0x96, 0x23, 0xaf, 0x7a, \
+    0xfc, 0xd2, 0x8b, 0xd1, \
+    0x43, 0xa2, 0xbb, 0xc8, \
+    0x77, 0xa0, 0xca, 0xcd, \
     0x01, 0x00, 0x01\
 }
 #define DEFAULT_IOT_PRIVATE_KEY {\
-    0x8d, 0xc2, 0xf2, 0xae,\
-    0xbc, 0x7b, 0xdc, 0x93,\
-    0x80, 0xde, 0xb9, 0x6c,\
-    0xa0, 0xe3, 0x93, 0x5d,\
-    0x89, 0x30, 0x7f, 0x1e,\
-    0xec, 0x7f, 0xd3, 0x75,\
-    0x3c, 0x3d, 0x4b, 0xd6,\
-    0x59, 0x8a, 0xb3, 0x2b,\
-    0xea, 0x76, 0xb5, 0x4d,\
-    0x3a, 0xb8, 0x75, 0xfc,\
-    0xbb, 0xc6, 0x49, 0xa3,\
-    0x48, 0x5b, 0x89, 0x2f,\
-    0x9a, 0xc8, 0x65, 0x68,\
-    0x9a, 0x07, 0x15, 0x71,\
-    0x03, 0x92, 0x10, 0x0e,\
-    0x8c, 0x7b, 0x7e, 0xc5,\
-    0x1e, 0x8b, 0x9c, 0x8f,\
-    0x15, 0x29, 0x56, 0xe5,\
-    0xb8, 0x28, 0xdb, 0x0b,\
-    0x14, 0xb0, 0x28, 0x2d,\
-    0x7d, 0x68, 0xd9, 0x21,\
-    0x83, 0x8b, 0x31, 0xc8,\
-    0x3b, 0xc8, 0x60, 0xd2,\
-    0x28, 0xe8, 0xf6, 0xb1,\
-    0xcb, 0x26, 0x19, 0x68,\
-    0x7c, 0x69, 0x4a, 0x80,\
-    0xa5, 0x80, 0xd8, 0x0c,\
-    0x3f, 0x43, 0x8f, 0x95\
+    0xb0, 0x7e, 0xab, 0x09, \
+    0x73, 0x4e, 0x78, 0x12, \
+    0x7e, 0x8c, 0x54, 0xcd, \
+    0xbb, 0x93, 0x3c, 0x16, \
+    0x96, 0x23, 0xaf, 0x7a, \
+    0xfc, 0xd2, 0x8b, 0xd1, \
+    0x43, 0xa2, 0xbb, 0xc8, \
+    0x77, 0xa0, 0xca, 0xcd, \
+    0xef, 0x28, 0x66, 0xbd, \
+    0x44, 0xc1, 0x27, 0x58, \
+    0x3f, 0x71, 0xe3, 0x03, \
+    0xcf, 0x11, 0x69, 0xf1, \
+    0xbc, 0xec, 0x8f, 0xcd, \
+    0xb5, 0x88, 0xab, 0x50, \
+    0x5d, 0xb3, 0xf1, 0xd3, \
+    0xbb, 0x9d, 0xf2, 0x9d, \
+    0xcd, 0x04, 0xff, 0x7e, \
+    0x45, 0x90, 0xa8, 0x1f, \
+    0xf8, 0xd3, 0xb2, 0xdf, \
+    0x33, 0x06, 0x24, 0xa1, \
+    0x93, 0x57, 0x4b, 0xaf, \
+    0xfb, 0x6c, 0x63, 0x6f, \
+    0x82, 0x24, 0xdc, 0xed, \
+    0x6c, 0xdd, 0x7a, 0x61, \
+    0x9a, 0xd2, 0x29, 0x32, \
+    0xdc, 0x4a, 0x86, 0x20, \
+    0x6c, 0x98, 0x16, 0xce, \
+    0xfd, 0x31, 0x50, 0xd6\
 }
 
 IOT_USR_CFG Usr_Cfg = {
@@ -73,7 +73,41 @@ IOT_USR_CFG Usr_Cfg = {
     DEFAULT_CLOUD_ADDR
 };
 
+void rsaoffline()
+{
+    u32 u32len;
+    u32 testlen;
+    u32 u32Index;
+    extern u32 g_u32TraceSwitch;
+    g_u32TraceSwitch = 1;
 
+    testlen = 64;
+    for (u32Index = 0; u32Index < testlen; u32Index++)
+    {
+        u8PlainBuf[u32Index] = u32Index;
+    }
+    u32len = 0;
+    for (u32Index = 0; u32Index < 2; u32Index++)
+    {
+
+        ZC_Printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+
+        ZC_TraceData(u8PlainBuf, testlen);
+        ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
+
+        SEC_EncryptTextByRsa(g_u8DumpCloudMsg, u8PlainBuf, testlen, &u32len);
+        //rsa_pkcs1_encrypt(rsa1, RSA_PUBLIC, testlen, u8PlainBuf, g_u8DumpCloudMsg);
+
+        ZC_TraceData(g_u8DumpCloudMsg, u32len);
+        ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
+        SEC_DecryptTextByRsa(g_u8DumpCloudMsg, u8DeplainBuf, u32len, &testlen);
+        //rsa_pkcs1_decrypt(&rsa, RSA_PRIVATE, &s32len, g_u8DumpCloudMsg, u8DeplainBuf, testlen);
+        ZC_TraceData(u8DeplainBuf, testlen);
+
+        ZC_Printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+
+    }
+}
 void newrsa()
 {
     int ret;
@@ -84,6 +118,8 @@ void newrsa()
     s32 s32len;
     s32 sum = 0;
     s32 testlen;
+    extern u32 g_u32TraceSwitch;
+    g_u32TraceSwitch = 1;
     MT_Init();
 
     havege_init( &hs );
@@ -104,6 +140,7 @@ void newrsa()
     mpi_write_binary(&rsa.E, u8publicBuf+sum, s32len);
     sum +=s32len;
     ZC_TraceData(u8publicBuf, sum);
+
     ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
     sum = 0;
     s32len = mpi_size(&rsa.N);
@@ -137,26 +174,27 @@ void newrsa()
     {
         u8PlainBuf[u32Index] = u32Index;
     }
-
+    s32len = 32;
     for (u32Index = 0; u32Index < 2; u32Index++)
     {
-        ZC_Printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-
-        ZC_TraceData(u8PlainBuf,testlen);
-        ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
-        //SEC_EncryptTextByRsa(u8publicBuf,u8PlainBuf,g_u8DumpCloudMsg,52);
-        //SEC_EncryptTextByRsa(u8publicBuf,u8PlainBuf+10,g_u8DumpCloudMsg+10,42);
-        rsa_pkcs1_encrypt(&rsa, RSA_PUBLIC, testlen, u8PlainBuf, g_u8DumpCloudMsg);
-
-        ZC_TraceData(g_u8DumpCloudMsg,testlen);
-        ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
-        // SEC_DecryptTextByRsa(u8TestBuf, g_u8DumpCloudMsg, u8DeplainBuf,testlen);
-        rsa_pkcs1_decrypt(&rsa, RSA_PRIVATE, &s32len, g_u8DumpCloudMsg, u8DeplainBuf, testlen);
-
-
-        ZC_TraceData(u8DeplainBuf,testlen);
 
         ZC_Printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+                    rsa_context *rsa1;
+
+        ZC_TraceData(u8PlainBuf, testlen);
+        ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
+        
+        SEC_EncryptTextByRsa(g_u8DumpCloudMsg, u8PlainBuf, testlen, &s32len);
+        //rsa_pkcs1_encrypt(rsa1, RSA_PUBLIC, testlen, u8PlainBuf, g_u8DumpCloudMsg);
+
+        ZC_TraceData(g_u8DumpCloudMsg, s32len);
+        ZC_Printf("+++++++++++++++++++++++++++++++++++\n");
+        SEC_DecryptTextByRsa(g_u8DumpCloudMsg, u8DeplainBuf, s32len, &testlen);
+        //rsa_pkcs1_decrypt(&rsa, RSA_PRIVATE, &s32len, g_u8DumpCloudMsg, u8DeplainBuf, testlen);
+        ZC_TraceData(u8DeplainBuf, testlen);
+
+        ZC_Printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+
     }
 
 }
