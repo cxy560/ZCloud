@@ -44,7 +44,7 @@ typedef struct
 {
     u8  Version;
     u8  MsgId;
-    u8  MsgCode;		
+    u8  MsgCode;
     u8  OptNum;        
     
     u16 Payloadlen;     //msg payload len + opt len + opt head len
@@ -114,7 +114,7 @@ typedef enum
 /*Error Msg*/
 typedef struct{
     u8 ErrorCode;
-    u8 ErrorMsg[0];
+    //u8 ErrorMsg[0];
 }ZC_ErrorMsg;
 
 
@@ -153,20 +153,21 @@ typedef struct
 /*msg code: ZC_CODE_DESCRIBE*/
 typedef struct 
 {
-	u8	u8WifiSwVersion;            
-	u8	u8HwVersion;              
-	u8	u8ArmSwVersion;          
-	u8	u8ZigbeeSwVersion;       
+    u8  u8WifiSwVersion;            
+    u8  u8HwVersion;              
+    u8  u8ArmSwVersion;          
+    u8  u8ZigbeeSwVersion;       
     u8  u8ModuleKey[ZC_MODULE_KEY_LEN];
     u8  u8Domain[ZC_DOMAIN_LEN];
 }ZC_RegisterReq;
+
 
 /*msg code: ZC_CODE_OTA_BEGIN*/
 typedef struct
 {
     u8 u8FileNum;
     u8 u8Pad[3];
-    u8 u8FileType[0];
+    //u8 u8FileType[0];
 }ZC_OtaBeginReq;
 
 /*msg code: ZC_CODE_OTA_FILE_BEGIN*/
@@ -197,7 +198,7 @@ typedef struct
 {
     u8 u8ClientNum;
     u8 u8Pad[3];
-    u8 DeviceId[0];
+    //u8 DeviceId[0];
 }ZC_ClientAccessInfo;
 
 /*ZC_CODE_CLIENT_ACCESS_RSP*/
@@ -206,7 +207,7 @@ typedef struct
     u8 u8BlackClientNum;
     u8 u8WhiteClientNum;    
     u8 u8Pad[2];
-    u8 DeviceId[0];
+    //u8 DeviceId[0];
 }ZC_BlackWhiteClientList;
 
 /******************************* Option definition***********************************/
