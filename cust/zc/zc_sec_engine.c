@@ -28,7 +28,7 @@ u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
 
     pstruCon = &g_struProtocolController;
 
-    rsa = (rsa_context *)malloc(sizeof(rsa_context));
+    rsa = (rsa_context *)ZC_malloc(sizeof(rsa_context));
     pstruCon->pstruMoudleFun->pfunGetCloudKey(&pu8PublicKey);
 
     SEC_InitRsaContextWithPublicKey(rsa, pu8PublicKey);
@@ -63,7 +63,7 @@ u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
     }
    
     rsa_free(rsa);
-    free(rsa);
+    ZC_free(rsa);
 
     if (s32Ret)
     {
@@ -93,7 +93,7 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
     PTC_ProtocolCon *pstruCon;
     u8 *pu8PrivateKey;
     
-    pstruRsa = (rsa_context *)malloc(sizeof(rsa_context));
+    pstruRsa = (rsa_context *)ZC_malloc(sizeof(rsa_context));
 
     pstruCon = &g_struProtocolController;
 
@@ -137,7 +137,7 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
     ZC_Printf("rsa_pkcs1_decrypt = %d, u32RetVal = %d\n", s32len, s32Ret);
     rsa_free(pstruRsa);
     
-    free(pstruRsa);
+    ZC_free(pstruRsa);
 
     if (s32Ret)
     {

@@ -36,7 +36,7 @@
 #define    PCT_TIMER_REGISTER               (4)
 
 #define    PCT_TIMER_INTERVAL_RECONNECT     (1000)
-#define    PCT_TIMER_INTERVAL_HEART         (1000 * 120)
+#define    PCT_TIMER_INTERVAL_HEART         (1000 * 15)
 #define    PCT_TIMER_INTERVAL_SENDMOUDLE    (1000)
 #define    PCT_TIMER_INTERVAL_REGISTER      (1000)
 
@@ -69,6 +69,7 @@ typedef struct
 
 typedef void (*pFunSendDataToCloud)(PTC_Connection *pstruConnection);
 typedef u32 (*pFunFirmwareUpdate)(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen);
+typedef u32 (*pFunFirmwareUpdateFinish)(u32 u32TotalLen);
 typedef u32 (*pFunSendDataToMoudle)(u8 *pu8Data, u16 u16DataLen);
 typedef u32 (*pFunRecvDataFromMoudle)(u8 *pu8Data, u16 u16DataLen);
 typedef u32 (*pFunGetCloudKey)(u8 **pu8Key);
@@ -77,16 +78,18 @@ typedef u32 (*pFunGetVersion)(u8 **pu8Version);
 typedef u32 (*pFunGetDeviceId)(u8 **pu8DeviceId);
 typedef u32 (*pFunConnectToCloud)(PTC_Connection *pstruConnection);
 typedef u32 (*pFunSetTimer)(u8 u8Type, u32 Interval, u8 *pu8Index);
+typedef void (*pFunStopTimer)(u8 u8TimerIndex);
 
 
 typedef struct
 {
     /*action function*/
     pFunConnectToCloud          pfunConnectToCloud;
-    pFunSendDataToCloud         pfunSendToCloud;
+    //pFunSendDataToCloud         pfunSendToCloud; //
     pFunFirmwareUpdate          pfunUpdate;
+    pFunFirmwareUpdateFinish    pfunUpdateFinish;    
     pFunSendDataToMoudle        pfunSendToMoudle;
-    pFunRecvDataFromMoudle      pfunRecvFormMoudle;
+    //pFunRecvDataFromMoudle      pfunRecvFormMoudle; //
     
     /*config function*/
     pFunGetCloudKey             pfunGetCloudKey;
@@ -94,6 +97,7 @@ typedef struct
     pFunGetVersion              pfunGetVersion;
     pFunGetDeviceId             pfunGetDeviceId;
     pFunSetTimer                pfunSetTimer;
+    pFunStopTimer               pfunStopTimer;
 }PTC_ModuleAdapter;
 
 typedef struct

@@ -13,7 +13,7 @@
 #if CFG_SUPPORT_DNS
 #include "resolv.h"
 #endif
-#include "zc_module_config.h"
+#include "zc_common.h"
 
 extern UCHAR gCurrentAddress[];
 extern IOT_ADAPTER   	IoTpAd;

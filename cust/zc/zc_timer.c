@@ -94,7 +94,8 @@ void TIMER_TimeoutAction(u8 u8TimerIndex)
         case PCT_TIMER_RECONNECT:
             ZC_Printf("PCT_TIMER_RECONNECT Time out\n");
             g_struProtocolController.u8ReconnectTimer = PCT_TIMER_INVAILD;
-            PCT_ConnectCloud(&g_struProtocolController);
+            g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET;
+            //PCT_ConnectCloud(&g_struProtocolController);
             break;
         case PCT_TIMER_REACCESS:
             ZC_Printf("Access Time out\n");
@@ -126,6 +127,7 @@ void TIMER_TimeoutAction(u8 u8TimerIndex)
 void TIMER_StopTimer(u8 u8TimerIndex)
 {
     g_struTimer[u8TimerIndex].u8Status = ZC_TIMER_STATUS_IDLE;
+    g_struProtocolController.pstruMoudleFun->pfunStopTimer(u8TimerIndex);
 }
 
 

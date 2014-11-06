@@ -616,6 +616,7 @@ void PCT_HandleOtaFileEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruB
 {
     ZC_MessageHead *pstruMsg;
     ZC_Printf("Ota File End\n");
+    pstruContoller->pstruMoudleFun->pfunUpdateFinish(pstruContoller->struOtaInfo.u32TotalLen);
 
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     PCT_SendAckToCloud(pstruMsg->MsgId);
@@ -766,6 +767,7 @@ void PCT_Run()
             PCT_ConnectCloud(pstruContoller);
             break;
         case PCT_STATE_WAIT_ACCESS:
+        	//PCT_SendCloudAccessMsg1(pstruContoller);        
             break;
         case PCT_STATE_WAIT_ACCESSRSP:
             PCT_RecvAccessMsg2(pstruContoller);

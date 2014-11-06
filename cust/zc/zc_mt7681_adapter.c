@@ -194,14 +194,9 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_FirmwareUpdateFinish()
+u32 MT_FirmwareUpdateFinish(u32 u32TotalLen)
 {
-    if (PCT_OTA_REST_ON == g_struProtocolController.struOtaInfo.u8NeedReset)
-    {
-        spi_flash_CopyApToSta(g_struProtocolController.struOtaInfo.u32TotalLen);        
-    }
-
-    /*to do send notify*/
+    spi_flash_CopyApToSta(u32TotalLen);        
 }
 /*************************************************
 * Function: MT_FirmwareUpdate
@@ -393,6 +388,17 @@ u32 MT_GetDeviceId(u8 **pu8DeviceId)
     *pu8DeviceId = IoTpAd.UsrCfg.ProductName;
     return ZC_RET_OK;
 }
+/*************************************************
+* Function: MT_StopTimer
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MT_StopTimer(u8 u8TimerIndex)
+{
+}
 
 /*************************************************
 * Function: MT_ConnectToCloud
@@ -474,15 +480,18 @@ void MT_Init()
 {
     ZC_Printf("MT Init\n");
     g_struMt7681Adapter.pfunConnectToCloud = MT_ConnectToCloud;
-    g_struMt7681Adapter.pfunSendToCloud = MT_SendDataToCloud;   
-    g_struMt7681Adapter.pfunUpdate = MT_FirmwareUpdate;        
+    //g_struMt7681Adapter.pfunSendToCloud = MT_SendDataToCloud;   
+    g_struMt7681Adapter.pfunUpdate = MT_FirmwareUpdate;  
+    g_struMt7681Adapter.pfunUpdateFinish = MT_FirmwareUpdateFinish;
     g_struMt7681Adapter.pfunSendToMoudle = MT_SendDataToMoudle;  
-    g_struMt7681Adapter.pfunRecvFormMoudle = MT_RecvDataFromMoudle;
+    //g_struMt7681Adapter.pfunRecvFormMoudle = MT_RecvDataFromMoudle;
     g_struMt7681Adapter.pfunGetCloudKey = MT_GetCloudKey;   
     g_struMt7681Adapter.pfunGetPrivateKey = MT_GetPrivateKey; 
     g_struMt7681Adapter.pfunGetVersion = MT_GetVersion;    
     g_struMt7681Adapter.pfunGetDeviceId = MT_GetDeviceId;   
-    g_struMt7681Adapter.pfunSetTimer = MT_SetTimer;   
+    g_struMt7681Adapter.pfunSetTimer = MT_SetTimer;  
+    g_struMt7681Adapter.pfunStopTimer = MT_StopTimer;
+    
     g_u16TcpMss = UIP_TCP_MSS;
     PCT_Init(&g_struMt7681Adapter);
 }
