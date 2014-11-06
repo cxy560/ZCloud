@@ -209,9 +209,13 @@ void PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller)
     u16 u16Len;
     ZC_HandShakeMsg3 struMsg3;
     ZC_SecHead struSechead;
+    u8 *pu8Vesion;
+    
+    pstruContoller->pstruMoudleFun->pfunGetVersion(&pu8Vesion);
 
     memcpy(struMsg3.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
-
+    memcpy(struMsg3.u8EqVersion, pu8Vesion, ZC_EQVERSION_LEN);
+    
     /*first set key recv flag*/
     g_struProtocolController.u8keyRecv = PCT_KEY_RECVED;
 

@@ -310,6 +310,7 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
             memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
             memcpy(IoTpAd.UsrCfg.ProductName, (u8*)(pstruRegister+1)+sizeof(ZC_MessageOptHead), ZC_HS_DEVICE_ID_LEN);
             memcpy(IoTpAd.UsrCfg.ProductName + ZC_HS_DEVICE_ID_LEN, pstruRegister->u8Domain, ZC_DOMAIN_LEN);
+            memcpy(IoTpAd.UsrCfg.ProductType, pstruRegister->u8EqVersion, ZC_EQVERSION_LEN);
             g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET; 
             if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
             {
