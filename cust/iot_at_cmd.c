@@ -1271,7 +1271,7 @@ INT16 IoT_parse_ATcommand(PCHAR cmd_buf, INT16 at_cmd_len)
 		IoT_Xmodem_Update_FW_Start(); /*Disable Uart Rx Interrupt*/
 		IoT_Xmodem_Update_FW();
 		IoT_Xmodem_Update_FW_Stop();  /*Restore Uart Rx Interrupt*/
-		IoT_exec_AT_cmd_reboot();
+		Sys_reboot();
 	}
 
 #endif

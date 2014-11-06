@@ -592,7 +592,7 @@ uint8 spi_flash_CopyApToSta(uint32 u32Len)
     }
 
     Printf_High("\1\2\3\4copy End\n");
-    IoT_exec_AT_cmd_reboot();
+    Sys_reboot();
 
     IoT_Xmodem_Update_FW_Stop();  /*Restore Uart Rx Interrupt*/
 
