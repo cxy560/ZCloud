@@ -309,12 +309,12 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
             )
             {
                 PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);                
-                return;
+                return ZC_RET_OK;
             }
             else if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
             {
                 PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECT);                
-                return;
+                return ZC_RET_OK;
             }
             
             pstruOpt = (ZC_MessageOptHead *)(pstrMsg + 1);
@@ -342,9 +342,15 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
             }
             break;
         }    
-//        case ZC_CODE_ZOTA_END:
-//            MT_FirmwareUpdateFinish();
-//            break;
+        case ZC_CODE_ZOTA_FILE_BEGIN:
+            PCT_ModuleOtaFileBeginMsg(&g_struProtocolController, pstrMsg);
+            break;
+        case ZC_CODE_ZOTA_FILE_CHUNK:
+            PCT_ModuleOtaFileChunkMsg(&g_struProtocolController, pstrMsg);
+            break;
+        case ZC_CODE_ZOTA_FILE_END:
+            PCT_ModuleOtaFileEndMsg(&g_struProtocolController, pstrMsg);
+            break;  
         default:
             PCT_HandleMoudleEvent(pu8Data, u16DataLen);
             break;

@@ -105,7 +105,7 @@ typedef struct
     u32 u32TotalLen;
     u32 u32RecvOffset;
     u8 u8Crc[2];
-    u8 u8NeedReset;
+    u8 u8Pad[2];
 }PTC_OtaInfo;
 
 typedef struct
@@ -174,6 +174,9 @@ void PCT_Run(void);
 void PCT_WakeUp(void);
 void PCT_Sleep(void);
 u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData);
+void PCT_ModuleOtaFileBeginMsg(PTC_ProtocolCon *pstruContoller, ZC_MessageHead *pstruMsg);
+void PCT_ModuleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, ZC_MessageHead *pstruMsg);
+void PCT_ModuleOtaFileEndMsg(PTC_ProtocolCon *pstruContoller, ZC_MessageHead *pstruMsg);
 
 #ifdef __cplusplus
 }
