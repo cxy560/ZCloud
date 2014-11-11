@@ -132,8 +132,8 @@ typedef struct
     u8   RandMsg[ZC_HS_MSG_LEN];
 
     u16   u16SendBcNum;
-    u8    u8EqStart;
-    u8    u8Pad;
+    u8    u8Pad[2];
+
     PTC_ModuleAdapter *pstruMoudleFun;      /*Communication With Cloud*/
     PTC_OtaInfo struOtaInfo;
     

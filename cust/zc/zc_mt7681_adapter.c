@@ -274,12 +274,9 @@ u32 MT_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
 u32 MT_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 {
     u8 u8MagicFlag[4] = {0x02,0x03,0x04,0x05};
-    if (PCT_EQ_STATUS_ON == g_struProtocolController.u8EqStart)
-    {
-        IoT_uart_output(u8MagicFlag, 4);
-        IoT_uart_output(pu8Data, u16DataLen);
-        return ZC_RET_OK;
-    }
+    IoT_uart_output(u8MagicFlag, 4);
+    IoT_uart_output(pu8Data, u16DataLen);
+    return ZC_RET_OK;
 }
 /*************************************************
 * Function: MT_RecvDataFromMoudle
@@ -293,6 +290,7 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
 {
     ZC_MessageHead *pstrMsg;
     ZC_RegisterReq *pstruRegister;
+    ZC_MessageOptHead *pstruOpt;
 
     ZC_TraceData(pu8Data, u16DataLen);
 
@@ -300,18 +298,34 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
     {
         return ZC_RET_ERROR;
     }
-    
+
     pstrMsg = (ZC_MessageHead *)pu8Data;
     switch(pstrMsg->MsgCode)
     {
         case ZC_CODE_DESCRIBE:
         {
-            pstruRegister = (ZC_RegisterReq *)(pstrMsg + 1);
+            if ((g_struProtocolController.u8MainState >= PCT_STATE_ACCESS_NET) &&
+            (g_struProtocolController.u8MainState < PCT_STATE_DISCONNECT_CLOUD)
+            )
+            {
+                PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);                
+                return;
+            }
+            else if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
+            {
+                PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECT);                
+                return;
+            }
+            
+            pstruOpt = (ZC_MessageOptHead *)(pstrMsg + 1);
+            pstruRegister = (ZC_RegisterReq *)((u8*)(pstruOpt + 1) + ZC_HTONS(pstruOpt->OptLen));
             memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
-            memcpy(IoTpAd.UsrCfg.ProductName, (u8*)(pstruRegister+1)+sizeof(ZC_MessageOptHead), ZC_HS_DEVICE_ID_LEN);
+            memcpy(IoTpAd.UsrCfg.ProductName, (u8*)(pstruOpt+1), ZC_HS_DEVICE_ID_LEN);
             memcpy(IoTpAd.UsrCfg.ProductName + ZC_HS_DEVICE_ID_LEN, pstruRegister->u8Domain, ZC_DOMAIN_LEN);
             memcpy(IoTpAd.UsrCfg.ProductType, pstruRegister->u8EqVersion, ZC_EQVERSION_LEN);
+            
             g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET; 
+            
             if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
             {
                 TIMER_StopTimer(g_struProtocolController.u8RegisterTimer);
@@ -321,8 +335,11 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
         }
         case ZC_CODE_EQ_BEGIN:
         {
-            g_struProtocolController.u8EqStart = PCT_EQ_STATUS_ON;
             PCT_SendNotifyMsg(ZC_CODE_EQ_DONE);
+            if (g_struProtocolController.u8MainState >= PCT_STATE_ACCESS_NET)
+            {
+                PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
+            }
             break;
         }    
 //        case ZC_CODE_ZOTA_END:
@@ -568,6 +585,7 @@ void MT_CloudAppCall()
     {
         ZC_Printf("uip flag = %d, Close Connection\n",uip_flags);
         PCT_ReconnectCloud(&g_struProtocolController);
+        PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECT);
         uip_abort();
     }
 

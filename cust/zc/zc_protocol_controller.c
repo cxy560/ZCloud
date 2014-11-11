@@ -89,7 +89,6 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
 
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
-    g_struProtocolController.u8EqStart = PCT_EQ_STATUS_OFF;
     
     g_struProtocolController.struOtaInfo.u8NeedReset = PCT_OTA_REST_OFF;    
 }
@@ -802,7 +801,6 @@ void PCT_WakeUp()
             PCT_TIMER_INTERVAL_REGISTER, &g_struProtocolController.u8RegisterTimer);
         /*Intial Bc send Num*/
         g_struProtocolController.u16SendBcNum = 0;
-
         PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
     }
     
