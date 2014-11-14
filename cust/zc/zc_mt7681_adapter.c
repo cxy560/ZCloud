@@ -37,6 +37,8 @@ u16 g_u16TcpMss;
 extern IOT_ADAPTER   	IoTpAd;
 u16 g_u16LocalPort;
 extern char ATCmdPrefixAT[];
+extern MLME_STRUCT *pIoTMlme;
+
 #ifndef ZC_OFF_LINETEST
 /*************************************************
 * Function: rand
@@ -264,6 +266,20 @@ u32 MT_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
     return ZC_RET_OK;
 }
 /*************************************************
+* Function: MT_Rest
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MT_Rest()
+{
+    pIoTMlme->ATSetSmnt = TRUE;
+    wifi_state_chg(WIFI_STATE_INIT, 0);                 
+}
+
+/*************************************************
 * Function: MT_SendDataToMoudle
 * Description: 
 * Author: cxy 
@@ -350,7 +366,10 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
             break;
         case ZC_CODE_ZOTA_FILE_END:
             PCT_ModuleOtaFileEndMsg(&g_struProtocolController, pstrMsg);
-            break;  
+            break;
+        case ZC_CODE_REST:
+            MT_Rest();
+            break;
         default:
             PCT_HandleMoudleEvent(pu8Data, u16DataLen);
             break;
