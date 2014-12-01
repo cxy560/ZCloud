@@ -53,8 +53,8 @@
 #define    PCT_OTA_REST_ON       (1)
 #define    PCT_OTA_REST_OFF       (0)
 
-#define    PCT_EQ_STATUS_ON        (1)
-#define    PCT_EQ_STATUS_OFF       (0)
+#define    PCT_CLIENT_STATUS_IDLE       (1)
+#define    PCT_CLIENT_STATUS_BUSY       (0)
 
 
 
@@ -136,7 +136,8 @@ typedef struct
     u8   RandMsg[ZC_HS_MSG_LEN];
 
     u16   u16SendBcNum;
-    u8    u8Pad[2];
+    u8    u8ClientIdle;
+    u8    u8Pad;
 
     PTC_ModuleAdapter *pstruMoudleFun;      /*Communication With Cloud*/
     PTC_OtaInfo struOtaInfo;

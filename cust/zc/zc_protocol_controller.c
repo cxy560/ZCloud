@@ -33,12 +33,10 @@ u32 PCT_CheckCrc(u8 *pu8Crc, u8 *pu8Data, u16 u16Len)
     u16RecvCrc = (pu8Crc[0] << 8) + pu8Crc[1];
     if (u16Crc == u16RecvCrc)
     {
-        ZC_Printf("CRC is ok\n");
         return ZC_RET_OK;
     }
     else
     {
-        ZC_Printf("CRC is error\n");    
         return ZC_RET_ERROR;    
     }
 }
@@ -322,6 +320,7 @@ void PCT_ListenClient(PTC_ProtocolCon *pstruContoller)
 {
     u32 u32Ret = ZC_RET_OK;
     
+    g_struProtocolController.u8ClientIdle = PCT_CLIENT_STATUS_IDLE;
     
     /*Listen*/
     u32Ret = pstruContoller->pstruMoudleFun->pfunListenClient(&pstruContoller->struClientConnection);
@@ -857,8 +856,12 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
     ZC_MessageHead *pstruMsg;
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
 
-    PCT_SendAckToCloud(pstruMsg->MsgId);
-    return;
+    if (2 == g_u32LoopFlag)
+    {
+        PCT_SendAckToCloud(pstruMsg->MsgId);
+        return;
+    }
+    
 
     /*Send to Moudle*/
     if (0 == g_u32LoopFlag)
@@ -902,7 +905,6 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
 {
     MSG_Buffer *pstruBuffer;
     ZC_MessageHead *pstruMsg;
-	extern u32 g_u32TraceSwitch;
     
     if (PCT_TIMER_INVAILD != pstruContoller->u8SendMoudleTimer)
     {
@@ -1145,6 +1147,50 @@ u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
 u32 PCT_SendMsgToClient(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
 {
     return PCT_SendMsgToCloud(pstruSecHead,pu8PlainData);
+}
+
+/*************************************************
+* Function: PCT_CheckClientIdle
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 PCT_CheckClientIdle()
+{
+    if (PCT_CLIENT_STATUS_IDLE == g_struProtocolController.u8ClientIdle)
+    {
+        return ZC_RET_OK;
+    }
+    else
+    {
+        return ZC_RET_ERROR;    
+    }
+}
+/*************************************************
+* Function: PCT_SetClientBusy
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_SetClientBusy(u32 u32Clientfd)
+{
+    g_struProtocolController.u8ClientIdle = PCT_CLIENT_STATUS_BUSY;
+}
+/*************************************************
+* Function: PCT_SetClientFree
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_SetClientFree(u32 u32Clientfd)
+{
+    g_struProtocolController.u8ClientIdle = PCT_CLIENT_STATUS_IDLE;
 }
 
 /******************************* FILE END ***********************************/

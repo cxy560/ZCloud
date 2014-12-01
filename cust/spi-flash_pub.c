@@ -6,7 +6,7 @@
 //#include "misc.h"
 #include "iot_api.h"
 #include "eeprom.h"
-
+#include <zc_protocol_interface.h>
 /************************************************/
 /* Macros */
 /************************************************/
@@ -552,6 +552,8 @@ uint8 spi_flash_CopyApToSta(uint32 u32Len)
 	uint32 Apoffset = FLASH_OFFSET_STA_FW_START;
 	int32  RetVal;
 	uint32 u32CopyLen;
+    u8 u8MagicFlag[4] = {0x02,0x03,0x04,0x05};
+    ZC_MessageHead struMsg;
 
     Apoffset = FLASH_OFFSET_AP_FW_START;	
 	Staoffset = FLASH_OFFSET_STA_FW_START;    
@@ -591,8 +593,19 @@ uint8 spi_flash_CopyApToSta(uint32 u32Len)
 		Staoffset += sizeof(IoTpAd.flash_rw_buf);    
     }
 
+    struMsg.MsgCode = ZC_CODE_ZOTA_END;
+    struMsg.MsgId = 0;
+    struMsg.Version = 0;
+    struMsg.OptNum = 0;
+    struMsg.Payloadlen = 0;    
+    struMsg.TotalMsgCrc[0]= 0;    
+    struMsg.TotalMsgCrc[1]= 0;    
+
+    IoT_uart_output(u8MagicFlag, 4);
+    IoT_uart_output(&struMsg, sizeof(struMsg));
     Printf_High("\1\2\3\4copy End\n");
-    Sys_reboot();
+    
+    //Sys_reboot();
 
     IoT_Xmodem_Update_FW_Stop();  /*Restore Uart Rx Interrupt*/
 

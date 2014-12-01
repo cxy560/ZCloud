@@ -260,7 +260,6 @@ u32 MSG_RecvDataFromClient(u8 *pu8Data, u32 u32DataLen)
 {
     ZC_SecHead *pstruMsg;
     u32 u32MsgLen;
-    
     if (MSG_BUFFER_FULL == g_struClientBuffer.u8Status)
     {
         return ZC_RET_ERROR;
@@ -380,7 +379,6 @@ u32 MSG_RecvDataFromClient(u8 *pu8Data, u32 u32DataLen)
         return ZC_RET_OK;
 
     }
-    
     return ZC_RET_ERROR;
     
 

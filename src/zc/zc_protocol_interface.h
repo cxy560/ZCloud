@@ -108,6 +108,7 @@ typedef enum
 typedef enum 
 {
     ZC_OPT_TRANSPORT = 0,
+    ZC_OPT_APPDIRECT = 1,
 }ZC_OptCode;
 
 /*******************************Message definition***********************************/
@@ -158,13 +159,14 @@ typedef struct
 /*msg code: ZC_CODE_DESCRIBE*/
 typedef struct 
 {
-    u8  u8WifiSwVersion;            
-    u8  u8HwVersion;              
-    u8  u8ArmSwVersion;          
-    u8  u8ZigbeeSwVersion; 
+    //u8  u8WifiSwVersion;            
+    //u8  u8HwVersion;              
+    //u8  u8ArmSwVersion;          
+    //u8  u8ZigbeeSwVersion; 
     u8  u8EqVersion[ZC_EQVERSION_LEN];      //eq vision
     u8  u8ModuleKey[ZC_MODULE_KEY_LEN];
     u8  u8Domain[ZC_DOMAIN_LEN];
+    u8  u8DeviceId[ZC_HS_DEVICE_ID_LEN];
 }ZC_RegisterReq;
 
 
@@ -223,6 +225,12 @@ typedef struct
 {
     u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
 }ZC_TransportInfo;
+
+/*ZC_OPT_APPDIRECT*/
+typedef struct{
+    u32 u32AppClientId;
+}ZC_AppDirectMsg;
+
 
 #endif
 /******************************* FILE END ***********************************/

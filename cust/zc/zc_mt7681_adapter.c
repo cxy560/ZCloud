@@ -17,12 +17,15 @@
 #include <iot_api.h>
 #include <zc_module_interface.h>
 
+
+
 extern PTC_ProtocolCon  g_struProtocolController;
 PTC_ModuleAdapter g_struMt7681Adapter;
 
 MSG_Buffer g_struRecvBuffer;
 MSG_Buffer g_struRetxBuffer;
 MSG_Buffer g_struClientBuffer;
+
 
 MSG_Queue  g_struRecvQueue;
 MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
@@ -31,7 +34,7 @@ MSG_Queue  g_struSendQueue;
 u8 g_u8MsgBuildBuffer[MSG_BULID_BUFFER_MAXLEN];
 u8 g_u8CiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
 u8 g_u8ClientCiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
-
+u8 g_u8ClientSendLen = 0;
 
 struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 
@@ -171,33 +174,23 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
     pstruBuf->u32Len = 0;
     return;
 }
+
 /*************************************************
-* Function: MT_SendDataToClient
+* Function: MT_SendDataToMoudle
 * Description: 
-* Author: zw 
+* Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-void MT_SendDataToClient(PTC_Connection *pstruConnection)
+u32 MT_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 {
-    MSG_Buffer *pstruBuf = NULL;
-
-    u16 u16DataLen; 
-    pstruBuf = (MSG_Buffer *)MSG_PopMsg(&g_struSendQueue); 
-    
-    if (NULL == pstruBuf)
-    {
-        return;
-    }
-    
-    u16DataLen = pstruBuf->u32Len; 
-    uip_send((u8*)pstruBuf->u8MsgBuffer, u16DataLen);
-    ZC_Printf("send data len = %d\n", u16DataLen);
-    pstruBuf->u8Status = MSG_BUFFER_IDLE;
-    pstruBuf->u32Len = 0;
-    return;
+    u8 u8MagicFlag[4] = {0x02,0x03,0x04,0x05};
+    IoT_uart_output(u8MagicFlag, 4);
+    IoT_uart_output(pu8Data, u16DataLen);
+    return ZC_RET_OK;
 }
+
 
 /*************************************************
 * Function: MT_RecvDataFromCloud
@@ -239,28 +232,69 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 * Parameter: 
 * History:
 *************************************************/
-void MT_RecvDataFromClient(u8 *pu8Data, u32 u32DataLen)
+void MT_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
 {
     u32 u32RetVal;
     u32 u32i =0;
     ZC_MessageHead *pstruMsg;
-    u32RetVal = MSG_RecvDataFromCloud(pu8Data, u32DataLen);
-    if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
+    ZC_MessageOptHead struOpt;
+    ZC_AppDirectMsg struAppDirectMsg;
+    u16 u16Len;
+
+    /*can hanle it*/
+    u32RetVal = PCT_CheckClientIdle();
+    if (ZC_RET_ERROR == u32RetVal)
+    {
+        EVENT_BuildMsg(ZC_CODE_ERR, 0, g_u8MsgBuildBuffer, &u16Len, 
+            NULL, 0);
+        uip_send(g_u8MsgBuildBuffer, u16Len);
+        return;            
+    }
+    
+    /*set client busy*/
+    PCT_SetClientBusy(ClientId);
+    
+    u32RetVal = MSG_RecvDataFromClient(pu8Data, u32DataLen);
+    if (MSG_BUFFER_FULL == g_struClientBuffer.u8Status)
     {
         if (ZC_RET_OK == u32RetVal)
         {
-            pstruMsg=(ZC_MessageHead*)(g_u8CiperBuffer+sizeof(ZC_SecHead));
-            ZC_Printf("event %d recv len =%d\n", pstruMsg->MsgId, ZC_HTONS(pstruMsg->Payloadlen));
+            pstruMsg = (ZC_MessageHead*)(g_u8ClientCiperBuffer);
+            pstruMsg->OptNum = 1;
+            struOpt.OptCode = ZC_OPT_APPDIRECT;
+            struOpt.OptLen = ZC_HTONS(sizeof(struAppDirectMsg));
+            struAppDirectMsg.u32AppClientId = ClientId;
 
-            ZC_TraceData((u8*)pstruMsg+ sizeof(ZC_MessageHead), ZC_HTONS(pstruMsg->Payloadlen) );
-            g_struRecvBuffer.u32Len = 0;
-            g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;
-            PCT_SendAckToClient(pstruMsg->MsgId);
+            u16Len = 0;
+            memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, pstruMsg, sizeof(ZC_MessageHead));
+
+            /*insert opt*/
+            u16Len += sizeof(ZC_MessageHead);
+            memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
+                &struOpt, sizeof(ZC_MessageOptHead));
+            u16Len += sizeof(ZC_MessageOptHead);
+            memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
+                &struAppDirectMsg, sizeof(struAppDirectMsg));
+
+            /*copy message*/
+            u16Len += sizeof(struAppDirectMsg);    
+            memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
+                pstruMsg, ZC_HTONS(pstruMsg->Payloadlen));   
+
+            u16Len += ZC_HTONS(pstruMsg->Payloadlen);     
+            g_struClientBuffer.u32Len = u16Len;
+
+            /*send to moudle*/
+            MT_SendDataToMoudle(g_struClientBuffer.u8MsgBuffer, g_struClientBuffer.u32Len);
+
+            g_struClientBuffer.u8Status = MSG_BUFFER_IDLE;
+            g_struClientBuffer.u32Len = 0;
+
+            PCT_SetClientFree(ClientId);
         }
     }
- 
-    MT_SendDataToClient(&g_struProtocolController.struCloudConnection);
 
+    
     return;
 }
 
@@ -354,21 +388,52 @@ void MT_Rest()
     pIoTMlme->ATSetSmnt = TRUE;
     wifi_state_chg(WIFI_STATE_INIT, 0);                 
 }
-
 /*************************************************
-* Function: MT_SendDataToMoudle
+* Function: MT_DealAppOpt
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
+u32 MT_DealAppOpt(ZC_MessageHead *pstruMsg)
 {
-    u8 u8MagicFlag[4] = {0x02,0x03,0x04,0x05};
-    IoT_uart_output(u8MagicFlag, 4);
-    IoT_uart_output(pu8Data, u16DataLen);
-    return ZC_RET_OK;
+    u32 u32Index;
+    u32 u32Offset = 0;
+    ZC_MessageOptHead *pstruOpt;
+    ZC_AppDirectMsg *pstruAppDirect;
+    
+    for (u32Index = 0; u32Index < pstruMsg->OptNum; u32Index++)
+    {
+        pstruOpt = (u8*)pstruMsg + u32Offset;
+        if (ZC_OPT_APPDIRECT == pstruOpt->OptCode)
+        {
+            memcpy(g_u8MsgBuildBuffer, pstruMsg, u32Offset);
+            memcpy(g_u8MsgBuildBuffer + u32Offset, 
+                pstruMsg + u32Offset + sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen),
+                u32Offset);
+                
+            g_u8ClientSendLen = ZC_HTONS(pstruMsg->Payloadlen)
+                - (sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen));
+
+            pstruAppDirect = (ZC_AppDirectMsg *)(pstruOpt+1);
+            uip_poll_conn(pstruAppDirect->u32AppClientId);
+
+            if (uip_len > 0) 
+            {
+                ZC_Printf("pull have data %d to client\n", uip_len);
+                uip_arp_out();
+                mt76xx_dev_send();
+            }
+
+            g_u8ClientSendLen = 0;
+            return ZC_RET_OK;
+        }
+        u32Offset += sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen);
+    }
+    
+    return ZC_RET_ERROR;
+    
 }
 /*************************************************
 * Function: MT_RecvDataFromMoudle
@@ -382,7 +447,7 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
 {
     ZC_MessageHead *pstrMsg;
     ZC_RegisterReq *pstruRegister;
-    ZC_MessageOptHead *pstruOpt;
+    u32 u32RetVal;
 
     ZC_TraceData(pu8Data, u16DataLen);
 
@@ -392,6 +457,14 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
     }
 
     pstrMsg = (ZC_MessageHead *)pu8Data;
+
+    u32RetVal = MT_DealAppOpt(pstrMsg);
+    if (ZC_RET_OK == u32RetVal)
+    {
+        return ZC_RET_OK;
+    }
+
+    
     switch(pstrMsg->MsgCode)
     {
         case ZC_CODE_DESCRIBE:
@@ -408,10 +481,9 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
                 PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECT);                
                 return ZC_RET_OK;
             }
-            pstruOpt = (ZC_MessageOptHead *)(pstrMsg + 1);
-            pstruRegister = (ZC_RegisterReq *)((u8*)(pstruOpt + 1) + ZC_HTONS(pstruOpt->OptLen));
+            pstruRegister = (ZC_RegisterReq *)((u8*)(pstrMsg + 1));
             memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
-            memcpy(IoTpAd.UsrCfg.ProductName, (u8*)(pstruOpt+1), ZC_HS_DEVICE_ID_LEN);
+            memcpy(IoTpAd.UsrCfg.ProductName, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
             memcpy(IoTpAd.UsrCfg.ProductName + ZC_HS_DEVICE_ID_LEN, pstruRegister->u8Domain, ZC_DOMAIN_LEN);
             memcpy(IoTpAd.UsrCfg.ProductType, pstruRegister->u8EqVersion, ZC_EQVERSION_LEN);
             
@@ -760,6 +832,7 @@ void MT_CloudAppCall()
 *************************************************/
 void MT_ClientAppCall()
 {
+    MSG_Buffer *pstruBuf;
 
     if(uip_connected()) 
     {
@@ -774,12 +847,21 @@ void MT_ClientAppCall()
 
     if(uip_newdata()) 
     {
-        MT_RecvDataFromClient((char *)uip_appdata, uip_datalen());
+        MT_RecvDataFromClient(uip_conn->fd, (char *)uip_appdata, uip_datalen());
     }
     
     if(uip_poll()) 
     {
-       // MT_SendDataToClient(&g_struProtocolController.struCloudConnection);
+        if (g_u8ClientSendLen > 0)
+        {
+            uip_send(g_u8MsgBuildBuffer, g_u8ClientSendLen);
+        }
+
+    }
+
+    if(uip_closed())
+    {
+        
     }
 }
 
