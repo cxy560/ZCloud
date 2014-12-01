@@ -37,6 +37,9 @@ void MSG_Init()
         g_struSendBuffer[u32Index].u32Len = 0;
         g_struSendBuffer[u32Index].u8Status = MSG_BUFFER_IDLE;
     }
+    
+    g_struClientBuffer.u32Len = 0;    
+    g_struClientBuffer.u8Status = MSG_BUFFER_IDLE;    
 }
 
 /*************************************************

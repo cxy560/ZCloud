@@ -259,11 +259,12 @@ void MT_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
     {
         if (ZC_RET_OK == u32RetVal)
         {
-            pstruMsg = (ZC_MessageHead*)(g_u8ClientCiperBuffer);
-            pstruMsg->OptNum = 1;
-            struOpt.OptCode = ZC_OPT_APPDIRECT;
+            pstruMsg = (ZC_MessageHead*)(g_u8ClientCiperBuffer + sizeof(ZC_SecHead));
+            pstruMsg->Payloadlen = ZC_HTONS(ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg));
+            pstruMsg->OptNum = pstruMsg->OptNum + 1;
+            struOpt.OptCode = ZC_HTONS(ZC_OPT_APPDIRECT);
             struOpt.OptLen = ZC_HTONS(sizeof(struAppDirectMsg));
-            struAppDirectMsg.u32AppClientId = ClientId;
+            struAppDirectMsg.u32AppClientId = ZC_HTONL(ClientId);
 
             u16Len = 0;
             memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, pstruMsg, sizeof(ZC_MessageHead));
@@ -279,11 +280,13 @@ void MT_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
             /*copy message*/
             u16Len += sizeof(struAppDirectMsg);    
             memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
-                pstruMsg, ZC_HTONS(pstruMsg->Payloadlen));   
+                (u8*)(pstruMsg+1), ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg)));   
 
-            u16Len += ZC_HTONS(pstruMsg->Payloadlen);     
+            u16Len += ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg));     
             g_struClientBuffer.u32Len = u16Len;
 
+            ZC_TraceData(g_struClientBuffer.u8MsgBuffer, g_struClientBuffer.u32Len);
+            
             /*send to moudle*/
             MT_SendDataToMoudle(g_struClientBuffer.u8MsgBuffer, g_struClientBuffer.u32Len);
 
@@ -406,7 +409,7 @@ u32 MT_DealAppOpt(ZC_MessageHead *pstruMsg)
     for (u32Index = 0; u32Index < pstruMsg->OptNum; u32Index++)
     {
         pstruOpt = (u8*)pstruMsg + u32Offset;
-        if (ZC_OPT_APPDIRECT == pstruOpt->OptCode)
+        if (ZC_OPT_APPDIRECT == ZC_HTONS(pstruOpt->OptCode))
         {
             memcpy(g_u8MsgBuildBuffer, pstruMsg, u32Offset);
             memcpy(g_u8MsgBuildBuffer + u32Offset, 
@@ -417,7 +420,7 @@ u32 MT_DealAppOpt(ZC_MessageHead *pstruMsg)
                 - (sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen));
 
             pstruAppDirect = (ZC_AppDirectMsg *)(pstruOpt+1);
-            uip_poll_conn(pstruAppDirect->u32AppClientId);
+            uip_poll_conn(ZC_HTONL(pstruAppDirect->u32AppClientId));
 
             if (uip_len > 0) 
             {
