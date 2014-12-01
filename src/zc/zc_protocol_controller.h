@@ -77,6 +77,7 @@ typedef u32 (*pFunGetPrivateKey)(u8 **pu8Key);
 typedef u32 (*pFunGetVersion)(u8 **pu8Version);
 typedef u32 (*pFunGetDeviceId)(u8 **pu8DeviceId);
 typedef u32 (*pFunConnectToCloud)(PTC_Connection *pstruConnection);
+typedef u32 (*pFunListenClient)(PTC_Connection *pstruConnection);
 typedef u32 (*pFunSetTimer)(u8 u8Type, u32 Interval, u8 *pu8Index);
 typedef void (*pFunStopTimer)(u8 u8TimerIndex);
 
@@ -85,6 +86,7 @@ typedef struct
 {
     /*action function*/
     pFunConnectToCloud          pfunConnectToCloud;
+    pFunListenClient            pfunListenClient;
     //pFunSendDataToCloud         pfunSendToCloud; //
     pFunFirmwareUpdate          pfunUpdate;
     pFunFirmwareUpdateFinish    pfunUpdateFinish;    
@@ -125,7 +127,9 @@ typedef struct
     u8   *pu8SendMoudleBuffer;
     
     PTC_Connection struCloudConnection;
-    
+
+    PTC_Connection struClientConnection;
+
     u8   u8SessionKey[ZC_HS_SESSION_KEY_LEN];
     u8   IvSend[16];
     u8   IvRecv[16];
@@ -141,6 +145,8 @@ typedef struct
 
 extern PTC_ProtocolCon  g_struProtocolController;
 extern MSG_Buffer g_struRecvBuffer;
+extern MSG_Buffer g_struClientBuffer;
+
 extern MSG_Queue  g_struRecvQueue;
 extern MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
 extern MSG_Queue  g_struSendQueue;
@@ -148,6 +154,8 @@ extern MSG_Buffer g_struRetxBuffer;
 
 extern u8 g_u8MsgBuildBuffer[MSG_BULID_BUFFER_MAXLEN];
 extern u8 g_u8CiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
+extern u8 g_u8ClientCiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
+
 extern u16 g_u16TcpMss;
 extern u32 g_u32LoopFlag;
 extern u32 g_u32SecSwitch;
@@ -164,7 +172,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller);
 void PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller);
 void PCT_DisConnectCloud(PTC_ProtocolCon *pstruContoller);
 void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller);
-void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller);
+void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller, u32 u32ReConnectTimer);
 void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController);
 void PCT_HandleMoudleEvent(u8 *pu8Msg, u16 u16DataLen);
 void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller);
@@ -174,6 +182,8 @@ void PCT_Run(void);
 void PCT_WakeUp(void);
 void PCT_Sleep(void);
 u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData);
+u32 PCT_SendMsgToClient(ZC_SecHead *pstruSecHead, u8 *pu8PlainData);
+
 void PCT_ModuleOtaFileBeginMsg(PTC_ProtocolCon *pstruContoller, ZC_MessageHead *pstruMsg);
 void PCT_ModuleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, ZC_MessageHead *pstruMsg);
 void PCT_ModuleOtaFileEndMsg(PTC_ProtocolCon *pstruContoller, ZC_MessageHead *pstruMsg);

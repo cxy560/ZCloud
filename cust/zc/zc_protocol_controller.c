@@ -17,6 +17,31 @@
 
 
 PTC_ProtocolCon  g_struProtocolController;
+/*************************************************
+* Function: PCT_CheckCrc
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 PCT_CheckCrc(u8 *pu8Crc, u8 *pu8Data, u16 u16Len)
+{
+    u16 u16Crc;
+    u16 u16RecvCrc;
+    u16Crc = crc16_ccitt(pu8Data, u16Len);
+    u16RecvCrc = (pu8Crc[0] << 8) + pu8Crc[1];
+    if (u16Crc == u16RecvCrc)
+    {
+        ZC_Printf("CRC is ok\n");
+        return ZC_RET_OK;
+    }
+    else
+    {
+        ZC_Printf("CRC is error\n");    
+        return ZC_RET_ERROR;    
+    }
+}
 
 /*************************************************
 * Function: PCT_SendNotifyMsg
@@ -72,6 +97,7 @@ void PCT_SendHeartMsg()
 void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
 {
     g_struProtocolController.pstruMoudleFun = pstruAdapter;
+
     g_struProtocolController.struCloudConnection.u32Socket = PCT_INVAILD_SOCKET;
 
     /*config connection type*/
@@ -79,6 +105,12 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.struCloudConnection.u8IpType = ZC_IPTYPE_IPV4;
     g_struProtocolController.struCloudConnection.u8ConnectionType = ZC_CONNECT_TYPE_TCP;
 
+    g_struProtocolController.struClientConnection.u32Socket = PCT_INVAILD_SOCKET;
+
+    /*config connection type*/
+    g_struProtocolController.struClientConnection.u16Port = ZC_SERVER_PORT;
+    g_struProtocolController.struClientConnection.u8IpType = ZC_IPTYPE_IPV4;
+    g_struProtocolController.struClientConnection.u8ConnectionType = ZC_CONNECT_TYPE_TCP;
     MSG_Init();
     TIMER_Init();
     
@@ -279,6 +311,26 @@ void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller)
     pstruContoller->u8keyRecv = PCT_KEY_UNRECVED;
 }
 /*************************************************
+* Function: PCT_ListenClient
+* Description: 
+* Author: zw
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_ListenClient(PTC_ProtocolCon *pstruContoller)
+{
+    u32 u32Ret = ZC_RET_OK;
+    
+    
+    /*Listen*/
+    u32Ret = pstruContoller->pstruMoudleFun->pfunListenClient(&pstruContoller->struClientConnection);
+    if (ZC_RET_OK != u32Ret)
+    {
+        return;
+    }
+}
+/*************************************************
 * Function: PCT_ReconnectCloud
 * Description: 
 * Author: cxy 
@@ -286,7 +338,7 @@ void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller)
 * Parameter: 
 * History:
 *************************************************/
-void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller)
+void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller, u32 u32ReConnectTimer)
 {
     if (PCT_TIMER_INVAILD != pstruContoller->u8ReconnectTimer)
     {
@@ -304,7 +356,7 @@ void PCT_ReconnectCloud(PTC_ProtocolCon *pstruContoller)
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
 
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_RECONNECT, 
-        PCT_TIMER_INTERVAL_RECONNECT, &pstruContoller->u8ReconnectTimer);
+        u32ReConnectTimer, &pstruContoller->u8ReconnectTimer);
     pstruContoller->struCloudConnection.u32Socket = PCT_INVAILD_SOCKET;
     pstruContoller->u8keyRecv = PCT_KEY_UNRECVED; 
     pstruContoller->u8MainState = PCT_STATE_INIT;
@@ -419,23 +471,30 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
 
     if (ZC_CODE_HANDSHAKE_2 == pstruMsg->MsgCode)
     {
-        TIMER_StopTimer(pstruContoller->u8AccessTimer);
-        if (0 == memcmp(pstruMsg2->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
+        if (ZC_RET_ERROR == PCT_CheckCrc(pstruMsg->TotalMsgCrc, (u8*)pstruMsg2, ZC_HTONS(pstruMsg->Payloadlen)))
         {
-            memcpy(pstruContoller->u8SessionKey, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
-            memcpy(pstruContoller->IvRecv, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
-            memcpy(pstruContoller->IvSend, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
-
-            PCT_SendCloudAccessMsg3(pstruContoller);
-            
-            ZC_Printf("Recv Msg2 ok\n");
+            PCT_DisConnectCloud(pstruContoller);
         }
         else
         {
-            PCT_DisConnectCloud(pstruContoller);
-            ZC_Printf("Recv Msg2 rand error \n");            
-            ZC_TraceData(pstruMsg2->RandMsg, ZC_HS_MSG_LEN);
-            ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
+            TIMER_StopTimer(pstruContoller->u8AccessTimer);
+            if (0 == memcmp(pstruMsg2->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
+            {
+                memcpy(pstruContoller->u8SessionKey, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+                memcpy(pstruContoller->IvRecv, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+                memcpy(pstruContoller->IvSend, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+
+                PCT_SendCloudAccessMsg3(pstruContoller);
+                
+                ZC_Printf("Recv Msg2 ok\n");
+            }
+            else
+            {
+                PCT_DisConnectCloud(pstruContoller);
+                ZC_Printf("Recv Msg2 rand error \n");            
+                ZC_TraceData(pstruMsg2->RandMsg, ZC_HS_MSG_LEN);
+                ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
+            }
         }
     }
     
@@ -468,21 +527,27 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
     
     if (ZC_CODE_HANDSHAKE_4 == pstruMsg->MsgCode)
     {
-        TIMER_StopTimer(pstruContoller->u8AccessTimer);
-        if (0 == memcmp(pstruMsg4->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
-        {
-            pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD; 
-            ZC_Printf("recv msg4 ok\n");
-            PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
-        }
-        else
+        if (ZC_RET_ERROR == PCT_CheckCrc(pstruMsg->TotalMsgCrc, (u8*)pstruMsg4, ZC_HTONS(pstruMsg->Payloadlen)))
         {
             PCT_DisConnectCloud(pstruContoller);
-            ZC_Printf("Recv msg4 rand error \n");            
-            ZC_TraceData(pstruMsg4->RandMsg, ZC_HS_MSG_LEN);
-            ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
         }
-
+        else
+        {   
+            TIMER_StopTimer(pstruContoller->u8AccessTimer);
+            if (0 == memcmp(pstruMsg4->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
+            {
+                pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD; 
+                ZC_Printf("recv msg4 ok\n");
+                PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
+            }
+            else
+            {
+                PCT_DisConnectCloud(pstruContoller);
+                ZC_Printf("Recv msg4 rand error \n");            
+                ZC_TraceData(pstruMsg4->RandMsg, ZC_HS_MSG_LEN);
+                ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
+            }
+        }
     }
     pstruBuffer->u32Len = 0;
     pstruBuffer->u8Status = MSG_BUFFER_IDLE;
@@ -512,6 +577,25 @@ void PCT_SendAckToCloud(u8 u8MsgId)
     struSechead.u16TotalMsg = ZC_HTONS(u16Len);
     (void)PCT_SendMsgToCloud(&struSechead, g_u8MsgBuildBuffer);
 }
+/*************************************************
+* Function: PCT_SendAckToClient
+* Description:
+* Author: cxy
+* Returns:
+* Parameter:
+* History:
+*************************************************/
+void PCT_SendAckToClient(u8 u8MsgId)
+{
+    u16 u16Len;
+    ZC_SecHead struSechead;
+
+    EVENT_BuildMsg(ZC_CODE_ACK, u8MsgId, g_u8MsgBuildBuffer, &u16Len, NULL, 0);
+    struSechead.u8SecType = ZC_SEC_ALG_AES;
+    struSechead.u16TotalMsg = ZC_HTONS(u16Len);
+    (void)PCT_SendMsgToClient(&struSechead, g_u8MsgBuildBuffer);
+}
+
 /*************************************************
 * Function: PCT_HandleOtaBeginMsg
 * Description: 
@@ -588,7 +672,7 @@ void PCT_ModuleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, ZC_MessageHead *
         return;
     }
     //Check CRC
-    u16CalCrc = crc16_ccitt((u8*)(pstruOta + 1), (int)u32FileLen);
+    u16CalCrc = crc16_ccitt((u8*)(pstruOta), (int)u32FileLen);
     u16RecvCrc = (pstruMsg->TotalMsgCrc[0] << 8) + pstruMsg->TotalMsgCrc[1];
 
     if (u16CalCrc != u16RecvCrc)
@@ -679,8 +763,6 @@ void PCT_HandleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
     u32 u32FileLen;
     u32 u32RetVal;
     u32 u32RecvOffset;
-    u16 u16CalCrc;
-    u16 u16RecvCrc;
 
     ZC_Printf("Ota File Chunk\n");
 
@@ -699,15 +781,6 @@ void PCT_HandleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstr
             pstruContoller->struOtaInfo.u32RecvOffset,
             pstruContoller->struOtaInfo.u32TotalLen,
             u32FileLen);
-        PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
-        return;
-    }
-    //Check CRC
-    u16CalCrc = crc16_ccitt((u8*)(pstruOta + 1), (int)u32FileLen);
-    u16RecvCrc = (pstruMsg->TotalMsgCrc[0] << 8) + pstruMsg->TotalMsgCrc[1];
-
-    if (u16CalCrc != u16RecvCrc)
-    {
         PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
         return;
     }
@@ -784,6 +857,9 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
     ZC_MessageHead *pstruMsg;
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
 
+    PCT_SendAckToCloud(pstruMsg->MsgId);
+    return;
+
     /*Send to Moudle*/
     if (0 == g_u32LoopFlag)
     {
@@ -826,6 +902,7 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
 {
     MSG_Buffer *pstruBuffer;
     ZC_MessageHead *pstruMsg;
+	extern u32 g_u32TraceSwitch;
     
     if (PCT_TIMER_INVAILD != pstruContoller->u8SendMoudleTimer)
     {
@@ -840,8 +917,14 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
     
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     ZC_Printf("event %d recv len =%d\n", pstruMsg->MsgId, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
-    ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
 
+    if (ZC_RET_ERROR == PCT_CheckCrc(pstruMsg->TotalMsgCrc, (u8*)(pstruMsg + 1), ZC_HTONS(pstruMsg->Payloadlen)))
+    {
+        PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
+        PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
+        return;
+    }
+    
     /*when do OTA, does not send empty*/
     switch (pstruMsg->MsgCode)
     {
@@ -934,6 +1017,7 @@ void PCT_WakeUp()
         /*Intial Bc send Num*/
         g_struProtocolController.u16SendBcNum = 0;
         PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
+        PCT_ListenClient(&g_struProtocolController);
     }
     
 }
@@ -1050,6 +1134,18 @@ u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
     return ZC_RET_OK;
 }
 
+/*************************************************
+* Function: PCT_SendMsgToClient
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 PCT_SendMsgToClient(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
+{
+    return PCT_SendMsgToCloud(pstruSecHead,pu8PlainData);
+}
 
 /******************************* FILE END ***********************************/
 

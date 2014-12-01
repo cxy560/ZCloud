@@ -22,6 +22,7 @@ PTC_ModuleAdapter g_struMt7681Adapter;
 
 MSG_Buffer g_struRecvBuffer;
 MSG_Buffer g_struRetxBuffer;
+MSG_Buffer g_struClientBuffer;
 
 MSG_Queue  g_struRecvQueue;
 MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
@@ -29,6 +30,7 @@ MSG_Queue  g_struSendQueue;
 
 u8 g_u8MsgBuildBuffer[MSG_BULID_BUFFER_MAXLEN];
 u8 g_u8CiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
+u8 g_u8ClientCiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
 
 
 struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
@@ -36,6 +38,7 @@ struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 u16 g_u16TcpMss;
 extern IOT_ADAPTER   	IoTpAd;
 u16 g_u16LocalPort;
+u16 g_u16LocalListenPort;
 extern char ATCmdPrefixAT[];
 extern MLME_STRUCT *pIoTMlme;
 
@@ -65,6 +68,18 @@ u32 rand()
 u16 MT_GetLocalPortNum()
 {
     return g_u16LocalPort;
+}
+/*************************************************
+* Function: MT_GetLocalListenPortNum
+* Description: 
+* Author: zw 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u16 MT_GetLocalListenPortNum()
+{
+    return g_u16LocalListenPort;
 }
 
 /*************************************************
@@ -157,6 +172,34 @@ void MT_SendDataToCloud(PTC_Connection *pstruConnection)
     return;
 }
 /*************************************************
+* Function: MT_SendDataToClient
+* Description: 
+* Author: zw 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MT_SendDataToClient(PTC_Connection *pstruConnection)
+{
+    MSG_Buffer *pstruBuf = NULL;
+
+    u16 u16DataLen; 
+    pstruBuf = (MSG_Buffer *)MSG_PopMsg(&g_struSendQueue); 
+    
+    if (NULL == pstruBuf)
+    {
+        return;
+    }
+    
+    u16DataLen = pstruBuf->u32Len; 
+    uip_send((u8*)pstruBuf->u8MsgBuffer, u16DataLen);
+    ZC_Printf("send data len = %d\n", u16DataLen);
+    pstruBuf->u8Status = MSG_BUFFER_IDLE;
+    pstruBuf->u32Len = 0;
+    return;
+}
+
+/*************************************************
 * Function: MT_RecvDataFromCloud
 * Description: 
 * Author: cxy 
@@ -185,6 +228,39 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
         }
     }
     
+    return;
+}
+
+/*************************************************
+* Function: MT_RecvDataFromClient
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MT_RecvDataFromClient(u8 *pu8Data, u32 u32DataLen)
+{
+    u32 u32RetVal;
+    u32 u32i =0;
+    ZC_MessageHead *pstruMsg;
+    u32RetVal = MSG_RecvDataFromCloud(pu8Data, u32DataLen);
+    if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
+    {
+        if (ZC_RET_OK == u32RetVal)
+        {
+            pstruMsg=(ZC_MessageHead*)(g_u8CiperBuffer+sizeof(ZC_SecHead));
+            ZC_Printf("event %d recv len =%d\n", pstruMsg->MsgId, ZC_HTONS(pstruMsg->Payloadlen));
+
+            ZC_TraceData((u8*)pstruMsg+ sizeof(ZC_MessageHead), ZC_HTONS(pstruMsg->Payloadlen) );
+            g_struRecvBuffer.u32Len = 0;
+            g_struRecvBuffer.u8Status = MSG_BUFFER_IDLE;
+            PCT_SendAckToClient(pstruMsg->MsgId);
+        }
+    }
+ 
+    MT_SendDataToClient(&g_struProtocolController.struCloudConnection);
+
     return;
 }
 
@@ -332,7 +408,6 @@ u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
                 PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECT);                
                 return ZC_RET_OK;
             }
-            
             pstruOpt = (ZC_MessageOptHead *)(pstrMsg + 1);
             pstruRegister = (ZC_RegisterReq *)((u8*)(pstruOpt + 1) + ZC_HTONS(pstruOpt->OptLen));
             memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
@@ -460,18 +535,20 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     uip_ipaddr_t broadcastip;
 
     u16 *pu16Test = NULL;
-    
+
+    #if 0
     pu16Test = resolv_lookup("www.baidu.com"/*IoTpAd.UsrCfg.CloudAddr*/);
 
     if(NULL == pu16Test)
     {
         return ZC_RET_ERROR;
     }
+    #endif
     
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192, 168, 1, 111/*101,251,106,4*/);
+        uip_ipaddr(ip, 192, 168, 1, 100/*101,251,106,4*/);
     }
     else 
     {
@@ -512,6 +589,34 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     return ZC_RET_OK;
 }
 /*************************************************
+* Function: MT_ListenClient
+* Description: 
+* Author: zw 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 MT_ListenClient(PTC_Connection *pstruConnection)
+{
+    
+    ZC_Printf("Listen \n");
+    
+    if (ZC_CONNECT_TYPE_TCP == pstruConnection->u8ConnectionType)
+    {
+        uip_listen(ZC_HTONS(pstruConnection->u16Port));
+        
+    	g_u16LocalListenPort = pstruConnection->u16Port;
+
+    	ZC_Printf("Tcp Listen Port = %d\n", pstruConnection->u16Port);
+    }
+    else
+    {
+
+    }
+    return ZC_RET_OK;
+}
+
+/*************************************************
 * Function: MT_Init
 * Description: 
 * Author: cxy 
@@ -523,6 +628,9 @@ void MT_Init()
 {
     ZC_Printf("MT Init\n");
     g_struMt7681Adapter.pfunConnectToCloud = MT_ConnectToCloud;
+
+    g_struMt7681Adapter.pfunListenClient = MT_ListenClient;
+
     //g_struMt7681Adapter.pfunSendToCloud = MT_SendDataToCloud;   
     g_struMt7681Adapter.pfunUpdate = MT_FirmwareUpdate;  
     g_struMt7681Adapter.pfunUpdateFinish = MT_FirmwareUpdateFinish;
@@ -594,7 +702,11 @@ void MT_BroadcastAppCall()
 *************************************************/
 void MT_CloudAppCall()
 {
+    u32 u32Timer = 0;
 
+    u32Timer = rand();
+    u32Timer = (PCT_TIMER_INTERVAL_RECONNECT) * (u32Timer % 10 + 1);
+    
     /*Connect Cloud */
     if(uip_connected()) 
     {
@@ -608,8 +720,8 @@ void MT_CloudAppCall()
     /*Connect Time Out */
     if(uip_timedout() || uip_closed() || uip_aborted()) 
     {
-        ZC_Printf("uip flag = %d, Close Connection\n",uip_flags);
-        PCT_ReconnectCloud(&g_struProtocolController);
+        ZC_Printf("uip flag = %d, timer = %d, Close Connection\n",uip_flags,u32Timer);
+        PCT_ReconnectCloud(&g_struProtocolController, u32Timer);
         PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECT);
         uip_abort();
     }
@@ -627,14 +739,47 @@ void MT_CloudAppCall()
     {
         if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
         {
-            ZC_Printf("disconnect\n", g_struProtocolController.u8MainState);
+            ZC_Printf("disconnect, timer = %d\n", g_struProtocolController.u8MainState, u32Timer);
             uip_abort();
-            PCT_ReconnectCloud(&g_struProtocolController);
+            PCT_ReconnectCloud(&g_struProtocolController, u32Timer);
         }
         else
         {
             MT_SendDataToCloud(&g_struProtocolController.struCloudConnection);
         }
+    }
+}
+
+/*************************************************
+* Function: MT_ClientAppCall
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MT_ClientAppCall()
+{
+
+    if(uip_connected()) 
+    {
+		u8_t raddr[16];//, mask[16], gw[16];//,dns[16];		
+		u8_t logon_msg[16] = "userlogon:";
+        sprintf((char *)raddr, "%d.%d.%d.%d", 
+             uip_ipaddr1(uip_conn->ripaddr),uip_ipaddr2(uip_conn->ripaddr),uip_ipaddr3(uip_conn->ripaddr), uip_ipaddr4(uip_conn->ripaddr));
+        ZC_Printf("Connected fd:%d,lp:%d,ra:%s,rp:%d\n",
+            uip_conn->fd, HTONS(uip_conn->lport), raddr, HTONS(uip_conn->rport));
+
+    }
+
+    if(uip_newdata()) 
+    {
+        MT_RecvDataFromClient((char *)uip_appdata, uip_datalen());
+    }
+    
+    if(uip_poll()) 
+    {
+       // MT_SendDataToClient(&g_struProtocolController.struCloudConnection);
     }
 }
 

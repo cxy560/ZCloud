@@ -48,14 +48,18 @@ iot_tcp_appcall(void)
 	*/
 	struct iot_tcp_app_state *s = &(uip_conn->appstate);
 	u16_t lport = HTONS(uip_conn->lport);
-
-
-   
+ 
     if (lport == MT_GetLocalPortNum())
     {
         MT_CloudAppCall();
         return;
     }
+    if (lport == MT_GetLocalListenPortNum())
+    {
+        MT_ClientAppCall();
+        return;
+    }
+    
 #if 0
 	if (uip_aborted() || uip_timedout() || uip_closed()) {
 		switch (lport) {
