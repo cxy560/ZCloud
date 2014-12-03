@@ -403,24 +403,33 @@ u32 MT_DealAppOpt(ZC_MessageHead *pstruMsg)
 {
     u32 u32Index;
     u32 u32Offset = 0;
+    u16 u16RealLen;
     ZC_MessageOptHead *pstruOpt;
     ZC_AppDirectMsg *pstruAppDirect;
-    
+
+    u32Offset = sizeof(ZC_MessageHead);
     for (u32Index = 0; u32Index < pstruMsg->OptNum; u32Index++)
     {
-        pstruOpt = (u8*)pstruMsg + u32Offset;
+        pstruOpt = (ZC_MessageOptHead *)((u8*)pstruMsg + u32Offset);
         if (ZC_OPT_APPDIRECT == ZC_HTONS(pstruOpt->OptCode))
         {
-            memcpy(g_u8MsgBuildBuffer, pstruMsg, u32Offset);
+            pstruMsg->OptNum = pstruMsg->OptNum - 1;
+
+            u16RealLen = ZC_HTONS(pstruMsg->Payloadlen)
+                            - (sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen));
+
+            pstruMsg->Payloadlen = ZC_HTONS(u16RealLen);
+
+            memcpy(g_u8MsgBuildBuffer, (u8*)pstruMsg, u32Offset);
+
             memcpy(g_u8MsgBuildBuffer + u32Offset, 
-                pstruMsg + u32Offset + sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen),
-                u32Offset);
-                
-            g_u8ClientSendLen = ZC_HTONS(pstruMsg->Payloadlen)
-                - (sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen));
+                (u8*)pstruMsg + u32Offset + sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen),
+                (u16RealLen + sizeof(ZC_MessageHead)) - u32Offset);
 
             pstruAppDirect = (ZC_AppDirectMsg *)(pstruOpt+1);
-            uip_poll_conn(ZC_HTONL(pstruAppDirect->u32AppClientId));
+
+            g_u8ClientSendLen = u16RealLen + sizeof(ZC_MessageHead);
+            uip_poll_conn(&uip_conns[ZC_HTONL(pstruAppDirect->u32AppClientId)]);
 
             if (uip_len > 0) 
             {
@@ -611,19 +620,19 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
 
     u16 *pu16Test = NULL;
 
-    #if 0
-    pu16Test = resolv_lookup("www.baidu.com"/*IoTpAd.UsrCfg.CloudAddr*/);
+     
+    pu16Test = resolv_lookup(IoTpAd.UsrCfg.CloudAddr);
 
     if(NULL == pu16Test)
     {
         return ZC_RET_ERROR;
     }
-    #endif
+     
     
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192, 168, 1, 100/*101,251,106,4*/);
+        uip_ipaddr(ip, 192,168,1,100);
     }
     else 
     {
@@ -839,13 +848,6 @@ void MT_ClientAppCall()
 
     if(uip_connected()) 
     {
-		u8_t raddr[16];//, mask[16], gw[16];//,dns[16];		
-		u8_t logon_msg[16] = "userlogon:";
-        sprintf((char *)raddr, "%d.%d.%d.%d", 
-             uip_ipaddr1(uip_conn->ripaddr),uip_ipaddr2(uip_conn->ripaddr),uip_ipaddr3(uip_conn->ripaddr), uip_ipaddr4(uip_conn->ripaddr));
-        ZC_Printf("Connected fd:%d,lp:%d,ra:%s,rp:%d\n",
-            uip_conn->fd, HTONS(uip_conn->lport), raddr, HTONS(uip_conn->rport));
-
     }
 
     if(uip_newdata()) 
@@ -859,7 +861,6 @@ void MT_ClientAppCall()
         {
             uip_send(g_u8MsgBuildBuffer, g_u8ClientSendLen);
         }
-
     }
 
     if(uip_closed())
