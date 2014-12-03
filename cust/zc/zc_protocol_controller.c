@@ -671,7 +671,7 @@ void PCT_ModuleOtaFileChunkMsg(PTC_ProtocolCon *pstruContoller, ZC_MessageHead *
         return;
     }
     //Check CRC
-    u16CalCrc = crc16_ccitt((u8*)(pstruOta), (int)u32FileLen);
+    u16CalCrc = crc16_ccitt((u8*)(pstruOta), ZC_HTONS(pstruMsg->Payloadlen));
     u16RecvCrc = (pstruMsg->TotalMsgCrc[0] << 8) + pstruMsg->TotalMsgCrc[1];
 
     if (u16CalCrc != u16RecvCrc)
