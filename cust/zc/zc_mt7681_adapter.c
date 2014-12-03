@@ -614,9 +614,9 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
 {
     struct uip_conn *conn=NULL;
     
-	UIP_UDP_CONN *udp_conn=NULL;
+	//UIP_UDP_CONN *udp_conn=NULL;
     uip_ipaddr_t ip;
-    uip_ipaddr_t broadcastip;
+    //uip_ipaddr_t broadcastip;
 
     u16 *pu16Test = NULL;
 
@@ -661,7 +661,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     {
 
     }
-    
+#if 0    
     /*add broadcast ip*/
     uip_ipaddr(broadcastip, 255,255,255,255);
     udp_conn = uip_udp_new(&broadcastip, ZC_HTONS(ZC_MOUDLE_BROADCAST_PORT));
@@ -669,7 +669,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
         ZC_Printf("setup Bc channel\n");
         uip_udp_bind(udp_conn, ZC_HTONS(ZC_MOUDLE_PORT));
     }
-
+#endif
     return ZC_RET_OK;
 }
 /*************************************************
@@ -683,6 +683,9 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
 u32 MT_ListenClient(PTC_Connection *pstruConnection)
 {
     
+	UIP_UDP_CONN *udp_conn=NULL;
+    uip_ipaddr_t broadcastip;
+    
     ZC_Printf("Listen \n");
     
     if (ZC_CONNECT_TYPE_TCP == pstruConnection->u8ConnectionType)
@@ -692,6 +695,14 @@ u32 MT_ListenClient(PTC_Connection *pstruConnection)
     	g_u16LocalListenPort = pstruConnection->u16Port;
 
     	ZC_Printf("Tcp Listen Port = %d\n", pstruConnection->u16Port);
+
+
+  	    uip_ipaddr(broadcastip, 255,255,255,255);
+        udp_conn = uip_udp_new(&broadcastip, ZC_HTONS(ZC_MOUDLE_BROADCAST_PORT));
+        if(udp_conn != NULL) {
+            ZC_Printf("setup Bc channel\n");
+            uip_udp_bind(udp_conn, ZC_HTONS(ZC_MOUDLE_PORT));
+        }
     }
     else
     {
@@ -759,6 +770,7 @@ void MT_Rand(u8 *pu8Rand)
 void MT_BroadcastAppCall()
 {
     u16 u16Len;
+    ZC_ClientQueryRsp struRsp;
     if (uip_poll())
     {
     
@@ -774,6 +786,16 @@ void MT_BroadcastAppCall()
             uip_send(g_u8MsgBuildBuffer, u16Len);
             g_struProtocolController.u16SendBcNum++;
         }
+    }
+
+    if (uip_newdata())
+    {
+        struRsp.addr[0] = uip_ipaddr1(uip_hostaddr);
+        struRsp.addr[1] = uip_ipaddr2(uip_hostaddr);        
+        struRsp.addr[2] = uip_ipaddr3(uip_hostaddr);
+        struRsp.addr[3] = uip_ipaddr4(uip_hostaddr);        
+        EVENT_BuildMsg(ZC_CODE_CLIENT_QUERY_RSP, 0, g_u8MsgBuildBuffer, &u16Len, &struRsp, sizeof(ZC_ClientQueryRsp));
+        uip_send(g_u8MsgBuildBuffer, u16Len);
     }
 }
 /*************************************************

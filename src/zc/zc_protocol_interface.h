@@ -103,6 +103,10 @@ typedef enum
     ZC_CODE_BC_INFO,
     ZC_CODE_CLIENT_ACCESS_REQ,
     ZC_CODE_CLIENT_ACCESS_RSP,
+    
+    ZC_CODE_CLIENT_QUERY_REQ,
+    ZC_CODE_CLIENT_QUERY_RSP,
+    
 }ZC_MsgCode;
 
 typedef enum 
@@ -200,6 +204,13 @@ typedef struct
     u8 RandMsg[ZC_HS_MSG_LEN];
     u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
 }ZC_BroadCastInfo;
+
+/*BC info£¬ send after connect with cloud£¬ in PCT_SEND_BC_MAX_NUM*/
+typedef struct
+{
+    u8 addr[4];
+}ZC_ClientQueryRsp;
+
 
 /*ZC_CODE_CLIENT_ACCESS_REQ*/
 typedef struct
