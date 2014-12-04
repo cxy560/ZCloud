@@ -463,7 +463,7 @@ void UART_Rx_Packet_Dispatch(void)
                 IoT_parse_IWCmd(pCmdBuf, rxpkt_len);
                 break;
             case PKT_MSGCMD:
-                MT_RecvDataFromMoudle(pCmdBuf, rxpkt_len);
+                ZC_RecvDataFromMoudle(pCmdBuf, rxpkt_len);
                 break;
              default:
                 break;

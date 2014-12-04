@@ -119,6 +119,8 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
 
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
+
+    ZC_ClientInit();
 }
 /*************************************************
 * Function: PCT_SendEmptyMsg
@@ -308,27 +310,7 @@ void PCT_ConnectCloud(PTC_ProtocolCon *pstruContoller)
     pstruContoller->u8MainState = PCT_STATE_WAIT_ACCESS;
     pstruContoller->u8keyRecv = PCT_KEY_UNRECVED;
 }
-/*************************************************
-* Function: PCT_ListenClient
-* Description: 
-* Author: zw
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void PCT_ListenClient(PTC_ProtocolCon *pstruContoller)
-{
-    u32 u32Ret = ZC_RET_OK;
-    
-    g_struProtocolController.u8ClientIdle = PCT_CLIENT_STATUS_IDLE;
-    
-    /*Listen*/
-    u32Ret = pstruContoller->pstruMoudleFun->pfunListenClient(&pstruContoller->struClientConnection);
-    if (ZC_RET_OK != u32Ret)
-    {
-        return;
-    }
-}
+
 /*************************************************
 * Function: PCT_ReconnectCloud
 * Description: 
@@ -575,24 +557,6 @@ void PCT_SendAckToCloud(u8 u8MsgId)
     struSechead.u8SecType = ZC_SEC_ALG_AES;
     struSechead.u16TotalMsg = ZC_HTONS(u16Len);
     (void)PCT_SendMsgToCloud(&struSechead, g_u8MsgBuildBuffer);
-}
-/*************************************************
-* Function: PCT_SendAckToClient
-* Description:
-* Author: cxy
-* Returns:
-* Parameter:
-* History:
-*************************************************/
-void PCT_SendAckToClient(u8 u8MsgId)
-{
-    u16 u16Len;
-    ZC_SecHead struSechead;
-
-    EVENT_BuildMsg(ZC_CODE_ACK, u8MsgId, g_u8MsgBuildBuffer, &u16Len, NULL, 0);
-    struSechead.u8SecType = ZC_SEC_ALG_AES;
-    struSechead.u16TotalMsg = ZC_HTONS(u16Len);
-    (void)PCT_SendMsgToClient(&struSechead, g_u8MsgBuildBuffer);
 }
 
 /*************************************************
@@ -1013,13 +977,12 @@ void PCT_WakeUp()
 {
     if (PCT_STATE_INIT == g_struProtocolController.u8MainState)
     {
-        //g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET;
         g_struProtocolController.pstruMoudleFun->pfunSetTimer(PCT_TIMER_REGISTER, 
             PCT_TIMER_INTERVAL_REGISTER, &g_struProtocolController.u8RegisterTimer);
         /*Intial Bc send Num*/
         g_struProtocolController.u16SendBcNum = 0;
         PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
-        PCT_ListenClient(&g_struProtocolController);
+        ZC_ClientWakeUp();
     }
     
 }
@@ -1045,6 +1008,7 @@ void PCT_Sleep()
     g_struProtocolController.u8MainState = PCT_STATE_INIT;
     g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
     PCT_SendNotifyMsg(ZC_CODE_WIFI_DISCONNECT);
+    ZC_ClientSleep();
 }
 
 /*************************************************
@@ -1136,62 +1100,7 @@ u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
     return ZC_RET_OK;
 }
 
-/*************************************************
-* Function: PCT_SendMsgToClient
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 PCT_SendMsgToClient(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
-{
-    return PCT_SendMsgToCloud(pstruSecHead,pu8PlainData);
-}
 
-/*************************************************
-* Function: PCT_CheckClientIdle
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 PCT_CheckClientIdle()
-{
-    if (PCT_CLIENT_STATUS_IDLE == g_struProtocolController.u8ClientIdle)
-    {
-        return ZC_RET_OK;
-    }
-    else
-    {
-        return ZC_RET_ERROR;    
-    }
-}
-/*************************************************
-* Function: PCT_SetClientBusy
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void PCT_SetClientBusy(u32 u32Clientfd)
-{
-    g_struProtocolController.u8ClientIdle = PCT_CLIENT_STATUS_BUSY;
-}
-/*************************************************
-* Function: PCT_SetClientFree
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void PCT_SetClientFree(u32 u32Clientfd)
-{
-    g_struProtocolController.u8ClientIdle = PCT_CLIENT_STATUS_IDLE;
-}
 
 /******************************* FILE END ***********************************/
 

@@ -225,83 +225,6 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 }
 
 /*************************************************
-* Function: MT_RecvDataFromClient
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void MT_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
-{
-    u32 u32RetVal;
-    u32 u32i =0;
-    ZC_MessageHead *pstruMsg;
-    ZC_MessageOptHead struOpt;
-    ZC_AppDirectMsg struAppDirectMsg;
-    u16 u16Len;
-
-    /*can hanle it*/
-    u32RetVal = PCT_CheckClientIdle();
-    if (ZC_RET_ERROR == u32RetVal)
-    {
-        EVENT_BuildMsg(ZC_CODE_ERR, 0, g_u8MsgBuildBuffer, &u16Len, 
-            NULL, 0);
-        uip_send(g_u8MsgBuildBuffer, u16Len);
-        return;            
-    }
-    
-    /*set client busy*/
-    PCT_SetClientBusy(ClientId);
-    
-    u32RetVal = MSG_RecvDataFromClient(pu8Data, u32DataLen);
-    if (MSG_BUFFER_FULL == g_struClientBuffer.u8Status)
-    {
-        if (ZC_RET_OK == u32RetVal)
-        {
-            pstruMsg = (ZC_MessageHead*)(g_u8ClientCiperBuffer + sizeof(ZC_SecHead));
-            pstruMsg->Payloadlen = ZC_HTONS(ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg));
-            pstruMsg->OptNum = pstruMsg->OptNum + 1;
-            struOpt.OptCode = ZC_HTONS(ZC_OPT_APPDIRECT);
-            struOpt.OptLen = ZC_HTONS(sizeof(struAppDirectMsg));
-            struAppDirectMsg.u32AppClientId = ZC_HTONL(ClientId);
-
-            u16Len = 0;
-            memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, pstruMsg, sizeof(ZC_MessageHead));
-
-            /*insert opt*/
-            u16Len += sizeof(ZC_MessageHead);
-            memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
-                &struOpt, sizeof(ZC_MessageOptHead));
-            u16Len += sizeof(ZC_MessageOptHead);
-            memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
-                &struAppDirectMsg, sizeof(struAppDirectMsg));
-
-            /*copy message*/
-            u16Len += sizeof(struAppDirectMsg);    
-            memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
-                (u8*)(pstruMsg+1), ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg)));   
-
-            u16Len += ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg));     
-            g_struClientBuffer.u32Len = u16Len;
-
-            ZC_TraceData(g_struClientBuffer.u8MsgBuffer, g_struClientBuffer.u32Len);
-            
-            /*send to moudle*/
-            MT_SendDataToMoudle(g_struClientBuffer.u8MsgBuffer, g_struClientBuffer.u32Len);
-
-            g_struClientBuffer.u8Status = MSG_BUFFER_IDLE;
-            g_struClientBuffer.u32Len = 0;
-
-            PCT_SetClientFree(ClientId);
-        }
-    }
-
-    
-    return;
-}
-
-/*************************************************
 * Function: MT_FirmwareUpdateFinish
 * Description: 
 * Author: cxy 
@@ -392,150 +315,54 @@ void MT_Rest()
     wifi_state_chg(WIFI_STATE_INIT, 0);                 
 }
 /*************************************************
-* Function: MT_DealAppOpt
+* Function: MT_SendDataToNet
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_DealAppOpt(ZC_MessageHead *pstruMsg)
+void MT_SendDataToNet(u32 u32Fd, u8 *pu8Data, u16 u16DataLen, ZC_SendParam *pstruParam)
 {
-    u32 u32Index;
-    u32 u32Offset = 0;
-    u16 u16RealLen;
-    ZC_MessageOptHead *pstruOpt;
-    ZC_AppDirectMsg *pstruAppDirect;
-
-    u32Offset = sizeof(ZC_MessageHead);
-    for (u32Index = 0; u32Index < pstruMsg->OptNum; u32Index++)
+    if (0 == pstruParam->u8NeedPoll)
     {
-        pstruOpt = (ZC_MessageOptHead *)((u8*)pstruMsg + u32Offset);
-        if (ZC_OPT_APPDIRECT == ZC_HTONS(pstruOpt->OptCode))
-        {
-            pstruMsg->OptNum = pstruMsg->OptNum - 1;
-
-            u16RealLen = ZC_HTONS(pstruMsg->Payloadlen)
-                            - (sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen));
-
-            pstruMsg->Payloadlen = ZC_HTONS(u16RealLen);
-
-            memcpy(g_u8MsgBuildBuffer, (u8*)pstruMsg, u32Offset);
-
-            memcpy(g_u8MsgBuildBuffer + u32Offset, 
-                (u8*)pstruMsg + u32Offset + sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen),
-                (u16RealLen + sizeof(ZC_MessageHead)) - u32Offset);
-
-            pstruAppDirect = (ZC_AppDirectMsg *)(pstruOpt+1);
-
-            g_u8ClientSendLen = u16RealLen + sizeof(ZC_MessageHead);
-            uip_poll_conn(&uip_conns[ZC_HTONL(pstruAppDirect->u32AppClientId)]);
-
-            if (uip_len > 0) 
-            {
-                ZC_Printf("pull have data %d to client\n", uip_len);
-                uip_arp_out();
-                mt76xx_dev_send();
-            }
-
-            g_u8ClientSendLen = 0;
-            return ZC_RET_OK;
-        }
-        u32Offset += sizeof(ZC_MessageOptHead) + ZC_HTONS(pstruOpt->OptLen);
+        uip_send(pu8Data, u16DataLen);    
     }
-    
-    return ZC_RET_ERROR;
-    
+    else
+    {
+        uip_poll_conn(&uip_conns[u32Fd]);
+
+        if (uip_len > 0) 
+        {
+            ZC_Printf("pull have data %d to client\n", uip_len);
+            uip_arp_out();
+            mt76xx_dev_send();
+        }
+    }
 }
+
 /*************************************************
-* Function: MT_RecvDataFromMoudle
+* Function: MT_StoreRegisterInfor
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
+u32 MT_StoreRegisterInfor(u8 *pu8Data, u16 u16DataLen)
 {
-    ZC_MessageHead *pstrMsg;
     ZC_RegisterReq *pstruRegister;
-    u32 u32RetVal;
 
-    ZC_TraceData(pu8Data, u16DataLen);
+    pstruRegister = (ZC_RegisterReq *)(pu8Data);
 
-    if (0 == u16DataLen)
-    {
-        return ZC_RET_ERROR;
-    }
-
-    pstrMsg = (ZC_MessageHead *)pu8Data;
-
-    u32RetVal = MT_DealAppOpt(pstrMsg);
-    if (ZC_RET_OK == u32RetVal)
-    {
-        return ZC_RET_OK;
-    }
-
-    
-    switch(pstrMsg->MsgCode)
-    {
-        case ZC_CODE_DESCRIBE:
-        {
-            if ((g_struProtocolController.u8MainState >= PCT_STATE_ACCESS_NET) &&
-            (g_struProtocolController.u8MainState < PCT_STATE_DISCONNECT_CLOUD)
-            )
-            {
-                PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);                
-                return ZC_RET_OK;
-            }
-            else if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
-            {
-                PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECT);                
-                return ZC_RET_OK;
-            }
-            pstruRegister = (ZC_RegisterReq *)((u8*)(pstrMsg + 1));
-            memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
-            memcpy(IoTpAd.UsrCfg.ProductName, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
-            memcpy(IoTpAd.UsrCfg.ProductName + ZC_HS_DEVICE_ID_LEN, pstruRegister->u8Domain, ZC_DOMAIN_LEN);
-            memcpy(IoTpAd.UsrCfg.ProductType, pstruRegister->u8EqVersion, ZC_EQVERSION_LEN);
-            
-            g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET; 
-            
-            if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
-            {
-                TIMER_StopTimer(g_struProtocolController.u8RegisterTimer);
-                g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
-            }
-            break;
-        }
-        case ZC_CODE_EQ_BEGIN:
-        {
-            PCT_SendNotifyMsg(ZC_CODE_EQ_DONE);
-            if (g_struProtocolController.u8MainState >= PCT_STATE_ACCESS_NET)
-            {
-                PCT_SendNotifyMsg(ZC_CODE_WIFI_CONNECT);
-            }
-            break;
-        }    
-        case ZC_CODE_ZOTA_FILE_BEGIN:
-            PCT_ModuleOtaFileBeginMsg(&g_struProtocolController, pstrMsg);
-            break;
-        case ZC_CODE_ZOTA_FILE_CHUNK:
-            PCT_ModuleOtaFileChunkMsg(&g_struProtocolController, pstrMsg);
-            break;
-        case ZC_CODE_ZOTA_FILE_END:
-            PCT_ModuleOtaFileEndMsg(&g_struProtocolController, pstrMsg);
-            break;
-        case ZC_CODE_REST:
-            MT_Rest();
-            break;
-        default:
-            PCT_HandleMoudleEvent(pu8Data, u16DataLen);
-            break;
-    }
+    memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
+    memcpy(IoTpAd.UsrCfg.ProductName, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+    memcpy(IoTpAd.UsrCfg.ProductName + ZC_HS_DEVICE_ID_LEN, pstruRegister->u8Domain, ZC_DOMAIN_LEN);
+    memcpy(IoTpAd.UsrCfg.ProductType, pstruRegister->u8EqVersion, ZC_EQVERSION_LEN);
     
     return ZC_RET_OK;
 }
+
 /*************************************************
 * Function: MT_GetCloudKey
 * Description: 
@@ -620,19 +447,18 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
 
     u16 *pu16Test = NULL;
 
-     
     pu16Test = resolv_lookup(IoTpAd.UsrCfg.CloudAddr);
 
     if(NULL == pu16Test)
     {
         return ZC_RET_ERROR;
     }
-     
+
     
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192,168,1,100);
+        uip_ipaddr(ip, 42,62,41,75);
     }
     else 
     {
@@ -723,14 +549,13 @@ void MT_Init()
 {
     ZC_Printf("MT Init\n");
     g_struMt7681Adapter.pfunConnectToCloud = MT_ConnectToCloud;
-
     g_struMt7681Adapter.pfunListenClient = MT_ListenClient;
-
-    //g_struMt7681Adapter.pfunSendToCloud = MT_SendDataToCloud;   
+    g_struMt7681Adapter.pfunSendToNet = MT_SendDataToNet;   
+    g_struMt7681Adapter.pfunStoreInfo = MT_StoreRegisterInfor;
+    g_struMt7681Adapter.pfunRest = MT_Rest;
     g_struMt7681Adapter.pfunUpdate = MT_FirmwareUpdate;  
     g_struMt7681Adapter.pfunUpdateFinish = MT_FirmwareUpdateFinish;
     g_struMt7681Adapter.pfunSendToMoudle = MT_SendDataToMoudle;  
-    //g_struMt7681Adapter.pfunRecvFormMoudle = MT_RecvDataFromMoudle;
     g_struMt7681Adapter.pfunGetCloudKey = MT_GetCloudKey;   
     g_struMt7681Adapter.pfunGetPrivateKey = MT_GetPrivateKey; 
     g_struMt7681Adapter.pfunGetVersion = MT_GetVersion;    
@@ -874,7 +699,7 @@ void MT_ClientAppCall()
 
     if(uip_newdata()) 
     {
-        MT_RecvDataFromClient(uip_conn->fd, (char *)uip_appdata, uip_datalen());
+        ZC_RecvDataFromClient(uip_conn->fd, (char *)uip_appdata, uip_datalen());
     }
     
     if(uip_poll()) 
@@ -902,6 +727,7 @@ void MT_ClientAppCall()
 void MT_WakeUp()
 {
     PCT_WakeUp();
+    ZC_StartClientListen();
 }
 /*************************************************
 * Function: MT_Sleep

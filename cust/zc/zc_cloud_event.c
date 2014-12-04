@@ -29,7 +29,7 @@ u32  EVENT_BuildEmptyMsg(u8 u8MsgId, u8 *pu8Msg, u16 *pu16Len)
     pstruMsg->Payloadlen = 0;
     pstruMsg->Version = ZC_VERSION;
 
-    crc = crc16_ccitt(pstruMsg+1, 0);
+    crc = crc16_ccitt((u8*)(pstruMsg+1), 0);
     pstruMsg->TotalMsgCrc[0]=(crc&0xff00)>>8;
     pstruMsg->TotalMsgCrc[1]=(crc&0xff);
 
@@ -55,7 +55,7 @@ u32  EVENT_BuildHeartMsg(u8 *pu8Msg, u16 *pu16Len)
     pstruMsg->Payloadlen = 0;
     pstruMsg->Version = ZC_VERSION;
     pstruMsg->OptNum = 0;      
-    crc = crc16_ccitt(pstruMsg+1, 0);
+    crc = crc16_ccitt((u8*)(pstruMsg+1), 0);
     pstruMsg->TotalMsgCrc[0]=(crc&0xff00)>>8;
     pstruMsg->TotalMsgCrc[1]=(crc&0xff);
 
