@@ -158,6 +158,7 @@ encrypt by session key*/
 typedef struct
 {
     u8 RandMsg[ZC_HS_MSG_LEN];
+    u8 TokenKey[ZC_HS_SESSION_KEY_LEN];
 }ZC_HandShakeMsg4;
 
 /*msg code: ZC_CODE_DESCRIBE*/
@@ -209,6 +210,8 @@ typedef struct
 typedef struct
 {
     u8 addr[4];
+    u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
+    u8 u8Domain[ZC_DOMAIN_LEN];
 }ZC_ClientQueryRsp;
 
 

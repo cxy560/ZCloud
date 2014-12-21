@@ -194,7 +194,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
         pstruContoller->u8ReconnectTimer = PCT_TIMER_INVAILD;
     }
     
-    pstruContoller->pstruMoudleFun->pfunGetDeviceId(&pu8DeviceId);
+    pstruContoller->pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
     
     memcpy(struMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
     memcpy(struMsg1.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
@@ -241,9 +241,9 @@ void PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller)
     ZC_HandShakeMsg3 struMsg3;
     ZC_SecHead struSechead;
     u8 *pu8Vesion;
-    
-    pstruContoller->pstruMoudleFun->pfunGetVersion(&pu8Vesion);
 
+    pstruContoller->pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_VESION, &pu8Vesion);
+    
     memcpy(struMsg3.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
     memcpy(struMsg3.u8EqVersion, pu8Vesion, ZC_EQVERSION_LEN);
     struMsg3.u8WifiVerSion[0] = (u8)(ZC_MODULE_VERSION >> 24);
@@ -519,7 +519,9 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
             TIMER_StopTimer(pstruContoller->u8AccessTimer);
             if (0 == memcmp(pstruMsg4->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
             {
-                pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD; 
+                pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD;
+                pstruContoller->pstruMoudleFun->pfunStoreInfo(1, pstruMsg4->TokenKey, ZC_HS_SESSION_KEY_LEN);
+                
                 ZC_Printf("recv msg4 ok\n");
                 PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
             }

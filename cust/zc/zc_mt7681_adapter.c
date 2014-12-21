@@ -40,6 +40,8 @@ struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
 
 u16 g_u16TcpMss;
 extern IOT_ADAPTER   	IoTpAd;
+extern IOT_USR_CFG Usr_Cfg;
+
 u16 g_u16LocalPort;
 u16 g_u16LocalListenPort;
 extern char ATCmdPrefixAT[];
@@ -349,74 +351,68 @@ void MT_SendDataToNet(u32 u32Fd, u8 *pu8Data, u16 u16DataLen, ZC_SendParam *pstr
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_StoreRegisterInfor(u8 *pu8Data, u16 u16DataLen)
+u32 MT_StoreRegisterInfor(u8 u8Type, u8 *pu8Data, u16 u16DataLen)
 {
-    ZC_RegisterReq *pstruRegister;
-
-    pstruRegister = (ZC_RegisterReq *)(pu8Data);
-
-    memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
-    memcpy(IoTpAd.UsrCfg.ProductName, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
-    memcpy(IoTpAd.UsrCfg.ProductName + ZC_HS_DEVICE_ID_LEN, pstruRegister->u8Domain, ZC_DOMAIN_LEN);
-    memcpy(IoTpAd.UsrCfg.ProductType, pstruRegister->u8EqVersion, ZC_EQVERSION_LEN);
+    switch(u8Type)
+    {
+        case 0:
+        {
+            ZC_RegisterReq *pstruRegister;
+            
+            pstruRegister = (ZC_RegisterReq *)(pu8Data);
+            
+            memcpy(IoTpAd.UsrCfg.ProductKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
+            memcpy(IoTpAd.UsrCfg.ProductName, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+            memcpy(IoTpAd.UsrCfg.ProductName + ZC_HS_DEVICE_ID_LEN, pstruRegister->u8Domain, ZC_DOMAIN_LEN);
+            memcpy(IoTpAd.UsrCfg.ProductType, pstruRegister->u8EqVersion, ZC_EQVERSION_LEN);
+        
+            break;
+        }
+        case 1:
+        {
+            memcpy(&IoTpAd.UsrCfg.VendorName, pu8Data, u16DataLen);
+            memcpy(&Usr_Cfg, &IoTpAd.UsrCfg, sizeof(IOT_USR_CFG));
+            reset_usr_cfg(TRUE);
+            break;        
+        }
+        default:
+            break;
+    }
     
     return ZC_RET_OK;
 }
 
 /*************************************************
-* Function: MT_GetCloudKey
+* Function: MT_GetStoreInfor
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-u32 MT_GetCloudKey(u8 **pu8Key)
+u32 MT_GetStoreInfor(u8 u8Type, u8 **pu8Data)
 {
-    *pu8Key = IoTpAd.UsrCfg.CloudKey;
+    switch(u8Type)
+    {
+        case ZC_GET_TYPE_CLOUDKEY:
+            *pu8Data = IoTpAd.UsrCfg.CloudKey;
+            break;
+        case ZC_GET_TYPE_DEVICEID:
+            *pu8Data = IoTpAd.UsrCfg.ProductName;
+            break;
+        case ZC_GET_TYPE_PRIVATEKEY:
+            *pu8Data = IoTpAd.UsrCfg.ProductKey;
+            break;
+        case ZC_GET_TYPE_VESION:
+            *pu8Data = IoTpAd.UsrCfg.ProductType;        
+            break;
+        case ZC_GET_TYPE_TOKENKEY:
+            *pu8Data = IoTpAd.UsrCfg.VendorName;        
+            break;
+    }
     return ZC_RET_OK;
 }
-/*************************************************
-* Function: MT_GetPrivateKey
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 MT_GetPrivateKey(u8 **pu8Key)
-{
-    *pu8Key = IoTpAd.UsrCfg.ProductKey;
 
-    return ZC_RET_OK;
-}
-/*************************************************
-* Function: MT_GetVersion
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 MT_GetVersion(u8 **pu8Version)
-{
-    *pu8Version = IoTpAd.UsrCfg.ProductType;
-
-    return ZC_RET_OK;
-}
-/*************************************************
-* Function: MT_GetDeviceId
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 MT_GetDeviceId(u8 **pu8DeviceId)
-{
-    *pu8DeviceId = IoTpAd.UsrCfg.ProductName;
-    return ZC_RET_OK;
-}
 /*************************************************
 * Function: MT_StopTimer
 * Description: 
@@ -556,12 +552,10 @@ void MT_Init()
     g_struMt7681Adapter.pfunUpdate = MT_FirmwareUpdate;  
     g_struMt7681Adapter.pfunUpdateFinish = MT_FirmwareUpdateFinish;
     g_struMt7681Adapter.pfunSendToMoudle = MT_SendDataToMoudle;  
-    g_struMt7681Adapter.pfunGetCloudKey = MT_GetCloudKey;   
-    g_struMt7681Adapter.pfunGetPrivateKey = MT_GetPrivateKey; 
-    g_struMt7681Adapter.pfunGetVersion = MT_GetVersion;    
-    g_struMt7681Adapter.pfunGetDeviceId = MT_GetDeviceId;   
+
     g_struMt7681Adapter.pfunSetTimer = MT_SetTimer;  
     g_struMt7681Adapter.pfunStopTimer = MT_StopTimer;
+    g_struMt7681Adapter.pfunGetStoreInfo = MT_GetStoreInfor;
     
     g_u16TcpMss = UIP_TCP_MSS;
     PCT_Init(&g_struMt7681Adapter);
@@ -596,6 +590,8 @@ void MT_BroadcastAppCall()
 {
     u16 u16Len;
     ZC_ClientQueryRsp struRsp;
+    u8 *pu8DeviceId;
+    
     if (uip_poll())
     {
     
@@ -618,7 +614,12 @@ void MT_BroadcastAppCall()
         struRsp.addr[0] = uip_ipaddr1(uip_hostaddr);
         struRsp.addr[1] = uip_ipaddr2(uip_hostaddr);        
         struRsp.addr[2] = uip_ipaddr3(uip_hostaddr);
-        struRsp.addr[3] = uip_ipaddr4(uip_hostaddr);        
+        struRsp.addr[3] = uip_ipaddr4(uip_hostaddr);
+        
+        g_struProtocolController.pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
+
+        memcpy(struRsp.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
+        memcpy(struRsp.u8Domain, pu8DeviceId + ZC_HS_DEVICE_ID_LEN, ZC_DOMAIN_LEN);
         EVENT_BuildMsg(ZC_CODE_CLIENT_QUERY_RSP, 0, g_u8MsgBuildBuffer, &u16Len, &struRsp, sizeof(ZC_ClientQueryRsp));
         uip_send(g_u8MsgBuildBuffer, u16Len);
     }
