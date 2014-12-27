@@ -28,7 +28,7 @@ u32 ZC_DealAppOpt(ZC_MessageHead *pstruMsg)
     u32 u32Index;
     u32 u32Offset = 0;
     u16 u16RealLen;
-    u16 u16CiperLen;
+    u32 u32CiperLen;
     ZC_MessageOptHead *pstruOpt;
     ZC_SecHead struSecHead;
     ZC_AppDirectMsg *pstruAppDirect;
@@ -63,17 +63,17 @@ u32 ZC_DealAppOpt(ZC_MessageHead *pstruMsg)
             AES_CBC_Encrypt(g_u8MsgBuildBuffer + sizeof(ZC_SecHead), u16RealLen + sizeof(ZC_MessageHead),
                 pu8Key, 16,
                 pu8Key, 16,
-                g_u8MsgBuildBuffer + sizeof(ZC_SecHead), &u16CiperLen);
+                g_u8MsgBuildBuffer + sizeof(ZC_SecHead), &u32CiperLen);
 
             /*copy sec head*/
-            struSecHead.u16TotalMsg = ZC_HTONS(u16CiperLen);
+            struSecHead.u16TotalMsg = ZC_HTONS((u16)u32CiperLen);
             struSecHead.u8SecType = ZC_SEC_ALG_AES;
             
             memcpy(g_u8MsgBuildBuffer, &struSecHead, sizeof(ZC_SecHead));
 
 
             /*msg len include sec head, msg head, payload len*/
-            g_u8ClientSendLen = u16CiperLen + sizeof(ZC_SecHead);
+            g_u8ClientSendLen = u32CiperLen + sizeof(ZC_SecHead);
 
             struParam.u8NeedPoll = 1;
 

@@ -454,7 +454,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 42,62,41,75);
+        uip_ipaddr(ip, 192,168,1,119);//42,62,41,75);
     }
     else 
     {
@@ -560,6 +560,67 @@ void MT_Init()
     g_u16TcpMss = UIP_TCP_MSS;
     PCT_Init(&g_struMt7681Adapter);
 }
+
+/*************************************************
+* Function: HF_SendClientQueryReq
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MT_SendClientQueryReq(u8 *pu8Msg, u16 u16RecvLen)
+{
+    ZC_MessageHead *pstruMsg;
+    ZC_ClientQueryRsp struRsp;
+    u16 u16Len;
+    u8 *pu8DeviceId;
+    u8 *pu8Domain;    
+    u32 u32Index;
+    ZC_ClientQueryReq *pstruQuery;
+
+    if (g_struProtocolController.u8MainState < PCT_STATE_ACCESS_NET)
+    {
+        return;
+    }
+    
+    if (u16RecvLen != sizeof(ZC_MessageHead) + sizeof(ZC_ClientQueryReq))
+    {
+        return;
+    }
+    
+    pstruMsg = (ZC_MessageHead *)pu8Msg;
+    pstruQuery = (ZC_ClientQueryReq *)(pstruMsg + 1);
+
+    if (ZC_CODE_CLIENT_QUERY_REQ != pstruMsg->MsgCode)
+    {
+        return;
+    }
+    g_struProtocolController.pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
+    pu8Domain = pu8DeviceId + ZC_HS_DEVICE_ID_LEN;
+
+    /*Only first 6 bytes is vaild*/
+    for (u32Index = 0; u32Index < 6; u32Index++)
+    {
+        if (pstruQuery->u8Domain[u32Index] != pu8Domain[u32Index])
+        {
+            return;
+        }
+        
+    }
+    
+    struRsp.addr[0] = uip_ipaddr1(uip_hostaddr);
+    struRsp.addr[1] = uip_ipaddr2(uip_hostaddr);        
+    struRsp.addr[2] = uip_ipaddr3(uip_hostaddr);
+    struRsp.addr[3] = uip_ipaddr4(uip_hostaddr);
+    
+    memcpy(struRsp.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
+    EVENT_BuildMsg(ZC_CODE_CLIENT_QUERY_RSP, 0, g_u8MsgBuildBuffer, &u16Len, (u8*)&struRsp, sizeof(ZC_ClientQueryRsp));
+    uip_send(g_u8MsgBuildBuffer, u16Len);
+}
+
+
+
 /*************************************************
 * Function: MT_CloudAppCall
 * Description: 
@@ -575,8 +636,12 @@ void MT_Rand(u8 *pu8Rand)
     for (u32Index = 0; u32Index < 10; u32Index++)
     {
         u32Rand = apiRand();
-        memcpy((pu8Rand + 4 * u32Index), &u32Rand, 4);
+        pu8Rand[u32Index * 4] = ((u8)u32Rand % 26) + 65;
+        pu8Rand[u32Index * 4 + 1] = ((u8)(u32Rand >> 8) % 26) + 65;
+        pu8Rand[u32Index * 4 + 2] = ((u8)(u32Rand >> 16) % 26) + 65;
+        pu8Rand[u32Index * 4 + 3] = ((u8)(u32Rand >> 24) % 26) + 65;        
     }
+
 }
 /*************************************************
 * Function: MT_BroadcastAppCall
@@ -611,17 +676,7 @@ void MT_BroadcastAppCall()
 
     if (uip_newdata())
     {
-        struRsp.addr[0] = uip_ipaddr1(uip_hostaddr);
-        struRsp.addr[1] = uip_ipaddr2(uip_hostaddr);        
-        struRsp.addr[2] = uip_ipaddr3(uip_hostaddr);
-        struRsp.addr[3] = uip_ipaddr4(uip_hostaddr);
-        
-        g_struProtocolController.pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
-
-        memcpy(struRsp.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
-        memcpy(struRsp.u8Domain, pu8DeviceId + ZC_HS_DEVICE_ID_LEN, ZC_DOMAIN_LEN);
-        EVENT_BuildMsg(ZC_CODE_CLIENT_QUERY_RSP, 0, g_u8MsgBuildBuffer, &u16Len, &struRsp, sizeof(ZC_ClientQueryRsp));
-        uip_send(g_u8MsgBuildBuffer, u16Len);
+        MT_SendClientQueryReq((char *)uip_appdata, uip_datalen());
     }
 }
 /*************************************************

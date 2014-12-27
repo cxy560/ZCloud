@@ -520,7 +520,6 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
             if (0 == memcmp(pstruMsg4->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
             {
                 pstruContoller->u8MainState = PCT_STATE_CONNECT_CLOUD;
-                pstruContoller->pstruMoudleFun->pfunStoreInfo(1, pstruMsg4->TokenKey, ZC_HS_SESSION_KEY_LEN);
                 
                 ZC_Printf("recv msg4 ok\n");
                 PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECT);
@@ -862,6 +861,25 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
 
 }
 /*************************************************
+* Function: PCT_HandleMoudleMsg
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_SetTokenKey(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
+{
+    ZC_MessageHead *pstruMsg;
+    ZC_TokenSetReq *pstruSetKey;
+
+    pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
+    pstruSetKey = (ZC_TokenSetReq *)(pstruMsg + 1);
+
+    pstruContoller->pstruMoudleFun->pfunStoreInfo(1, pstruSetKey->TokenKey, ZC_HS_SESSION_KEY_LEN);
+    return;
+}
+/*************************************************
 * Function: PCT_HandleEvent
 * Description: 
 * Author: cxy 
@@ -923,7 +941,10 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
         case ZC_CODE_OTA_FILE_END:
         case ZC_CODE_OTA_END:
             PCT_HandleMoudleMsg(pstruContoller, pstruBuffer);
-            break;                                    
+            break;
+        case ZC_CODE_TOKEN_SET:
+            PCT_SetTokenKey(pstruContoller, pstruBuffer);
+            break;
         default:
             PCT_HandleMoudleMsg(pstruContoller, pstruBuffer);
             PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
@@ -1107,8 +1128,6 @@ u32 PCT_SendMsgToCloud(ZC_SecHead *pstruSecHead, u8 *pu8PlainData)
     }
     return ZC_RET_OK;
 }
-
-
 
 /******************************* FILE END ***********************************/
 

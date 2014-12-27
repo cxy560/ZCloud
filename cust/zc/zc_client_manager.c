@@ -197,7 +197,7 @@ void ZC_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
     ZC_AppDirectMsg struAppDirectMsg;
     ZC_SecHead *pstruHead;
     u16 u16Len;
-    u16 u16CiperLen;
+    u32 u32CiperLen;
     u8 *pu8Key;
     ZC_SendParam struParam;
 
@@ -216,14 +216,14 @@ void ZC_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
         AES_CBC_Encrypt(g_u8MsgBuildBuffer + sizeof(ZC_SecHead), u16Len,
             pu8Key, 16,
             pu8Key, 16,
-            g_u8MsgBuildBuffer + sizeof(ZC_SecHead), &u16CiperLen);
+            g_u8MsgBuildBuffer + sizeof(ZC_SecHead), &u32CiperLen);
 
         pstruHead->u8SecType = ZC_SEC_ALG_AES;
-        pstruHead->u16TotalMsg = ZC_HTONS(u16CiperLen);
+        pstruHead->u16TotalMsg = ZC_HTONS((u16)u32CiperLen);
 
         struParam.u8NeedPoll = 0;            
         g_struProtocolController.pstruMoudleFun->pfunSendToNet(ClientId, g_u8MsgBuildBuffer, 
-            u16CiperLen + sizeof(ZC_SecHead), &struParam);
+            u32CiperLen + sizeof(ZC_SecHead), &struParam);
         return;            
     }
     
@@ -241,9 +241,9 @@ void ZC_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
             AES_CBC_Decrypt(g_u8ClientCiperBuffer + sizeof(ZC_SecHead), ZC_HTONS(pstruHead->u16TotalMsg), 
                 pu8Key, ZC_HS_SESSION_KEY_LEN, 
                 pu8Key, 16, 
-                g_struClientBuffer.u8MsgBuffer, &u16CiperLen);
+                g_struClientBuffer.u8MsgBuffer, &u32CiperLen);
 
-            memcpy(g_u8ClientCiperBuffer + sizeof(ZC_SecHead), g_struClientBuffer.u8MsgBuffer, u16CiperLen);
+            memcpy(g_u8ClientCiperBuffer + sizeof(ZC_SecHead), g_struClientBuffer.u8MsgBuffer, u32CiperLen);
 
             pstruMsg = (ZC_MessageHead*)(g_u8ClientCiperBuffer + sizeof(ZC_SecHead));
             pstruMsg->Payloadlen = ZC_HTONS(ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg));
