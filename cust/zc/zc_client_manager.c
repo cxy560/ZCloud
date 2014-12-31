@@ -30,6 +30,11 @@ void ZC_ClientDisconnect(u32 u32ClientId)
         if (u32ClientId == g_struClientInfo.u32ClientFd[u32Index])
         {
             g_struClientInfo.u32ClientVaildFlag[u32Index] = ZC_CLIENT_VAILD_FLAG;
+            if ((ZC_CLIENT_STATUS_BUSY == g_struClientInfo.u8ClientStates)
+            && (u32ClientId == g_struClientInfo.u32ClientBusyId))
+            {
+                ZC_SetClientFree(u32ClientId);
+            }
         }
     }
 }

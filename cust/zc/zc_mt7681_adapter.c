@@ -454,7 +454,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192,168,1,119);//42,62,41,75);
+        uip_ipaddr(ip, 192,168,1,126);//42,62,41,75);
     }
     else 
     {
@@ -751,6 +751,7 @@ void MT_ClientAppCall()
 
     if(uip_connected()) 
     {
+        ZC_ClientConnect(uip_conn->fd);
     }
 
     if(uip_newdata()) 
@@ -768,7 +769,7 @@ void MT_ClientAppCall()
 
     if(uip_closed())
     {
-        
+        ZC_ClientDisconnect(uip_conn->fd);
     }
 }
 
