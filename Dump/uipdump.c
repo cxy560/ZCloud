@@ -5,12 +5,18 @@
 #include <time.h>
 u8 uip_appdata[10240];
 struct uip_conn g_DumpConn;
+struct uip_conn g_uip_conn;
+struct uip_conn *uip_conn = &g_uip_conn;
+uip_ipaddr_t uip_hostaddr;
 UIP_UDP_CONN g_DmupUdpConn;
 u8 uip_flags = 0;
 u16 uip_len = 0;
 u8 g_u8Ipaddr[4]={127,0,0,1};
 extern u8 g_u8DumpCloudMsg[102400];
 char ATCmdPrefixAT[] = "AT#";
+MLME_STRUCT g_IoTMlme;
+MLME_STRUCT *pIoTMlme = &g_IoTMlme;
+
 int iot_send(u8 fd, u8 *buf, u16 len)
 {
     uip_flags = UIP_NEWDATA;
@@ -153,4 +159,12 @@ void IoT_Xmodem_Update_FW_Stop()
 u32 spi_flash_CopyApToSta(u32 len)
 {
         return 0;
+}
+void wifi_state_chg(u8 iStateMachine, u8 iSubState)
+{}
+void uip_listen(u16 port)
+{}
+unsigned short crc16_ccitt(const unsigned char *buf, unsigned int len)
+{
+    return 100;
 }

@@ -248,20 +248,37 @@ void readcfg()
     u8 *pu8Test;
     MT_Init();
     testread();
-    g_struProtocolController.pstruMoudleFun->pfunGetCloudKey(&pu8Test);
-    g_struProtocolController.pstruMoudleFun->pfunGetDeviceId(&pu8Test);
-    g_struProtocolController.pstruMoudleFun->pfunGetPrivateKey(&pu8Test);
-    g_struProtocolController.pstruMoudleFun->pfunGetVersion(&pu8Test);
 }
 extern IOT_USR_CFG Usr_Cfg;
-void testRecvAt()
+void TestSendRegisterMsg()
 {
-    u8 u8At1[] = "AT#1";
-    u8 u8At2[] = "AT#UPDATA";
-    u8 u8At3[] = {0x41,0x54,0x23,0x57,0x50,0x44,0x41,0x54,0x41,0x45};
-    MT_RecvDataFromMoudle(u8At1, sizeof(u8At1));
-    MT_RecvDataFromMoudle(u8At2, sizeof(u8At2));
-    MT_RecvDataFromMoudle(u8At3, sizeof(u8At3));
+    u32 u32Index;
+    ZC_MessageHead *pstruMsg;
+    ZC_RegisterReq *pstruRegisterReq;
+    u8 u8DeviceId[8] = { 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, };
+    u8 u8Domain[8] = { 0, 0, 0, 0, 0, 110, 0, 122 };
+    u8 u8ATCmd[1024] = {0,};
+
+    u8ATCmd[0] = 0x02;
+    u8ATCmd[1] = 0x03;
+    u8ATCmd[2] = 0x04;
+    u8ATCmd[3] = 0x05;
+    for (u32Index = 0; u32Index < sizeof(ZC_MessageHead); u32Index++)
+    {
+        u8ATCmd[4 + u32Index] = u32Index;
+    }
+    pstruMsg = (ZC_MessageHead*)(u8ATCmd + 4);
+    pstruMsg->Payloadlen = ZC_HTONS(sizeof(ZC_RegisterReq));
+    pstruMsg->MsgCode = 7;
+    pstruMsg->OptNum = 0;
+
+    pstruRegisterReq = (ZC_RegisterReq*)(pstruMsg + 1);
+
+    memcpy(pstruRegisterReq->u8Domain, u8Domain, 8);
+    memcpy(pstruRegisterReq->u8DeviceId, u8DeviceId, 8);
+
+    ZC_RecvDataFromMoudle(u8ATCmd + 4, sizeof(ZC_MessageHead)+sizeof(ZC_RegisterReq));
+    PCT_SendCloudAccessMsg1(&g_struProtocolController);
 }
 
 void testupdate()
@@ -280,11 +297,55 @@ void testupdate()
     ZC_TraceData(u8File, 180);
     
 }
+
+void testparseropt()
+{
+    u8 u8TestData[] = {
+        0x00, 0x00, 0x00, 0x02,
+        0x00, 0x78, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x08,
+        0x09, 0x09, 0x09, 0x09,
+        0x09, 0x09, 0x09, 0x09,
+        0x00, 0x01, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x01, 0x02, 0x03,
+        0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0a, 0x0b,
+        0x0c, 0x0d, 0x0e, 0x0f,
+        0x10, 0x11, 0x12, 0x13,
+        0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1a, 0x1b,
+        0x1c, 0x1d, 0x1e, 0x1f,
+        0x20, 0x21, 0x22, 0x23,
+        0x24, 0x25, 0x26, 0x27,
+        0x28, 0x29, 0x2a, 0x2b,
+        0x2c, 0x2d, 0x2e, 0x2f,
+        0x30, 0x31, 0x32, 0x33,
+        0x34, 0x35, 0x36, 0x37,
+        0x38, 0x39, 0x3a, 0x3b,
+        0x3c, 0x3d, 0x3e, 0x3f,
+        0x40, 0x41, 0x42, 0x43,
+        0x44, 0x45, 0x46, 0x47,
+        0x48, 0x49, 0x4a, 0x4b,
+        0x4c, 0x4d, 0x4e, 0x4f,
+        0x50, 0x51, 0x52, 0x53,
+        0x54, 0x55, 0x56, 0x57,
+        0x58, 0x59, 0x5a, 0x5b,
+        0x5c, 0x5d, 0x5e, 0x5f,
+        0x60, 0x61, 0x62, 0x63
+    };
+
+    ZC_RecvDataFromMoudle(u8TestData, 128);
+}
 void main()
 {
+/*
     u16 padding;
-    MT_Init();
     memcpy(&IoTpAd.UsrCfg , &Usr_Cfg , sizeof(IOT_USR_CFG));
 
     rsaoffline();
+*/
+    MT_Init();
+
+    testparseropt();
 }

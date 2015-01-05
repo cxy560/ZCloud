@@ -32,8 +32,6 @@ MSG_Buffer g_struSendBuffer[MSG_BUFFER_SEND_MAX_NUM];
 MSG_Queue  g_struSendQueue;
 
 u8 g_u8MsgBuildBuffer[MSG_BULID_BUFFER_MAXLEN];
-u8 g_u8CiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
-u8 g_u8ClientCiperBuffer[MSG_CIPER_BUFFER_MAXLEN];
 u8 g_u8ClientSendLen = 0;
 
 struct timer g_struMtTimer[ZC_TIMER_MAX_NUM];
@@ -206,14 +204,17 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 {
     u32 u32RetVal;
     u16 u16PlainLen;
-    u32RetVal = MSG_RecvDataFromCloud(pu8Data, u32DataLen);
+    u32RetVal = MSG_RecvData(&g_struRecvBuffer, pu8Data, u32DataLen);
 
     if (ZC_RET_OK == u32RetVal)
     {
         if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
         {
-            u32RetVal = SEC_Decrypt((ZC_SecHead*)g_u8CiperBuffer, 
-                g_u8CiperBuffer + sizeof(ZC_SecHead), g_struRecvBuffer.u8MsgBuffer, &u16PlainLen);
+            u32RetVal = SEC_Decrypt((ZC_SecHead*)g_struRecvBuffer.u8MsgBuffer, 
+                g_struRecvBuffer.u8MsgBuffer + sizeof(ZC_SecHead), g_u8MsgBuildBuffer, &u16PlainLen);
+
+            /*copy data*/
+            memcpy(g_struRecvBuffer.u8MsgBuffer, g_u8MsgBuildBuffer, u16PlainLen);
 
             g_struRecvBuffer.u32Len = u16PlainLen;
             if (ZC_RET_OK == u32RetVal)
@@ -236,7 +237,8 @@ void MT_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 *************************************************/
 u32 MT_FirmwareUpdateFinish(u32 u32TotalLen)
 {
-    spi_flash_CopyApToSta(u32TotalLen);        
+    spi_flash_CopyApToSta(u32TotalLen); 
+    return ZC_RET_OK;       
 }
 /*************************************************
 * Function: MT_FirmwareUpdate
@@ -454,7 +456,7 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     ZC_Printf("Connect \n");
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192,168,1,126);//42,62,41,75);
+        uip_ipaddr(ip, 192,168,1,111);//42,62,41,75);
     }
     else 
     {
@@ -654,8 +656,6 @@ void MT_Rand(u8 *pu8Rand)
 void MT_BroadcastAppCall()
 {
     u16 u16Len;
-    ZC_ClientQueryRsp struRsp;
-    u8 *pu8DeviceId;
     
     if (uip_poll())
     {
@@ -747,8 +747,6 @@ void MT_CloudAppCall()
 *************************************************/
 void MT_ClientAppCall()
 {
-    MSG_Buffer *pstruBuf;
-
     if(uip_connected()) 
     {
         ZC_ClientConnect(uip_conn->fd);

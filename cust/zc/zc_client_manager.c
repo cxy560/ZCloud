@@ -199,7 +199,7 @@ void ZC_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
     u32 u32RetVal;
     ZC_MessageHead *pstruMsg;
     ZC_MessageOptHead struOpt;
-    ZC_AppDirectMsg struAppDirectMsg;
+    ZC_SsessionInfo struSessionMsg;
     ZC_SecHead *pstruHead;
     u16 u16Len;
     u32 u32CiperLen;
@@ -235,27 +235,36 @@ void ZC_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
     /*set client busy*/
     ZC_SetClientBusy(ClientId);
     
-    u32RetVal = MSG_RecvDataFromClient(pu8Data, u32DataLen);
+    u32RetVal = MSG_RecvData(&g_struClientBuffer, pu8Data, u32DataLen);
     if (MSG_BUFFER_FULL == g_struClientBuffer.u8Status)
     {
         
         if (ZC_RET_OK == u32RetVal)
         {
-            pstruHead = (ZC_SecHead *)g_u8ClientCiperBuffer;
+            pstruHead = (ZC_SecHead *)g_struClientBuffer.u8MsgBuffer;
+
+            if (ZC_HTONS(pstruHead->u16TotalMsg) >= MSG_BULID_BUFFER_MAXLEN)
+            {
+                return;
+            }
             
-            AES_CBC_Decrypt(g_u8ClientCiperBuffer + sizeof(ZC_SecHead), ZC_HTONS(pstruHead->u16TotalMsg), 
+            AES_CBC_Decrypt(g_struClientBuffer.u8MsgBuffer + sizeof(ZC_SecHead), ZC_HTONS(pstruHead->u16TotalMsg), 
                 pu8Key, ZC_HS_SESSION_KEY_LEN, 
                 pu8Key, 16, 
-                g_struClientBuffer.u8MsgBuffer, &u32CiperLen);
+                g_u8MsgBuildBuffer, &u32CiperLen);
 
-            memcpy(g_u8ClientCiperBuffer + sizeof(ZC_SecHead), g_struClientBuffer.u8MsgBuffer, u32CiperLen);
+            
+            pstruMsg = (ZC_MessageHead*)(g_u8MsgBuildBuffer);
+            pstruMsg->Payloadlen = ZC_HTONS(ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageOptHead) + sizeof(ZC_SsessionInfo));
+            if (ZC_HTONS(pstruMsg->Payloadlen) > MSG_BULID_BUFFER_MAXLEN)
+            {
+                return;
+            }
 
-            pstruMsg = (ZC_MessageHead*)(g_u8ClientCiperBuffer + sizeof(ZC_SecHead));
-            pstruMsg->Payloadlen = ZC_HTONS(ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg));
             pstruMsg->OptNum = pstruMsg->OptNum + 1;
-            struOpt.OptCode = ZC_HTONS(ZC_OPT_APPDIRECT);
-            struOpt.OptLen = ZC_HTONS(sizeof(struAppDirectMsg));
-            struAppDirectMsg.u32AppClientId = ZC_HTONL(ClientId);
+            struOpt.OptCode = ZC_HTONS(ZC_OPT_SSESSION);
+            struOpt.OptLen = ZC_HTONS(sizeof(ZC_SsessionInfo));
+            struSessionMsg.u32SsessionId = ZC_HTONL(ClientId);
 
             u16Len = 0;
             memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, pstruMsg, sizeof(ZC_MessageHead));
@@ -266,14 +275,14 @@ void ZC_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
                 &struOpt, sizeof(ZC_MessageOptHead));
             u16Len += sizeof(ZC_MessageOptHead);
             memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
-                &struAppDirectMsg, sizeof(struAppDirectMsg));
+                &struSessionMsg, sizeof(struSessionMsg));
 
             /*copy message*/
-            u16Len += sizeof(struAppDirectMsg);    
+            u16Len += sizeof(struSessionMsg);    
             memcpy(g_struClientBuffer.u8MsgBuffer + u16Len, 
-                (u8*)(pstruMsg+1), ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg)));   
+                (u8*)(pstruMsg+1), ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struSessionMsg)));   
 
-            u16Len += ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struAppDirectMsg));     
+            u16Len += ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struSessionMsg));     
             g_struClientBuffer.u32Len = u16Len;
 
             ZC_TraceData(g_struClientBuffer.u8MsgBuffer, g_struClientBuffer.u32Len);

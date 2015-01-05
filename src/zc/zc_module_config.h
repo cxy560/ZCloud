@@ -10,7 +10,7 @@
 #ifndef  __ZC_MOUDLE_CONFIG_H__ 
 #define  __ZC_MOUDLE_CONFIG_H__
 
-#define MT7681
+#define NO_NEED_ASSEMBLE
 
 #if ZC_DEBUG
 #ifdef ZC_OFF_LINETEST
