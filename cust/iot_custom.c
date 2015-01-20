@@ -52,7 +52,7 @@
 #define DEFAULT_VENDOR_NEME			"Mediatek"
 #define DEFAULT_PRODUCT_TYPE    	"IoT 1"
 #define DEFAULT_PRODUCT_NAME        "MT7681"
-#define DEFAULT_CLOUD_ADDR          "www.baidu.com"
+#define DEFAULT_CLOUD_ADDR          "www.ablecloud.cn"
 
 
 /*Default setting of Common Config Block*/

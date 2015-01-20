@@ -113,7 +113,7 @@ _tcpip_init(void)
 	uip_ipaddr(ipaddr, IoTpAd.ComCfg.DNS_IP[0],IoTpAd.ComCfg.DNS_IP[1],
 				IoTpAd.ComCfg.DNS_IP[2],IoTpAd.ComCfg.DNS_IP[3]);
 	resolv_conf(ipaddr);
-	resolv_query("www.baidu.com");
+	resolv_query("www.ablecloud.cn");
 #endif
 	dhcpc_set_state(STATE_CONFIG_DONE);
   }
@@ -243,7 +243,7 @@ dhcpc_configured(const struct dhcpc_state *s)
   uip_setdraddr(s->default_router);
 #if CFG_SUPPORT_DNS
   resolv_conf(s->dnsaddr);
-  resolv_query("www.baidu.com");
+  resolv_query("www.ablecloud.cn");
 #endif
 }
 #endif /* __DHCPC_H__ */

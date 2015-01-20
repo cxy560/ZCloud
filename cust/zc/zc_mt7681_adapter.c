@@ -373,6 +373,7 @@ u32 MT_StoreRegisterInfor(u8 u8Type, u8 *pu8Data, u16 u16DataLen)
         case 1:
         {
             memcpy(&IoTpAd.UsrCfg.VendorName, pu8Data, u16DataLen);
+            ZC_TraceData(pu8Data, u16DataLen); 
             memcpy(&Usr_Cfg, &IoTpAd.UsrCfg, sizeof(IOT_USR_CFG));
             reset_usr_cfg(TRUE);
             break;        
@@ -443,20 +444,20 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
     uip_ipaddr_t ip;
     //uip_ipaddr_t broadcastip;
 
-    u16 *pu16Test = NULL;
+    u16_t  *ipaddr = NULL;
+    ipaddr = &ip;
+    
+    ipaddr =  resolv_lookup(IoTpAd.UsrCfg.CloudAddr);
 
-    pu16Test = resolv_lookup(IoTpAd.UsrCfg.CloudAddr);
-
-    if(NULL == pu16Test)
+    if(NULL == ipaddr)
     {
         return ZC_RET_ERROR;
     }
-
-    
-    ZC_Printf("Connect \n");
+   
     if (ZC_IPTYPE_IPV4 == pstruConnection->u8IpType)
     {
-        uip_ipaddr(ip, 192,168,1,111);//42,62,41,75);
+        //uip_ipaddr(&ip,120,132,77,0);
+
     }
     else 
     {
@@ -465,8 +466,8 @@ u32 MT_ConnectToCloud(PTC_Connection *pstruConnection)
 
     if (ZC_CONNECT_TYPE_TCP == pstruConnection->u8ConnectionType)
     {
-      	conn = uip_connect(&ip, ZC_HTONS((u16_t)pstruConnection->u16Port));
-
+      	conn = uip_connect((uip_ipaddr_t *)ipaddr, ZC_HTONS((u16_t)pstruConnection->u16Port));
+       // conn = uip_connect(&ip, ZC_HTONS((u16_t)pstruConnection->u16Port));
     	if (NULL == conn) 
     	{
     		return ZC_RET_ERROR;
@@ -561,6 +562,7 @@ void MT_Init()
     
     g_u16TcpMss = UIP_TCP_MSS;
     PCT_Init(&g_struMt7681Adapter);
+
 }
 
 /*************************************************
