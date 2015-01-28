@@ -1,6 +1,6 @@
 #*******************************************************************************
 #* MODULE NAME:     makefile
-#* PROJECT CODE:
+#* PROJECT CODE: 
 #* DESCRIPTION:
 #* DESIGNER:        Charles Su
 #* DATE:            Aug 2011
